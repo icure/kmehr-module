@@ -1366,26 +1366,24 @@ class SumehrExport(
         decryptor: AsyncDecrypt?,
         hesFromClient: List<HealthElement>?,
     ): Set<String> {
-        val retrievedHesWithServices = getHealthElements(hcPartyIds, sfks, excludedIds, includeIrrelevantInformation)
-        val healthElements = hesFromClient ?: retrievedHesWithServices.second
-
-        val nonConfidentialItems = getNonConfidentialItems(healthElements)
-        addOmissionOfMedicalDataItem(trn, healthElements, nonConfidentialItems)
-
-
-        // Decrypt everything so that the frontend has a chance to fix the tags
-        if (decryptor != null && nonConfidentialItems.isNotEmpty()) {
-            decryptor.decrypt(
-                nonConfidentialItems.map { healthElementMapper.map(it) },
-                HealthElementDto::class.java,
-            ).map {
-                healthElementMapper.map(it)
-            }.forEach {
-                addHealthCareElement(trn, it)
+        val (healthElements, nonConfidentialItems) = hesFromClient?.let { it to getNonConfidentialItems(it) }
+            ?: getHealthElements(hcPartyIds, sfks, excludedIds, includeIrrelevantInformation).second.let {
+                val nonConfidentialItems = getNonConfidentialItems(it)
+                if (decryptor != null && nonConfidentialItems.isNotEmpty()) {
+                    it to decryptor.decrypt(
+                        nonConfidentialItems.map { healthElementMapper.map(it) },
+                        HealthElementDto::class.java,
+                    ).map {
+                        healthElementMapper.map(it)
+                    }
+                } else emptyList<HealthElement>() to emptyList()
             }
-        }
 
-        return retrievedHesWithServices.first
+        addOmissionOfMedicalDataItem(trn, healthElements, nonConfidentialItems)
+        nonConfidentialItems.forEach { he ->
+            addHealthCareElement(trn, he)
+        }
+        return getHealthElements(hcPartyIds, sfks, excludedIds, includeIrrelevantInformation).first
     }
 
     /**
@@ -1449,7 +1447,7 @@ class SumehrExport(
                                                     )
                                                 }
                                             } catch (ignored: IllegalArgumentException) {
-                                                log.warn("Code has been ignored for CD-CONTENT", ignored)
+                                                log.warn("Code ${c.type} | ${c.code} has been ignored for CD-CONTENT")
                                             }
                                         }
                                     },
