@@ -1366,9 +1366,9 @@ class SumehrExport(
         decryptor: AsyncDecrypt?,
         hesFromClient: List<HealthElement>?,
     ): Set<String> {
-        val retrievedHealthElements = if (hesFromClient != null) emptySet<String>() to emptyList() else getHealthElements(hcPartyIds, sfks, excludedIds, includeIrrelevantInformation)
+        val retrievedHesWithServices = if (hesFromClient != null) emptySet<String>() to emptyList() else getHealthElements(hcPartyIds, sfks, excludedIds, includeIrrelevantInformation)
         val (healthElements, nonConfidentialItems) = hesFromClient?.let { it to getNonConfidentialItems(it) }
-            ?: retrievedHealthElements.second.let {
+            ?: retrievedHesWithServices.second.let {
                 val nonConfidentialItems = getNonConfidentialItems(it)
                 if (decryptor != null && nonConfidentialItems.isNotEmpty()) {
                     it to decryptor.decrypt(
@@ -1384,7 +1384,7 @@ class SumehrExport(
         nonConfidentialItems.forEach { he ->
             addHealthCareElement(trn, he)
         }
-        return retrievedHealthElements.first
+        return retrievedHesWithServices.first
     }
 
     /**
