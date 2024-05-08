@@ -5,6 +5,7 @@ import io.icure.kraken.client.infrastructure.ClientException
 import io.icure.kraken.client.security.JWTProvider
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -14,9 +15,12 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.TestInstance
 import org.taktik.icure.config.BridgeConfig
 import org.taktik.icure.entities.User
+import org.taktik.icure.entities.security.AuthenticationToken
 import org.taktik.icure.security.jwt.JwtUtils
+import org.taktik.icure.services.external.rest.v2.dto.UserDto
 import org.taktik.icure.services.external.rest.v2.mapper.UnsecureUserV2MapperImpl
 import org.taktik.icure.test.*
+import java.time.Instant
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class UserLogicBridgeTest(
@@ -47,7 +51,11 @@ class UserLogicBridgeTest(
     @OptIn(ExperimentalStdlibApi::class, ExperimentalCoroutinesApi::class)
     private suspend fun createUser(user: User) =
         UserApi(basePath = bridgeConfig.iCureUrl, authProvider = JWTProvider(bridgeConfig.iCureUrl, KmehrTestApplication.masterHcp.login, KmehrTestApplication.masterHcp.password))
-            .createUser(userMapper.map(user)).let(userMapper::map)
+            .createUser(userMapper.map(user)).let { it: UserDto ->
+                userMapper.map(it.copy(
+                    authenticationTokens = it.authenticationTokens.mapValues { (_, token) -> token.copy(token = "*") }
+                ))
+            }
 
     private fun StringSpec.userLogicBridgeTest(
         userBridge: UserLogicBridge,
@@ -61,13 +69,14 @@ class UserLogicBridgeTest(
                         id = uuid(),
                         login = uuid(),
                         email = uuid(),
-                        healthcarePartyId = uuid()
+                        healthcarePartyId = uuid(),
+                        passwordHash = uuid(),
+                        authenticationTokens = mapOf("test" to AuthenticationToken("token", Instant.now()))
                     )
                 )
 
-                val retrievedUser = userBridge.getUser(newUser.id)
-                retrievedUser shouldNotBe null
-                retrievedUser!!.id shouldBe newUser.id
+                val retrievedUser = userBridge.getUser(newUser.id).shouldNotBeNull()
+                retrievedUser.id shouldBe newUser.id
             }
         }
 
@@ -87,13 +96,15 @@ class UserLogicBridgeTest(
                             id = uuid(),
                             login = uuid(),
                             email = uuid(),
-                            healthcarePartyId = uuid()
+                            healthcarePartyId = uuid(),
+                            passwordHash = uuid(),
+                            authenticationTokens = mapOf("test" to AuthenticationToken("token", Instant.now()))
                         )
                     )
                 }
                 newUsers.size shouldBe 5
 
-                val result = userBridge.listUserIdsByHcpartyId(newUsers.first().healthcarePartyId!!).toList()
+                val result = userBridge.listUserIdsByHcpartyId(newUsers.first().healthcarePartyId.shouldNotBeNull()).toList()
                 result.size shouldBe 1
                 result.first() shouldBe newUsers.first().id
             }
