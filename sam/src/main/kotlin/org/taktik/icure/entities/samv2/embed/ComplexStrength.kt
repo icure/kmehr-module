@@ -4,17 +4,14 @@
 
 package org.taktik.icure.entities.samv2.embed
 
+import java.io.Serializable
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonInclude
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-data class AmppComponent(
-	override val from: Long? = null,
-	override val to: Long? = null,
-	val contentType: ContentType? = null,
-	val contentMultiplier: Int? = null,
-	val packSpecification: SamText? = null,
-	val deviceType: DeviceType? = null,
-	val packagingType: PackagingType? = null
-) : DataPeriod
+data class ComplexStrength(
+	val operator: String? = null,
+	val quantity: Quantity? = null,
+	val secondQuantity: Quantity? = null
+) : Serializable

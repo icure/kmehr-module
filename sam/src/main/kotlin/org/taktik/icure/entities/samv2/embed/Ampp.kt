@@ -23,7 +23,7 @@ data class Ampp(
 	val parallelDistributor: String? = null,
 	val packMultiplier: Short? = null,
 	val packAmount: Quantity? = null,
-	val packDisplayValue: String? = null,
+	val packDisplayValue: SamText? = null,
 	val status: AmpStatus? = null,
 	val atcs: Set<Atc> = emptySet(),
 	val crmLink: SamText? = null,
