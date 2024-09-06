@@ -65,6 +65,6 @@ data class AmppDto(
 	val supplyProblems: List<SupplyProblemDto>? = null,
 	val dmpps: List<DmppDto> = emptyList(),
 	val vaccineIndicationCodes: List<String>? = emptyList(),
-	val rmaKeyMessages: SamTextDto?,
-	val genericPrescriptionRequired: Boolean
+	val rmaKeyMessages: SamTextDto? = null,
+	val genericPrescriptionRequired: Boolean? = null
 ) : DataPeriodDto
