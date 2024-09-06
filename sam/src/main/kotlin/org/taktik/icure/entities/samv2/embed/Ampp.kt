@@ -54,6 +54,6 @@ data class Ampp(
 	var supplyProblems: Set<SupplyProblem>? = null,
 	val dmpps: Set<Dmpp> = emptySet(),
 	val vaccineIndicationCodes: Set<String>? = null,
-	val rmaKeyMessages: SamText?,
-	val genericPrescriptionRequired: Boolean
+	val rmaKeyMessages: SamText? = null,
+	val genericPrescriptionRequired: Boolean? = null
 ) : DataPeriod
