@@ -16,19 +16,15 @@
  *     <https://www.gnu.org/licenses/>.
  */
 
-package org.taktik.icure.services.external.rest.v2.dto.samv2.embed
+package org.taktik.icure.services.external.rest.v2.mapper.samv2.embed
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties
-import com.fasterxml.jackson.annotation.JsonInclude
+import org.mapstruct.InjectionStrategy
+import org.mapstruct.Mapper
+import org.taktik.icure.entities.samv2.embed.BoundedParameter
+import org.taktik.icure.services.external.rest.v2.dto.samv2.embed.BoundedParameterDto
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonIgnoreProperties(ignoreUnknown = true)
-data class AmppComponentDto(
-	override val from: Long? = null,
-	override val to: Long? = null,
-	val contentType: ContentTypeDto? = null,
-	val contentMultiplier: Int? = null,
-	val packSpecification: SamTextDto? = null,
-	val deviceType: DeviceTypeDto? = null,
-	val packagingType: PackagingTypeDto? = null
-) : DataPeriodDto
+@Mapper(componentModel = "spring", uses = [DosageParameterV2Mapper::class], injectionStrategy = InjectionStrategy.CONSTRUCTOR)
+interface BoundedParameterV2Mapper {
+	fun map(boundedParameterDto: BoundedParameterDto): BoundedParameter
+	fun map(boundedParameter: BoundedParameter): BoundedParameterDto
+}
