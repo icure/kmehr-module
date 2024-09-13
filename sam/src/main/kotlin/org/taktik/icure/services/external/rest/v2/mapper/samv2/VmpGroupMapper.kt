@@ -28,8 +28,9 @@ import org.taktik.icure.services.external.rest.v2.mapper.EntityReferenceV2Mapper
 import org.taktik.icure.services.external.rest.v2.mapper.samv2.embed.NoGenericPrescriptionReasonV2Mapper
 import org.taktik.icure.services.external.rest.v2.mapper.samv2.embed.NoSwitchReasonV2Mapper
 import org.taktik.icure.services.external.rest.v2.mapper.samv2.embed.SamTextV2Mapper
+import org.taktik.icure.services.external.rest.v2.mapper.samv2.embed.StandardDosageV2Mapper
 
-@Mapper(componentModel = "spring", uses = [NoSwitchReasonV2Mapper::class, SamTextV2Mapper::class, NoGenericPrescriptionReasonV2Mapper::class, EntityReferenceV2Mapper::class], injectionStrategy = InjectionStrategy.CONSTRUCTOR)
+@Mapper(componentModel = "spring", uses = [NoSwitchReasonV2Mapper::class, SamTextV2Mapper::class, NoGenericPrescriptionReasonV2Mapper::class, EntityReferenceV2Mapper::class, StandardDosageV2Mapper::class], injectionStrategy = InjectionStrategy.CONSTRUCTOR)
 interface VmpGroupV2Mapper {
 	@Mappings(
 		Mapping(target = "attachments", ignore = true),

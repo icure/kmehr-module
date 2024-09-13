@@ -28,7 +28,7 @@ data class AmppComponentDto(
 	override val to: Long? = null,
 	val contentType: ContentTypeDto? = null,
 	val contentMultiplier: Int? = null,
-	val packSpecification: String? = null,
+	val packSpecification: SamTextDto? = null,
 	val deviceType: DeviceTypeDto? = null,
 	val packagingType: PackagingTypeDto? = null
 ) : DataPeriodDto

@@ -31,7 +31,7 @@ data class IngredientDto(
 	val type: IngredientTypeDto? = null,
 	val knownEffect: Boolean? = null,
 	val strengthDescription: String? = null,
-	val strength: QuantityDto? = null,
-	val additionalInformation: String? = null,
+	val strength: ComplexStrengthDto? = null,
+	val additionalInformation: SamTextDto? = null,
 	val substance: SubstanceStubDto? = null
 ) : DataPeriodDto

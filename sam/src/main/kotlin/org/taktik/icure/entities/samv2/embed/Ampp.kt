@@ -6,6 +6,8 @@ package org.taktik.icure.entities.samv2.embed
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonInclude
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize
+import org.taktik.icure.utils.JacksonSamTextLenientDeserializer
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -23,7 +25,8 @@ data class Ampp(
 	val parallelDistributor: String? = null,
 	val packMultiplier: Short? = null,
 	val packAmount: Quantity? = null,
-	val packDisplayValue: String? = null,
+	@JsonDeserialize(using = JacksonSamTextLenientDeserializer::class)
+	val packDisplayValue: SamText? = null,
 	val status: AmpStatus? = null,
 	val atcs: Set<Atc> = emptySet(),
 	val crmLink: SamText? = null,
@@ -50,5 +53,7 @@ data class Ampp(
 	val commercializations: Set<Commercialization>? = null,
 	var supplyProblems: Set<SupplyProblem>? = null,
 	val dmpps: Set<Dmpp> = emptySet(),
-	val vaccineIndicationCodes: Set<String>? = null
+	val vaccineIndicationCodes: Set<String>? = null,
+	val rmaKeyMessages: SamText? = null,
+	val genericPrescriptionRequired: Boolean? = null
 ) : DataPeriod

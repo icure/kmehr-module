@@ -37,7 +37,7 @@ data class AmppDto(
 	val parallelDistributor: String? = null,
 	val packMultiplier: Short? = null,
 	val packAmount: QuantityDto? = null,
-	val packDisplayValue: String? = null,
+	val packDisplayValue: SamTextDto? = null,
 	val status: AmpStatusDto? = null,
 	val atcs: List<AtcDto> = emptyList(),
 	val crmLink: SamTextDto? = null,
@@ -64,5 +64,7 @@ data class AmppDto(
 	val commercializations: List<CommercializationDto>? = emptyList(),
 	val supplyProblems: List<SupplyProblemDto>? = null,
 	val dmpps: List<DmppDto> = emptyList(),
-	val vaccineIndicationCodes: List<String>? = emptyList()
+	val vaccineIndicationCodes: List<String>? = emptyList(),
+	val rmaKeyMessages: SamTextDto? = null,
+	val genericPrescriptionRequired: Boolean? = null
 ) : DataPeriodDto
