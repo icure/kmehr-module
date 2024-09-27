@@ -6,7 +6,6 @@ import com.icure.sdk.utils.InternalIcureApi
 import com.icure.sdk.utils.Serialization
 import kotlinx.coroutines.flow.Flow
 import org.springframework.stereotype.Service
-import org.taktik.couchdb.DocIdentifier
 import org.taktik.icure.asynclogic.InsuranceLogic
 import org.taktik.icure.asynclogic.bridge.auth.KmehrAuthProvider
 import org.taktik.icure.asynclogic.bridge.mappers.InsuranceMapper
@@ -36,10 +35,6 @@ class InsuranceLogicBridge(
     } ?: throw UnauthorizedException("You must be logged in to perform this operation")
 
     override suspend fun createInsurance(insurance: Insurance): Insurance? {
-        throw BridgeException()
-    }
-
-    override suspend fun deleteInsurance(insuranceId: String): DocIdentifier? {
         throw BridgeException()
     }
 

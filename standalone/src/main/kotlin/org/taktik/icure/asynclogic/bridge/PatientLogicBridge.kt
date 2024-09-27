@@ -1,7 +1,6 @@
 package org.taktik.icure.asynclogic.bridge
 
 import com.icure.sdk.api.raw.impl.RawPatientApiImpl
-import com.icure.sdk.api.raw.successBodyOrNull404
 import com.icure.sdk.crypto.impl.NoAccessControlKeysHeadersProvider
 import com.icure.sdk.model.ListOfIds
 import com.icure.sdk.utils.InternalIcureApi
@@ -11,7 +10,6 @@ import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import org.springframework.stereotype.Service
-import org.taktik.couchdb.DocIdentifier
 import org.taktik.couchdb.ViewQueryResultEvent
 import org.taktik.couchdb.entity.ComplexKey
 import org.taktik.icure.asynclogic.PatientLogic
@@ -78,10 +76,6 @@ class PatientLogicBridge(
     }
 
     override suspend fun addDelegation(patientId: String, delegation: Delegation): Patient? {
-        throw BridgeException()
-    }
-
-    override fun deletePatients(ids: Set<String>): Flow<DocIdentifier> {
         throw BridgeException()
     }
 
@@ -253,10 +247,6 @@ class PatientLogicBridge(
     }
 
     override fun modifyPatients(patients: Collection<Patient>): Flow<Patient> {
-        throw BridgeException()
-    }
-
-    override fun undeletePatients(ids: Set<String>): Flow<DocIdentifier> {
         throw BridgeException()
     }
 

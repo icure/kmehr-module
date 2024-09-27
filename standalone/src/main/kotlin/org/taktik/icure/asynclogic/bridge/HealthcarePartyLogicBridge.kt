@@ -2,7 +2,6 @@ package org.taktik.icure.asynclogic.bridge
 
 import com.icure.sdk.api.raw.RawHealthcarePartyApi
 import com.icure.sdk.api.raw.impl.RawHealthcarePartyApiImpl
-import com.icure.sdk.api.raw.successBodyOrNull404
 import com.icure.sdk.model.ListOfIds
 import com.icure.sdk.model.filter.hcparty.HealthcarePartyByNationalIdentifierFilter
 import com.icure.sdk.utils.InternalIcureApi
@@ -17,7 +16,6 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.JsonElement
 import org.springframework.stereotype.Service
-import org.taktik.couchdb.DocIdentifier
 import org.taktik.couchdb.ViewQueryResultEvent
 import org.taktik.couchdb.entity.ComplexKey
 import org.taktik.icure.asynclogic.HealthcarePartyLogic
@@ -55,10 +53,6 @@ class HealthcarePartyLogicBridge(
         getApi().createHealthcareParty(healthcarePartyMapper.map(healthcareParty))
             .successBody()
             .let { healthcarePartyMapper.map(it) }
-
-    override fun deleteHealthcareParties(healthcarePartyIds: List<String>): Flow<DocIdentifier> {
-        throw BridgeException()
-    }
 
     override fun filterHealthcareParties(
         paginationOffset: PaginationOffset<Nothing>,

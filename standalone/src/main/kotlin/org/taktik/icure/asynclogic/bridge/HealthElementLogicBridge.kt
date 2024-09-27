@@ -53,10 +53,6 @@ class HealthElementLogicBridge(
         )
     }
 
-    override fun deleteHealthElements(ids: Set<String>): Flow<DocIdentifier> {
-        throw BridgeException()
-    }
-
     override fun filter(
         paginationOffset: PaginationOffset<Nothing>,
         filter: FilterChain<HealthElement>

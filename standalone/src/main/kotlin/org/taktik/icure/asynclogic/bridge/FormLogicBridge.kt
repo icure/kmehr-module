@@ -42,10 +42,6 @@ class FormLogicBridge(
     override suspend fun createForm(form: Form): Form? =
         getApi().createForm(form.let(formMapper::map)).successBodyOrNull404()?.let(formMapper::map)
 
-    override fun deleteForms(ids: Set<String>): Flow<DocIdentifier> {
-        throw BridgeException()
-    }
-
     override suspend fun addDelegation(formId: String, delegation: Delegation): Form? {
         throw BridgeException()
     }
