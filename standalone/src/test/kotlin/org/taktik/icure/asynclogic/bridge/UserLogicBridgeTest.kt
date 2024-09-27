@@ -2,8 +2,8 @@ package org.taktik.icure.asynclogic.bridge
 
 import com.icure.sdk.api.raw.impl.RawUserApiImpl
 import com.icure.sdk.utils.InternalIcureApi
-import com.icure.sdk.utils.RequestStatusException
 import com.icure.sdk.utils.Serialization
+import com.sun.xml.bind.api.Bridge
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.nulls.shouldNotBeNull
@@ -16,6 +16,7 @@ import org.taktik.icure.asynclogic.bridge.mappers.UserMapper
 import org.taktik.icure.config.BridgeConfig
 import org.taktik.icure.entities.User
 import org.taktik.icure.entities.security.AuthenticationToken
+import org.taktik.icure.exceptions.BridgeException
 import org.taktik.icure.security.jwt.JwtUtils
 import org.taktik.icure.test.*
 import java.time.Instant
@@ -130,8 +131,8 @@ class UserLogicBridgeTest(
 
         "The bridge cannot delete a user" {
             withAuthenticatedReactorContext(credentials) {
-                shouldThrow<UnsupportedOperationException> {
-                    userBridge.deleteUser(uuid())
+                shouldThrow<BridgeException> {
+                    userBridge.deleteEntity(uuid(), null)
                 }
             }
         }
@@ -162,8 +163,8 @@ class UserLogicBridgeTest(
 
         "The bridge cannot undelete a user" {
             withAuthenticatedReactorContext(credentials) {
-                shouldThrow<UnsupportedOperationException> {
-                    userBridge.undeleteUser(uuid())
+                shouldThrow<BridgeException> {
+                    userBridge.undeleteEntity(uuid(), null)
                 }
             }
         }

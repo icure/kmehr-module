@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.benmanes.caffeine.cache.Caffeine
 import io.icure.asyncjacksonhttpclient.net.web.WebClient
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import org.apache.http.client.utils.URIBuilder
 import org.springframework.cache.caffeine.CaffeineCache
 import org.taktik.couchdb.Client
 import org.taktik.couchdb.ClientImpl
@@ -42,7 +41,8 @@ class SAMCouchDBDispatcher (
                 override suspend fun getValue(key: CouchDbConnectorReference): Client {
                     return ClientImpl(
                         httpClient = httpClient,
-                        dbURI = URIBuilder((datastoreInformation as SAMDatastoreInformation).dbInstanceUrl).setPath("$prefix-__-$dbFamily").build(),
+                        couchDBUri = (datastoreInformation as SAMDatastoreInformation).dbInstanceUrl,
+                        dbName = "$prefix-__-$dbFamily",
                         objectMapper = objectMapper,
                         credentialsProvider = couchDbCredentialsProvider
                     ).also {

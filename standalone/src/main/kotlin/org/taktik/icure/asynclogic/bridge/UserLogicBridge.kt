@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import org.springframework.stereotype.Service
-import org.taktik.couchdb.DocIdentifier
 import org.taktik.couchdb.ViewQueryResultEvent
 import org.taktik.icure.asynclogic.UserLogic
 import org.taktik.icure.asynclogic.bridge.auth.KmehrAuthProvider
@@ -53,10 +52,6 @@ class UserLogicBridge(
 
     override suspend fun createUser(user: User): User? {
         throw UnsupportedOperationException("The Kmehr module cannot create users")
-    }
-
-    override suspend fun deleteUser(userId: String): DocIdentifier? {
-        throw UnsupportedOperationException("The Kmehr module cannot delete users")
     }
 
     override suspend fun disableUser(userId: String): User? {
@@ -131,9 +126,5 @@ class UserLogicBridge(
 
     override suspend fun setProperties(userId: String, properties: List<PropertyStub>): User? {
         throw UnsupportedOperationException("The Kmehr module cannot modify users")
-    }
-
-    override suspend fun undeleteUser(userId: String) {
-        throw UnsupportedOperationException("The Kmehr module cannot undelete users")
     }
 }

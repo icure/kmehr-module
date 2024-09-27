@@ -10,7 +10,6 @@ import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import org.springframework.stereotype.Service
-import org.taktik.couchdb.DocIdentifier
 import org.taktik.couchdb.entity.ComplexKey
 import org.taktik.icure.asynclogic.InvoiceLogic
 import org.taktik.icure.asynclogic.bridge.auth.KmehrAuthProvider
@@ -67,10 +66,6 @@ class InvoiceLogicBridge(
     }
 
     override suspend fun createInvoice(invoice: Invoice): Invoice? {
-        throw BridgeException()
-    }
-
-    override suspend fun deleteInvoice(invoiceId: String): DocIdentifier? {
         throw BridgeException()
     }
 

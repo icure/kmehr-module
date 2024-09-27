@@ -47,14 +47,6 @@ open class GenericLogicBridge<E : Identifiable<String>> {
         throw IllegalStateException("Bridge method not implemented")
     }
 
-    fun deleteEntities(identifiers: Collection<String>): Flow<DocIdentifier> {
-        throw IllegalStateException("Bridge method not implemented")
-    }
-
-    fun deleteEntities(identifiers: Flow<String>): Flow<DocIdentifier> {
-        throw IllegalStateException("Bridge method not implemented")
-    }
-
     suspend fun exists(id: String): Boolean {
         throw IllegalStateException("Bridge method not implemented")
     }
@@ -101,6 +93,26 @@ open class GenericLogicBridge<E : Identifiable<String>> {
         startKey: ExternalFilterKey?,
         endKey: ExternalFilterKey?
     ): Flow<String> {
+        throw BridgeException()
+    }
+
+    suspend fun deleteEntity(id: String, rev: String?): DocIdentifier {
+        throw BridgeException()
+    }
+
+    fun deleteEntities(identifiers: Collection<IdAndRev>): Flow<DocIdentifier> {
+        throw BridgeException()
+    }
+
+    suspend fun undeleteEntity(id: String, rev: String?): E {
+        throw BridgeException()
+    }
+
+    fun undeleteEntities(identifiers: Collection<IdAndRev>): Flow<E> {
+        throw BridgeException()
+    }
+
+    suspend fun purgeEntity(id: String, rev: String): DocIdentifier {
         throw BridgeException()
     }
 }
