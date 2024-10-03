@@ -4,7 +4,6 @@
 
 package org.taktik.icure.utils
 
-import java.util.Base64
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.databind.DeserializationContext
 import com.fasterxml.jackson.databind.JsonDeserializer

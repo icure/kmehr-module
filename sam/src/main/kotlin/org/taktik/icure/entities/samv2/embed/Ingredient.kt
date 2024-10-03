@@ -8,6 +8,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import org.taktik.icure.entities.samv2.stub.SubstanceStub
+import org.taktik.icure.utils.JacksonComplexStrengthLenientDeserializer
 import org.taktik.icure.utils.JacksonSamTextLenientDeserializer
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -19,6 +20,7 @@ data class Ingredient(
 	val type: IngredientType? = null,
 	val knownEffect: Boolean? = null,
 	val strengthDescription: String? = null,
+	@JsonDeserialize(using = JacksonComplexStrengthLenientDeserializer::class)
 	val strength: ComplexStrength? = null,
 	@JsonDeserialize(using = JacksonSamTextLenientDeserializer::class)
 	val additionalInformation: SamText? = null,
