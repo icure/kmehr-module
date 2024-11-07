@@ -645,7 +645,7 @@ class SumehrImport(
 
         return hcp?.parentId?.let { parentId ->
             userLogic.listUserIdsByHcpartyId(parentId).firstOrNull()?.let { parentAuthorId ->
-                userLogic.getUser(parentAuthorId)?.let {parentAuthor ->
+                userLogic.getUser(parentAuthorId, false)?.let {parentAuthor ->
                     getExistingPatient(p, parentAuthor, v, dest)
                 }
             }

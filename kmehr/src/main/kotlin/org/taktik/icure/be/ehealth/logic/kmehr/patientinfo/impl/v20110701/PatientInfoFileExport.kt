@@ -86,7 +86,7 @@ class PatientInfoFileExport(
                         author = AuthorType().apply {
                             hcparties.add(
                                 healthcarePartyLogic.getHealthcareParty(
-                                    patient.author?.let { userLogic.getUser(it)?.healthcarePartyId } ?: sender.id)?.let { createParty(it) }
+                                    patient.author?.let { userLogic.getUser(it, false)?.healthcarePartyId } ?: sender.id)?.let { createParty(it) }
                             )
                         }
                         isIscomplete = true

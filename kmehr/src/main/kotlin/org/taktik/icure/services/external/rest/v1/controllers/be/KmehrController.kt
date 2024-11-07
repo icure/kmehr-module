@@ -748,7 +748,7 @@ class KmehrController(
         val userHealthCareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentHealthcarePartyId())
         val document = documentLogic.getDocument(documentId)
         val attachment = document?.let{ documentLogic.getAndDecryptMainAttachment(it.id, documentKey) }
-        val user = userLogic.getUser(sessionLogic.getCurrentUserId()) ?: throw NotFoundRequestException("User not found")
+        val user = userLogic.getUser(sessionLogic.getCurrentUserId(), false) ?: throw NotFoundRequestException("User not found")
 
         attachment?.let {
             softwareMedicalFileLogic.importSmfFile(
@@ -772,7 +772,7 @@ class KmehrController(
         val document = documentLogic.getDocument(documentId)
 
         val attachmentId = document?.attachmentId
-        val user = userLogic.getUser(sessionLogic.getCurrentUserId()) ?: throw NotFoundRequestException("User not found")
+        val user = userLogic.getUser(sessionLogic.getCurrentUserId(), false) ?: throw NotFoundRequestException("User not found")
 
         attachmentId?.let {
             softwareMedicalFileLogic.checkIfSMFPatientsExists(
@@ -797,7 +797,7 @@ class KmehrController(
         val document = documentLogic.getDocument(documentId)
 
         val attachmentId = document?.attachmentId
-        val user = userLogic.getUser(sessionLogic.getCurrentUserId()) ?: throw NotFoundRequestException("User not found")
+        val user = userLogic.getUser(sessionLogic.getCurrentUserId(), false) ?: throw NotFoundRequestException("User not found")
 
         attachmentId?.let {
             sumehrLogicV1.importSumehr(
@@ -824,7 +824,7 @@ class KmehrController(
     ) = mono {
         val userHealthCareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentHealthcarePartyId())
         val document = documentLogic.getDocument(documentId)
-        val user = userLogic.getUser(sessionLogic.getCurrentUserId()) ?: throw IllegalStateException("User not found")
+        val user = userLogic.getUser(sessionLogic.getCurrentUserId(), false) ?: throw IllegalStateException("User not found")
 
         val attachmentId = document?.attachmentId
         attachmentId?.let {
@@ -852,7 +852,7 @@ class KmehrController(
     ) = mono {
         val userHealthCareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentHealthcarePartyId())
         val document = documentLogic.getDocument(documentId)
-        val user = userLogic.getUser(sessionLogic.getCurrentUserId()) ?: throw NotFoundRequestException("User not found")
+        val user = userLogic.getUser(sessionLogic.getCurrentUserId(), false) ?: throw NotFoundRequestException("User not found")
 
         val attachmentId = document?.attachmentId
         attachmentId?.let {

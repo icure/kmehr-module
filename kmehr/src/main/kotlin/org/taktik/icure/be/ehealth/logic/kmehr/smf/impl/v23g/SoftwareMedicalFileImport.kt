@@ -1495,7 +1495,7 @@ class SoftwareMedicalFileImport(
         val hcp = healthcarePartyLogic.getHealthcareParty(author.healthcarePartyId!!)
         return hcp?.parentId?.let { hcpParent ->
             userLogic.listUserIdsByHcpartyId(hcpParent).firstOrNull()?.let { parentAuthorId ->
-                userLogic.getUser(parentAuthorId)?.let { parentAuthor ->
+                userLogic.getUser(parentAuthorId, false)?.let { parentAuthor ->
                     getExistingPatient(p, parentAuthor, v, dest)
                 }
             }
