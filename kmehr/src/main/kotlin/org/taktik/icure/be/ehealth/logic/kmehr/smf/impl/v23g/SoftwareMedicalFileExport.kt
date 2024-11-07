@@ -172,7 +172,7 @@ class SoftwareMedicalFileExport(
                 time = config.time
                 author = AuthorType().apply {
                     hcparties.add(
-                        healthcarePartyLogic.getHealthcareParty(patient.author?.let { userLogic.getUser(it)?.healthcarePartyId } ?: healthcareParty.id)?.let { createParty(it) },
+                        healthcarePartyLogic.getHealthcareParty(patient.author?.let { userLogic.getUser(it, false)?.healthcarePartyId } ?: healthcareParty.id)?.let { createParty(it) },
                     )
                 }
                 isIscomplete = true

@@ -213,7 +213,7 @@ class MedicationSchemeExport(
                             } ?: run {
                                 author = AuthorType().apply {
                                     hcparties.add(healthcarePartyLogic.getHealthcareParty(
-                                        svc.author?.let { userLogic.getUser(it)?.healthcarePartyId }
+                                        svc.author?.let { userLogic.getUser(it, false)?.healthcarePartyId }
                                             ?: healthcareParty.id)
                                         ?.let { createParty(it) })
                                 }
@@ -338,7 +338,7 @@ class MedicationSchemeExport(
                                     }
                                 } ?: run {
                                     author = AuthorType().apply {
-                                        hcparties.add(healthcarePartyLogic.getHealthcareParty(svc.author?.let { userLogic.getUser(it)?.healthcarePartyId } ?: healthcareParty.id)?.let { createParty(it) })
+                                        hcparties.add(healthcarePartyLogic.getHealthcareParty(svc.author?.let { userLogic.getUser(it, false)?.healthcarePartyId } ?: healthcareParty.id)?.let { createParty(it) })
                                     }
                                 }
                                 isIscomplete = true
