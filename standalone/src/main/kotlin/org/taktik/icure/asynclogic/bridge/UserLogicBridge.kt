@@ -81,7 +81,7 @@ class UserLogicBridge(
     }
 
     @OptIn(InternalIcureApi::class)
-    override suspend fun getUser(id: String): User? =
+    override suspend fun getUser(id: String, includeMetadataFromGlobalUser: Boolean): User? =
         getApi().getUser(id).successBodyOrNull404()?.let(userMapper::map)
 
     override suspend fun getUserByEmail(email: String): User? {

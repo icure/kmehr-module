@@ -12,11 +12,13 @@ import java.net.URI
 @Component
 @Profile("sam")
 @ConfigurationProperties("icure.couchdb")
-open class SAMCouchDbProperties(
+class SAMCouchDbProperties(
 	override var url: String = "http://127.0.0.1:5984",
 	override var altUrls: String = "",
 	override var username: String? = null,
-	override var password: String? = null
+	override var password: String? = null,
+	override var maxConnections: Int? = null,
+	override var maxPendingAcquire: Int? = 10_000
 ) : CouchDbProperties {
 	override fun knownServerUrls() = if (altUrls.isBlank()) listOf(url) else altUrls.split(";").let { if (it.contains(url)) it else listOf(url) + it }
 	override fun knownServerUris() = knownServerUrls().map { URI(it) }
