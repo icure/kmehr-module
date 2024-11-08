@@ -82,14 +82,14 @@ class UserLogicBridgeTest(
                     )
                 )
 
-                val retrievedUser = userBridge.getUser(newUser.id).shouldNotBeNull()
+                val retrievedUser = userBridge.getUser(newUser.id, false).shouldNotBeNull()
                 retrievedUser.id shouldBe newUser.id
             }
         }
 
         "Getting a user that does not exists returns null" {
             withAuthenticatedReactorContext(credentials) {
-                userBridge.getUser(uuid()) shouldBe null
+                userBridge.getUser(uuid(), false) shouldBe null
             }
         }
 
