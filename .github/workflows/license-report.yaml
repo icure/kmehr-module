@@ -29,7 +29,7 @@ jobs:
         env:
           ORG_GRADLE_PROJECT_repoUsername: ${{ secrets.REPO_USERNAME }}
           ORG_GRADLE_PROJECT_repoPassword: ${{ secrets.REPO_PASSWORD }}
-        run: ./gradlew generateLicenseReport -x :kmehr:build -x :kmehr:kspKotlin -x :kmehr:compileKotlin -x :kmehr:compileJava -x :sam:build -x :sam:kspKotlin -x :sam:compileKotlin -x :sam:compileJava
+        run: ./gradlew generateLicenseReport -x build -x jar -x :kmehr:build -x :kmehr:jar -x :kmehr:kspKotlin -x :kmehr:compileKotlin -x :kmehr:compileJava -x :sam:build -x :sam:jar -x :sam:kspKotlin -x :sam:compileKotlin -x :sam:compileJava
 
       - name: Copy, rename, and remove header
         run: tail -n +2 ./standalone/build/reports/dependency-license/licenses.csv > ./${{ github.event.repository.name }}.csv
