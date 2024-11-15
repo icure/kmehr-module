@@ -1,7 +1,7 @@
 package org.taktik.icure.asynclogic.bridge.mappers
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.icure.sdk.model.EncryptedForm
+import com.icure.cardinal.sdk.model.EncryptedForm
 import org.springframework.stereotype.Service
 import org.taktik.icure.entities.Form
 import org.taktik.icure.services.external.rest.v2.dto.FormDto

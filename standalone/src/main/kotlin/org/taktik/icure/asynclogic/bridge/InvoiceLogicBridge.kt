@@ -1,10 +1,10 @@
 package org.taktik.icure.asynclogic.bridge
 
-import com.icure.sdk.api.raw.impl.RawInvoiceApiImpl
-import com.icure.sdk.crypto.impl.NoAccessControlKeysHeadersProvider
-import com.icure.sdk.model.ListOfIds
-import com.icure.sdk.utils.InternalIcureApi
-import com.icure.sdk.utils.Serialization
+import com.icure.cardinal.sdk.api.raw.impl.RawInvoiceApiImpl
+import com.icure.cardinal.sdk.crypto.impl.NoAccessControlKeysHeadersProvider
+import com.icure.cardinal.sdk.model.ListOfIds
+import com.icure.utils.InternalIcureApi
+import com.icure.cardinal.sdk.utils.Serialization
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.emitAll
@@ -130,6 +130,7 @@ class InvoiceLogicBridge(
         throw BridgeException()
     }
 
+    @Deprecated("This method cannot include results with secure delegations, use listInvoiceIdsByDataOwnerPatientInvoiceDate instead")
     override fun listInvoicesByHcPartyAndPatientSfks(hcParty: String, secretPatientKeys: Set<String>): Flow<Invoice> {
         throw BridgeException()
     }

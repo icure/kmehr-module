@@ -1,8 +1,8 @@
 package org.taktik.icure.asynclogic.bridge
 
-import com.icure.sdk.api.raw.impl.RawCodeApiImpl
-import com.icure.sdk.utils.InternalIcureApi
-import com.icure.sdk.utils.Serialization
+import com.icure.cardinal.sdk.api.raw.impl.RawCodeApiImpl
+import com.icure.utils.InternalIcureApi
+import com.icure.cardinal.sdk.utils.Serialization
 import kotlinx.coroutines.flow.Flow
 import org.springframework.stereotype.Service
 import org.taktik.couchdb.ViewQueryResultEvent

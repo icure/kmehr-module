@@ -201,6 +201,7 @@ private fun StringSpec.healthcarePartyLogicBridgeTest(
                 )).first()
             }
 
+            @Suppress("DEPRECATION")
             heBridge.listHealthElementsByHcPartyAndSecretPatientKeys(credentials.dataOwnerId!!, patientSFKs)
                 .onEach {
                     it.delegations.keys shouldContain credentials.dataOwnerId

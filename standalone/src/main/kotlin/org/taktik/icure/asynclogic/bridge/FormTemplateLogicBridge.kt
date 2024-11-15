@@ -1,9 +1,9 @@
 package org.taktik.icure.asynclogic.bridge
 
-import com.icure.sdk.api.raw.impl.RawFormApiImpl
-import com.icure.sdk.crypto.impl.NoAccessControlKeysHeadersProvider
-import com.icure.sdk.utils.InternalIcureApi
-import com.icure.sdk.utils.Serialization
+import com.icure.cardinal.sdk.api.raw.impl.RawFormApiImpl
+import com.icure.cardinal.sdk.crypto.impl.NoAccessControlKeysHeadersProvider
+import com.icure.utils.InternalIcureApi
+import com.icure.cardinal.sdk.utils.Serialization
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.emitAll

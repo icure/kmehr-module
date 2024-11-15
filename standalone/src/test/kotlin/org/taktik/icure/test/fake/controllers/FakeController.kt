@@ -1,8 +1,8 @@
 package org.taktik.icure.test.fake.controllers
 
-import com.icure.sdk.api.raw.impl.RawUserApiImpl
-import com.icure.sdk.utils.InternalIcureApi
-import com.icure.sdk.utils.Serialization
+import com.icure.cardinal.sdk.api.raw.impl.RawUserApiImpl
+import com.icure.utils.InternalIcureApi
+import com.icure.cardinal.sdk.utils.Serialization
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactor.mono
 import org.springframework.http.HttpStatus

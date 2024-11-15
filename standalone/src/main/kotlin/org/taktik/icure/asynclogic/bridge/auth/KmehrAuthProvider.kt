@@ -1,8 +1,9 @@
 package org.taktik.icure.asynclogic.bridge.auth
 
-import com.icure.sdk.auth.JwtBearer
-import com.icure.sdk.auth.services.ProxyAuthProvider
-import com.icure.sdk.utils.InternalIcureApi
+import com.icure.cardinal.sdk.auth.JwtBearer
+import com.icure.cardinal.sdk.auth.services.ProxyAuthProvider
+import com.icure.utils.InternalIcureApi
+
 
 @OptIn(InternalIcureApi::class)
 class KmehrAuthProvider (

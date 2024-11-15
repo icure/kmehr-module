@@ -1,11 +1,12 @@
 package org.taktik.icure.asynclogic.bridge
 
-import com.icure.sdk.api.raw.impl.RawContactApiImpl
-import com.icure.sdk.api.raw.successBodyOrNull404
-import com.icure.sdk.crypto.impl.NoAccessControlKeysHeadersProvider
-import com.icure.sdk.model.ListOfIds
-import com.icure.sdk.utils.InternalIcureApi
-import com.icure.sdk.utils.Serialization
+import com.icure.cardinal.sdk.api.raw.impl.RawContactApiImpl
+import com.icure.cardinal.sdk.api.raw.successBodyOrNull404
+import com.icure.cardinal.sdk.crypto.impl.NoAccessControlKeysHeadersProvider
+import com.icure.cardinal.sdk.model.ListOfIds
+import com.icure.cardinal.sdk.model.filter.contact.ContactByDataOwnerPatientOpeningDateFilter
+import com.icure.cardinal.sdk.utils.Serialization
+import com.icure.utils.InternalIcureApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.emitAll
@@ -151,14 +152,23 @@ class ContactLogicBridge(
         throw BridgeException()
     }
 
+    @Deprecated("This method cannot include results with secure delegations, use listContactIdsByDataOwnerPatientOpeningDate instead")
     @OptIn(InternalIcureApi::class)
     override fun listContactsByHCPartyAndPatient(hcPartyId: String, secretPatientKeys: List<String>): Flow<Contact> = flow {
-        emitAll(getApi()
-            .listContactsByHCPartyAndPatientForeignKeys(hcPartyId, ListOfIds(ids = secretPatientKeys))
-            .successBody()
-            .map(contactMapper::map)
-            .asFlow()
+        val api = getApi()
+        val contactFilter = ContactByDataOwnerPatientOpeningDateFilter(
+            dataOwnerId = hcPartyId,
+            secretForeignKeys = secretPatientKeys.toSet()
         )
+        val contactIds = api.matchContactsBy(contactFilter).successBody()
+        if (contactIds.isNotEmpty()) {
+            emitAll(api
+                .getContacts(ListOfIds(ids = contactIds))
+                .successBody()
+                .map(contactMapper::map)
+                .asFlow()
+            )
+        }
     }
 
     override fun listContactsByHcPartyAndFormId(hcPartyId: String, formId: String): Flow<Contact> {

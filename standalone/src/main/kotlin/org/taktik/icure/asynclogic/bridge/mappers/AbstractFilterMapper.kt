@@ -1,11 +1,11 @@
 package org.taktik.icure.asynclogic.bridge.mappers
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.icure.sdk.utils.Serialization
-import com.icure.sdk.model.filter.AbstractFilter as SdkAbstractFilter
+import com.icure.cardinal.sdk.utils.Serialization
+import com.icure.cardinal.sdk.model.filter.AbstractFilter as SdkAbstractFilter
 import org.taktik.icure.domain.filter.AbstractFilter
 import org.taktik.couchdb.id.Identifiable
-import com.icure.sdk.model.base.Identifiable as SdkIdentifiable
+import com.icure.cardinal.sdk.model.base.Identifiable as SdkIdentifiable
 
 abstract class AbstractFilterMapper<T : Identifiable<String>, U: SdkIdentifiable<String>>(
 	protected val objectMapper: ObjectMapper

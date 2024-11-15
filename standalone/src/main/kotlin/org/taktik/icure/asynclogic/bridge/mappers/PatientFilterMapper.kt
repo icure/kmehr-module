@@ -1,7 +1,7 @@
 package org.taktik.icure.asynclogic.bridge.mappers
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.icure.sdk.model.Patient as SdkPatient
+import com.icure.cardinal.sdk.model.Patient as SdkPatient
 import org.springframework.stereotype.Service
 import org.taktik.icure.domain.filter.AbstractFilter
 import org.taktik.icure.domain.filter.impl.patient.PatientByHcPartyAndExternalIdFilter
@@ -19,21 +19,21 @@ import org.taktik.icure.domain.filter.impl.patient.PatientByHcPartyNameFilter
 import org.taktik.icure.domain.filter.impl.patient.PatientByHcPartyAndIdentifiersFilter
 import org.taktik.icure.domain.filter.impl.patient.PatientByDataOwnerModifiedAfterFilter
 import org.taktik.icure.entities.Patient
-import com.icure.sdk.model.filter.patient.PatientByHcPartyAndExternalIdFilter as SdkPatientByHcPartyAndExternalIdFilter
-import com.icure.sdk.model.filter.patient.PatientByHcPartyFilter as SdkPatientByHcPartyFilter
-import com.icure.sdk.model.filter.patient.PatientByHcPartyDateOfBirthBetweenFilter as SdkPatientByHcPartyDateOfBirthBetweenFilter
-import com.icure.sdk.model.filter.patient.PatientByHcPartyAndActiveFilter as SdkPatientByHcPartyAndActiveFilter
-import com.icure.sdk.model.filter.patient.PatientByHcPartyAndSsinsFilter as SdkPatientByHcPartyAndSsinsFilter
-import com.icure.sdk.model.filter.patient.PatientByHcPartyAndSsinFilter as SdkPatientByHcPartyAndSsinFilter
-import com.icure.sdk.model.filter.patient.PatientByHcPartyAndTelecomFilter as SdkPatientByHcPartyAndTelecomFilter
-import com.icure.sdk.model.filter.patient.PatientByHcPartyDateOfBirthFilter as SdkPatientByHcPartyDateOfBirthFilter
-import com.icure.sdk.model.filter.patient.PatientByHcPartyAndAddressFilter as SdkPatientByHcPartyAndAddressFilter
-import com.icure.sdk.model.filter.patient.PatientByHcPartyGenderEducationProfession as SdkPatientByHcPartyGenderEducationProfession
-import com.icure.sdk.model.filter.patient.PatientByIdsFilter as SdkPatientByIdsFilter
-import com.icure.sdk.model.filter.patient.PatientByHcPartyNameFilter as SdkPatientByHcPartyNameFilter
-import com.icure.sdk.model.filter.patient.PatientByHcPartyAndIdentifiersFilter as SdkPatientByHcPartyAndIdentifiersFilter
-import com.icure.sdk.model.filter.patient.PatientByDataOwnerModifiedAfterFilter as SdkPatientByDataOwnerModifiedAfterFilter
-import com.icure.sdk.model.filter.AbstractFilter as SdkAbstractFilter
+import com.icure.cardinal.sdk.model.filter.patient.PatientByHcPartyAndExternalIdFilter as SdkPatientByHcPartyAndExternalIdFilter
+import com.icure.cardinal.sdk.model.filter.patient.PatientByHcPartyFilter as SdkPatientByHcPartyFilter
+import com.icure.cardinal.sdk.model.filter.patient.PatientByHcPartyDateOfBirthBetweenFilter as SdkPatientByHcPartyDateOfBirthBetweenFilter
+import com.icure.cardinal.sdk.model.filter.patient.PatientByHcPartyAndActiveFilter as SdkPatientByHcPartyAndActiveFilter
+import com.icure.cardinal.sdk.model.filter.patient.PatientByHcPartyAndSsinsFilter as SdkPatientByHcPartyAndSsinsFilter
+import com.icure.cardinal.sdk.model.filter.patient.PatientByHcPartyAndSsinFilter as SdkPatientByHcPartyAndSsinFilter
+import com.icure.cardinal.sdk.model.filter.patient.PatientByHcPartyAndTelecomFilter as SdkPatientByHcPartyAndTelecomFilter
+import com.icure.cardinal.sdk.model.filter.patient.PatientByHcPartyDateOfBirthFilter as SdkPatientByHcPartyDateOfBirthFilter
+import com.icure.cardinal.sdk.model.filter.patient.PatientByHcPartyAndAddressFilter as SdkPatientByHcPartyAndAddressFilter
+import com.icure.cardinal.sdk.model.filter.patient.PatientByHcPartyGenderEducationProfession as SdkPatientByHcPartyGenderEducationProfession
+import com.icure.cardinal.sdk.model.filter.patient.PatientByIdsFilter as SdkPatientByIdsFilter
+import com.icure.cardinal.sdk.model.filter.patient.PatientByHcPartyNameFilter as SdkPatientByHcPartyNameFilter
+import com.icure.cardinal.sdk.model.filter.patient.PatientByHcPartyAndIdentifiersFilter as SdkPatientByHcPartyAndIdentifiersFilter
+import com.icure.cardinal.sdk.model.filter.patient.PatientByDataOwnerModifiedAfterFilter as SdkPatientByDataOwnerModifiedAfterFilter
+import com.icure.cardinal.sdk.model.filter.AbstractFilter as SdkAbstractFilter
 
 @Service
 class PatientFilterMapper(

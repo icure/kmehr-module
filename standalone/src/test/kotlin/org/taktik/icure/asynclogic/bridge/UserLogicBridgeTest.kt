@@ -1,9 +1,8 @@
 package org.taktik.icure.asynclogic.bridge
 
-import com.icure.sdk.api.raw.impl.RawUserApiImpl
-import com.icure.sdk.utils.InternalIcureApi
-import com.icure.sdk.utils.Serialization
-import com.sun.xml.bind.api.Bridge
+import com.icure.cardinal.sdk.api.raw.impl.RawUserApiImpl
+import com.icure.utils.InternalIcureApi
+import com.icure.cardinal.sdk.utils.Serialization
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.nulls.shouldNotBeNull

@@ -3,7 +3,7 @@ package org.taktik.icure.asynclogic.impl
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.icure.sdk.model.LoginCredentials
+import com.icure.cardinal.sdk.model.LoginCredentials
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation

@@ -3,7 +3,7 @@ package org.taktik.icure.errors
 import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
-import com.icure.sdk.utils.RequestStatusException
+import com.icure.cardinal.sdk.utils.RequestStatusException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.boot.web.reactive.error.ErrorWebExceptionHandler

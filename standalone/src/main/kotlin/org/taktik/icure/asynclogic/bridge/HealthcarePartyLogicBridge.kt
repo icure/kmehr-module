@@ -1,17 +1,17 @@
 package org.taktik.icure.asynclogic.bridge
 
-import com.icure.sdk.api.raw.RawHealthcarePartyApi
-import com.icure.sdk.api.raw.impl.RawHealthcarePartyApiImpl
-import com.icure.sdk.model.ListOfIds
-import com.icure.sdk.model.filter.hcparty.HealthcarePartyByNationalIdentifierFilter
-import com.icure.sdk.utils.InternalIcureApi
-import com.icure.sdk.utils.RequestStatusException
-import com.icure.sdk.utils.Serialization
+import com.icure.cardinal.sdk.api.raw.RawHealthcarePartyApi
+import com.icure.cardinal.sdk.api.raw.impl.RawHealthcarePartyApiImpl
+import com.icure.cardinal.sdk.model.ListOfIds
+import com.icure.cardinal.sdk.model.filter.hcparty.HealthcarePartyByNationalIdentifierFilter
+import com.icure.utils.InternalIcureApi
+import com.icure.cardinal.sdk.utils.RequestStatusException
+import com.icure.cardinal.sdk.utils.Serialization
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.emptyFlow
-import com.icure.sdk.model.HealthcareParty as SdkHealthcareParty
+import com.icure.cardinal.sdk.model.HealthcareParty as SdkHealthcareParty
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.JsonElement
