@@ -1,7 +1,7 @@
 package org.taktik.icure.asynclogic.bridge.mappers
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.icure.sdk.utils.Serialization
+import com.icure.cardinal.sdk.utils.Serialization
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.serializer
 import kotlin.reflect.KClass

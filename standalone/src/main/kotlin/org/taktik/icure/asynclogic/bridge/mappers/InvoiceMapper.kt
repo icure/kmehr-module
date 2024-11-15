@@ -1,7 +1,7 @@
 package org.taktik.icure.asynclogic.bridge.mappers
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.icure.sdk.model.EncryptedInvoice
+import com.icure.cardinal.sdk.model.EncryptedInvoice
 import org.springframework.stereotype.Service
 import org.taktik.icure.entities.Invoice
 import org.taktik.icure.services.external.rest.v2.dto.InvoiceDto

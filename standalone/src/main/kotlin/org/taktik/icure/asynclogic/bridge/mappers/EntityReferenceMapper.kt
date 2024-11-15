@@ -5,7 +5,7 @@ import org.springframework.stereotype.Service
 import org.taktik.icure.entities.EntityReference
 import org.taktik.icure.services.external.rest.v2.dto.EntityReferenceDto
 import org.taktik.icure.services.external.rest.v2.mapper.EntityReferenceV2Mapper
-import com.icure.sdk.model.EntityReference as SdkEntityReference
+import com.icure.cardinal.sdk.model.EntityReference as SdkEntityReference
 
 @Service
 class EntityReferenceMapper(

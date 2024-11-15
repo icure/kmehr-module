@@ -1,7 +1,7 @@
 package org.taktik.icure.asynclogic.bridge.mappers
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.icure.sdk.model.User as SdkUser
+import com.icure.cardinal.sdk.model.User as SdkUser
 import org.springframework.stereotype.Service
 import org.taktik.icure.entities.User
 import org.taktik.icure.services.external.rest.v2.dto.UserDto

@@ -1,15 +1,16 @@
 package org.taktik.icure.asynclogic.bridge
 
-import com.icure.sdk.api.raw.impl.RawHealthElementApiImpl
-import com.icure.sdk.crypto.impl.NoAccessControlKeysHeadersProvider
-import com.icure.sdk.utils.InternalIcureApi
-import com.icure.sdk.utils.Serialization
+import com.icure.cardinal.sdk.api.raw.impl.RawHealthElementApiImpl
+import com.icure.cardinal.sdk.crypto.impl.NoAccessControlKeysHeadersProvider
+import com.icure.cardinal.sdk.model.ListOfIds
+import com.icure.cardinal.sdk.model.filter.healthelement.HealthElementByDataOwnerPatientOpeningDate
+import com.icure.utils.InternalIcureApi
+import com.icure.cardinal.sdk.utils.Serialization
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import org.springframework.stereotype.Service
-import org.taktik.couchdb.DocIdentifier
 import org.taktik.couchdb.ViewQueryResultEvent
 import org.taktik.icure.asynclogic.HealthElementLogic
 import org.taktik.icure.asynclogic.bridge.auth.KmehrAuthProvider
@@ -80,17 +81,26 @@ class HealthElementLogicBridge(
         throw BridgeException()
     }
 
+    @Deprecated("This method cannot include results with secure delegations, use listHealthElementIdsByDataOwnerPatientOpeningDate instead")
     @OptIn(InternalIcureApi::class)
     override fun listHealthElementsByHcPartyAndSecretPatientKeys(
         hcPartyId: String,
         secretPatientKeys: List<String>
     ): Flow<HealthElement> = flow {
-        emitAll(
-            getApi().listHealthElementsByHCPartyAndPatientForeignKeys(hcPartyId, secretPatientKeys.joinToString(","))
+        val api = getApi()
+        val filter = HealthElementByDataOwnerPatientOpeningDate(
+            healthcarePartyId = hcPartyId,
+            patientSecretForeignKeys = secretPatientKeys.toSet()
+        )
+        val healthElementIds = api.matchHealthElementsBy(filter).successBody()
+        if (healthElementIds.isNotEmpty()) {
+            emitAll(api
+                .getHealthElements(ListOfIds(ids = healthElementIds))
                 .successBody()
                 .map(healthElementMapper::map)
                 .asFlow()
-        )
+            )
+        }
     }
 
     override fun listHealthElementIdsByDataOwnerPatientOpeningDate(
@@ -107,16 +117,22 @@ class HealthElementLogicBridge(
     override suspend fun listLatestHealthElementsByHcPartyAndSecretPatientKeys(
         hcPartyId: String,
         secretPatientKeys: List<String>
-    ): List<HealthElement> = getApi().let{ api ->
-        secretPatientKeys.fold<String, List<HealthElement>>(emptyList()) { acc, spk ->
-            acc + api.listHealthElementsByHCPartyAndPatientForeignKeys(hcPartyId, spk)
-                .successBody()
-                .map(healthElementMapper::map)
-        }.groupBy {
-            it.healthElementId
-        }.values.mapNotNull { value ->
-            value.maxByOrNull { it.modified ?: it.created ?: 0L }
+    ): List<HealthElement> = getApi().let { api ->
+        val filter = HealthElementByDataOwnerPatientOpeningDate(
+            healthcarePartyId = hcPartyId,
+            patientSecretForeignKeys = secretPatientKeys.toSet()
+        )
+        val healthElementIds = api.matchHealthElementsBy(filter).successBody()
+        if (healthElementIds.isNotEmpty()) {
+            api.getHealthElements(ListOfIds(ids = healthElementIds)).successBody().groupBy {
+                it.healthElementId
+            }.values.mapNotNull { value ->
+                value.maxByOrNull { it.modified ?: it.created ?: 0L }
+            }.map(healthElementMapper::map)
+        } else {
+            emptyList()
         }
+
     }
 
     override suspend fun modifyHealthElement(healthElement: HealthElement): HealthElement? {

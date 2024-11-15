@@ -1,13 +1,12 @@
 package org.taktik.icure.asynclogic.bridge
 
-import com.icure.sdk.api.raw.impl.RawFormApiImpl
-import com.icure.sdk.api.raw.successBodyOrNull404
-import com.icure.sdk.crypto.impl.NoAccessControlKeysHeadersProvider
-import com.icure.sdk.utils.InternalIcureApi
-import com.icure.sdk.utils.Serialization
+import com.icure.cardinal.sdk.api.raw.impl.RawFormApiImpl
+import com.icure.cardinal.sdk.api.raw.successBodyOrNull404
+import com.icure.cardinal.sdk.crypto.impl.NoAccessControlKeysHeadersProvider
+import com.icure.utils.InternalIcureApi
+import com.icure.cardinal.sdk.utils.Serialization
 import kotlinx.coroutines.flow.Flow
 import org.springframework.stereotype.Service
-import org.taktik.couchdb.DocIdentifier
 import org.taktik.icure.asynclogic.FormLogic
 import org.taktik.icure.asynclogic.bridge.auth.KmehrAuthProvider
 import org.taktik.icure.asynclogic.bridge.mappers.FormMapper
@@ -74,6 +73,7 @@ class FormLogicBridge(
         throw BridgeException()
     }
 
+    @Deprecated("This method cannot include results with secure delegations, use listFormIdsByDataOwnerPatientOpeningDate instead")
     override fun listFormsByHCPartyAndPatient(
         hcPartyId: String,
         secretPatientKeys: List<String>,

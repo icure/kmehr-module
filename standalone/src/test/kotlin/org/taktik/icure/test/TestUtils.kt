@@ -1,26 +1,26 @@
 package org.taktik.icure.test
 
 import com.icure.kryptom.crypto.defaultCryptoService
-import com.icure.sdk.api.raw.RawMessageGatewayApi
-import com.icure.sdk.api.raw.impl.RawAnonymousAuthApiImpl
-import com.icure.sdk.api.raw.impl.RawHealthcarePartyApiImpl
-import com.icure.sdk.api.raw.impl.RawPatientApiImpl
-import com.icure.sdk.api.raw.impl.RawPermissionApiImpl
-import com.icure.sdk.api.raw.impl.RawUserApiImpl
-import com.icure.sdk.auth.UsernamePassword
-import com.icure.sdk.auth.services.JwtBasedAuthProvider
-import com.icure.sdk.crypto.impl.NoAccessControlKeysHeadersProvider
-import com.icure.sdk.model.EncryptedPatient
-import com.icure.sdk.model.HealthcareParty
-import com.icure.sdk.model.User
-import com.icure.sdk.model.security.AlwaysPermissionItem
-import com.icure.sdk.model.security.Permission
-import com.icure.sdk.model.security.PermissionType
-import com.icure.sdk.options.AuthenticationMethod
-import com.icure.sdk.options.BasicApiOptions
-import com.icure.sdk.options.getAuthProvider
-import com.icure.sdk.utils.InternalIcureApi
-import com.icure.sdk.utils.Serialization
+import com.icure.cardinal.sdk.api.raw.RawMessageGatewayApi
+import com.icure.cardinal.sdk.api.raw.impl.RawAnonymousAuthApiImpl
+import com.icure.cardinal.sdk.api.raw.impl.RawHealthcarePartyApiImpl
+import com.icure.cardinal.sdk.api.raw.impl.RawPatientApiImpl
+import com.icure.cardinal.sdk.api.raw.impl.RawPermissionApiImpl
+import com.icure.cardinal.sdk.api.raw.impl.RawUserApiImpl
+import com.icure.cardinal.sdk.auth.UsernamePassword
+import com.icure.cardinal.sdk.auth.services.JwtBasedAuthProvider
+import com.icure.cardinal.sdk.crypto.impl.NoAccessControlKeysHeadersProvider
+import com.icure.cardinal.sdk.model.EncryptedPatient
+import com.icure.cardinal.sdk.model.HealthcareParty
+import com.icure.cardinal.sdk.model.User
+import com.icure.cardinal.sdk.model.security.AlwaysPermissionItem
+import com.icure.cardinal.sdk.model.security.Permission
+import com.icure.cardinal.sdk.model.security.PermissionType
+import com.icure.cardinal.sdk.options.AuthenticationMethod
+import com.icure.cardinal.sdk.options.BasicSdkOptions
+import com.icure.cardinal.sdk.options.getAuthProvider
+import com.icure.utils.InternalIcureApi
+import com.icure.cardinal.sdk.utils.Serialization
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
@@ -67,8 +67,8 @@ fun getAuthProvider(iCureUrl: String, username: String, password: String) =
         authApi = RawAnonymousAuthApiImpl(iCureUrl, testHttpClient, json = Serialization.json),
         cryptoService = defaultCryptoService,
         applicationId = null,
-        options = BasicApiOptions(),
-        messageGatewayApi = RawMessageGatewayApi(testHttpClient)
+        options = BasicSdkOptions(),
+        messageGatewayApi = RawMessageGatewayApi(testHttpClient, defaultCryptoService)
     ) as JwtBasedAuthProvider
 
 @OptIn(InternalIcureApi::class)

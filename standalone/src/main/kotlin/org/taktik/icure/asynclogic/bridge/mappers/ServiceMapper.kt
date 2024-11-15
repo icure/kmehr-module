@@ -1,7 +1,7 @@
 package org.taktik.icure.asynclogic.bridge.mappers
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.icure.sdk.model.embed.EncryptedService
+import com.icure.cardinal.sdk.model.embed.EncryptedService
 import org.taktik.icure.entities.embed.Service
 import org.taktik.icure.services.external.rest.v2.dto.embed.ServiceDto
 import org.taktik.icure.services.external.rest.v2.mapper.embed.ServiceV2Mapper

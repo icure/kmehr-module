@@ -10,18 +10,18 @@ import org.taktik.icure.domain.filter.impl.service.ServiceByHcPartyFilter
 import org.taktik.icure.domain.filter.impl.service.ServiceByHcPartyHealthElementIdsFilter
 import org.taktik.icure.domain.filter.impl.service.ServiceBySecretForeignKeys
 import org.taktik.icure.domain.filter.impl.service.ServiceByQualifiedLinkFilter
-import com.icure.sdk.model.filter.service.ServiceByAssociationIdFilter as SdkServiceByAssociationIdFilter
-import com.icure.sdk.model.filter.service.ServiceByHcPartyTagCodeDateFilter as SdkServiceByHcPartyTagCodeDateFilter
-import com.icure.sdk.model.filter.service.ServiceByHcPartyIdentifiersFilter as SdkServiceByHcPartyIdentifiersFilter
-import com.icure.sdk.model.filter.service.ServiceByIdsFilter as SdkServiceByIdsFilter
-import com.icure.sdk.model.filter.service.ServiceByHcPartyFilter as SdkServiceByHcPartyFilter
-import com.icure.sdk.model.filter.service.ServiceByHcPartyHealthElementIdsFilter as SdkServiceByHcPartyHealthElementIdsFilter
-import com.icure.sdk.model.filter.service.ServiceBySecretForeignKeys as SdkServiceBySecretForeignKeys
-import com.icure.sdk.model.filter.service.ServiceByQualifiedLinkFilter as SdkServiceByQualifiedLinkFilter
+import com.icure.cardinal.sdk.model.filter.service.ServiceByAssociationIdFilter as SdkServiceByAssociationIdFilter
+import com.icure.cardinal.sdk.model.filter.service.ServiceByHcPartyTagCodeDateFilter as SdkServiceByHcPartyTagCodeDateFilter
+import com.icure.cardinal.sdk.model.filter.service.ServiceByHcPartyIdentifiersFilter as SdkServiceByHcPartyIdentifiersFilter
+import com.icure.cardinal.sdk.model.filter.service.ServiceByIdsFilter as SdkServiceByIdsFilter
+import com.icure.cardinal.sdk.model.filter.service.ServiceByHcPartyFilter as SdkServiceByHcPartyFilter
+import com.icure.cardinal.sdk.model.filter.service.ServiceByHcPartyHealthElementIdsFilter as SdkServiceByHcPartyHealthElementIdsFilter
+import com.icure.cardinal.sdk.model.filter.service.ServiceBySecretForeignKeys as SdkServiceBySecretForeignKeys
+import com.icure.cardinal.sdk.model.filter.service.ServiceByQualifiedLinkFilter as SdkServiceByQualifiedLinkFilter
 import org.taktik.icure.entities.embed.Service
 import org.springframework.stereotype.Service as SpringService
-import com.icure.sdk.model.embed.Service as SdkService
-import com.icure.sdk.model.filter.AbstractFilter as SdkAbstractFilter
+import com.icure.cardinal.sdk.model.embed.Service as SdkService
+import com.icure.cardinal.sdk.model.filter.AbstractFilter as SdkAbstractFilter
 
 @SpringService
 class ServiceFilterMapper(

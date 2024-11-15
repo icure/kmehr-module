@@ -1,6 +1,6 @@
 package org.taktik.icure.asynclogic.bridge
 
-import com.icure.sdk.utils.Serialization
+import com.icure.cardinal.sdk.utils.Serialization
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*

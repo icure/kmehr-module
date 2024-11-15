@@ -19,10 +19,10 @@ import org.taktik.icure.security.jwt.JwtUtils
 import reactor.core.publisher.Mono
 
 @Configuration
-open class SecurityConfig {
+class SecurityConfig {
 
     @Bean
-    open fun authenticationManager(
+    fun authenticationManager(
         jwtUtils: JwtUtils
     ) = CustomAuthenticationManager(jwtUtils)
 }
@@ -30,24 +30,23 @@ open class SecurityConfig {
 @Configuration
 @EnableWebFluxSecurity
 @EnableReactiveMethodSecurity
-open class SecurityConfigAdapter(
+class SecurityConfigAdapter(
     private val authenticationManager: CustomAuthenticationManager,
 ) {
 
     @Bean
-    open fun securityWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain {
-        return http
-            .authorizeExchange()
-            .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+    fun securityWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain {
+        return http.authorizeExchange {
+            it.pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
             .pathMatchers("/ws/**").hasAnyAuthority(Roles.GrantedAuthority.ROLE_HCP, Roles.GrantedAuthority.ROLE_ADMINISTRATOR)
             .pathMatchers("/rest/*/be_samv2/chap/**").permitAll()
             .pathMatchers("/rest/v2/be_samv2/couchdb/notifyrotation").permitAll()
             .pathMatchers("/rest/*/ehr_module/v").permitAll()
             .pathMatchers("/actuator/**").permitAll()
             .pathMatchers("/**").hasAnyAuthority(Roles.GrantedAuthority.ROLE_HCP, Roles.GrantedAuthority.ROLE_ADMINISTRATOR)
-            .and()
-            .csrf().disable()
-            .addFilterAfter(
+        }.csrf {
+            it.disable()
+        }.addFilterAfter(
                 AuthenticationWebFilter(authenticationManager).apply {
                     this.setAuthenticationFailureHandler(
                         ServerAuthenticationEntryPointFailureHandler(

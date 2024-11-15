@@ -1,4 +1,4 @@
-FROM eclipse-temurin:21.0.1_12-jdk-alpine as builder
+FROM eclipse-temurin:21.0.1_12-jdk-alpine AS builder
 ARG repoUsername
 ARG repoPassword
 ENV ORG_GRADLE_PROJECT_repoUsername=$repoUsername

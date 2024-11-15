@@ -26,7 +26,6 @@ import org.taktik.icure.test.UserCredentials
 import org.taktik.icure.test.createHealthcarePartyUser
 import org.taktik.icure.test.uuid
 import org.taktik.icure.test.withAuthenticatedReactorContext
-import kotlin.random.Random
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ContactLogicBridgeTest(
@@ -188,6 +187,7 @@ private fun StringSpec.contactLogicBridgeTest(
                 )
             }
 
+            @Suppress("DEPRECATION")
             contactBridge.listContactsByHCPartyAndPatient(
                 hcp.dataOwnerId!!,
                 listOf(sfk)
@@ -199,6 +199,7 @@ private fun StringSpec.contactLogicBridgeTest(
 
     "If no Contact matches HCP and SFKs, an empty flow is returned" {
         withAuthenticatedReactorContext(hcp) {
+            @Suppress("DEPRECATION")
             contactBridge.listContactsByHCPartyAndPatient(uuid(), listOf(uuid())).count() shouldBe 0
         }
     }

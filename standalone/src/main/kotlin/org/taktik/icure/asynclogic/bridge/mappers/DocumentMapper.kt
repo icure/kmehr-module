@@ -1,7 +1,7 @@
 package org.taktik.icure.asynclogic.bridge.mappers
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.icure.sdk.model.EncryptedDocument
+import com.icure.cardinal.sdk.model.EncryptedDocument
 import org.springframework.stereotype.Service
 import org.taktik.icure.entities.Document
 import org.taktik.icure.services.external.rest.v2.dto.DocumentDto

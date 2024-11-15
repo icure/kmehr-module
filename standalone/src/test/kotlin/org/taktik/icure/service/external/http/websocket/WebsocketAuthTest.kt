@@ -2,7 +2,7 @@ package org.taktik.icure.service.external.http.websocket
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.icure.sdk.model.LoginCredentials
+import com.icure.cardinal.sdk.model.LoginCredentials
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import io.ktor.client.*
