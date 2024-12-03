@@ -73,4 +73,6 @@ dependencies {
     implementation(coreLibs.mapstruct)
     implementation(coreLibs.kmapKsp)
 
+    implementation(coreLibs.websocketCommons)
+
 }

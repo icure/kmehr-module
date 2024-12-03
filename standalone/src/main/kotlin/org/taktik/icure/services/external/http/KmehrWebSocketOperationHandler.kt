@@ -18,10 +18,10 @@ import reactor.core.publisher.Mono
 class KmehrWebSocketOperationHandler(
     wsControllers: List<WsController>,
     objectMapper: ObjectMapper,
-    sessionLogic: BridgeAsyncSessionLogic,
+    private val sessionLogic: BridgeAsyncSessionLogic,
     operationFactories: List<WebSocketOperationFactory>,
     defaultFactory: DefaultWebSocketOperationFactoryImpl,
-) : WebSocketOperationHandler(wsControllers, objectMapper, sessionLogic, operationFactories, defaultFactory) {
+) : WebSocketOperationHandler(wsControllers, objectMapper, operationFactories, defaultFactory) {
 
     private var prefix: String? = null
 
