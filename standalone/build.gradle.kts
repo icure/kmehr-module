@@ -118,6 +118,7 @@ dependencies {
     implementation(coreLibs.taktikBoot)
 
     implementation(kmehrLibs.credentialsRotation)
+    implementation(coreLibs.websocketCommons)
 
     testImplementation(coreLibs.bundles.kotestLibs)
     testImplementation(coreLibs.springBootTest)
