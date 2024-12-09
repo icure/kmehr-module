@@ -4,6 +4,7 @@ import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.TestInstance
+import org.springframework.beans.factory.annotation.Value
 import org.taktik.icure.be.ehealth.dto.kmehr.v20161201.Utils
 import org.taktik.icure.be.ehealth.dto.kmehr.v20161201.be.fgov.ehealth.standards.kmehr.schema.v1.FolderType
 import org.taktik.icure.be.ehealth.logic.kmehr.Config
@@ -14,7 +15,7 @@ import org.taktik.icure.entities.embed.Content
 import org.taktik.icure.entities.embed.Medication
 import org.taktik.icure.entities.embed.Service
 import org.taktik.icure.entities.embed.Substanceproduct
-import org.taktik.icure.security.jwt.JwtUtils
+import org.taktik.icure.security.jwt.JwtKeyUtils
 import org.taktik.icure.test.BaseKmehrTest
 import org.taktik.icure.test.KmehrTestApplication
 import org.taktik.icure.test.UserCredentials
@@ -32,8 +33,11 @@ import kotlin.reflect.jvm.isAccessible
 class MedicationSchemeExportTest(
 	private val bridgeConfig: BridgeConfig,
 	private val medicationSchemeExport: MedicationSchemeExport,
-	private val jwtUtils: JwtUtils
+	@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String,
+	@Value("\${icure.auth.jwt.expirationMillis}") private val defaultExpirationTimeMillis: Long
 ) : BaseKmehrTest() {
+
+	private val jwtAuthPublicKey = JwtKeyUtils.decodePublicKeyFromString(jwtAuthPublicKeyAsString)
 
 	private val defaultConfig = Config(
 		_kmehrId = System.currentTimeMillis().toString(),
@@ -48,7 +52,8 @@ class MedicationSchemeExportTest(
 			bridgeConfig.iCureUrl,
 			KmehrTestApplication.masterHcp.login,
 			KmehrTestApplication.masterHcp.password,
-			jwtUtils
+			jwtAuthPublicKey,
+			defaultExpirationTimeMillis
 		)
 	}
 
