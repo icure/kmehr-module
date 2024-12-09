@@ -14,29 +14,29 @@ import java.time.Instant
 @Profile("kmehr")
 @Service
 class IncapacityLogicImpl(
-    private val incapacityExport: IncapacityExport,
-    private val kmehrConfiguration: KmehrConfiguration
+	private val incapacityExport: IncapacityExport,
+	private val kmehrConfiguration: KmehrConfiguration
 ) : IncapacityLogic {
 
-    override fun createIncapacityExport(
-        patient: Patient,
-        sender: HealthcareParty,
-        language: String,
-        exportInfo: IncapacityExportInfo,
-        timeZone: String?,
-    ) =
-        incapacityExport.exportIncapacity(
-            patient,
-            sender,
-            language,
-            exportInfo,
-            Config(
-                _kmehrId = System.currentTimeMillis().toString(),
-                date = Utils.makeXGC(Instant.now().toEpochMilli(), unsetMillis = false, setTimeZone = false, timeZone = timeZone ?: "Europe/Brussels")!!,
-                time = Utils.makeXGC(Instant.now().toEpochMilli(), unsetMillis = true, setTimeZone = false, timeZone = timeZone ?: "Europe/Brussels")!!,
-                soft = Config.Software(name = "iCure", version = kmehrConfiguration.kmehrVersion),
-                clinicalSummaryType = "",
-                defaultLanguage = "en",
-            )
-        )
+	override fun createIncapacityExport(
+		patient: Patient,
+		sender: HealthcareParty,
+		language: String,
+		exportInfo: IncapacityExportInfo,
+		timeZone: String?,
+	) =
+		incapacityExport.exportIncapacity(
+			patient,
+			sender,
+			language,
+			exportInfo,
+			Config(
+				_kmehrId = System.currentTimeMillis().toString(),
+				date = Utils.makeXGC(Instant.now().toEpochMilli(), unsetMillis = false, setTimeZone = false, timeZone = timeZone ?: "Europe/Brussels")!!,
+				time = Utils.makeXGC(Instant.now().toEpochMilli(), unsetMillis = true, setTimeZone = false, timeZone = timeZone ?: "Europe/Brussels")!!,
+				soft = Config.Software(name = exportInfo.softwareName ?: "iCure", version = exportInfo.softwareVersion ?:  kmehrConfiguration.kmehrVersion),
+				clinicalSummaryType = "",
+				defaultLanguage = "en",
+			)
+		)
 }
