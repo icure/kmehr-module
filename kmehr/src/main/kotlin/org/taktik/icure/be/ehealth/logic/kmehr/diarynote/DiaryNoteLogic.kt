@@ -24,30 +24,30 @@ import java.io.InputStream
  */
 interface DiaryNoteLogic {
 
-    /**
-     * Creates a DiaryNote XML message for the patient, including the information passed as parameter.
-     * @param pat the iCure Patient.
-     * @param sfks the Patient Secret Foreign Keys. Used to decrypt the document.
-     * @param sender the HCP responsible for the export.
-     * @param recipient the HCP recipient of the message
-     * @param note the note to add in the Folder.
-     * @param tags the tags to add in the Folder.
-     * @param contexts
-     * @param isPsy true if the note is related to the psychiatry department.
-     * @param documentId the iCure Document to include in the Folder.
-     * @param attachmentId the id of the Document Attachment to include in the Folder.
-     * @return a Flow of ByteBuffer containing the XML.
-     */
-    fun createDiaryNote(pat: Patient, sfks: List<String>, sender: HealthcareParty, recipient: HealthcareParty, note: String?, tags: List<String>, contexts: List<String>, isPsy: Boolean, documentId: String?, attachmentId: String?): Flow<DataBuffer>
+	/**
+	 * Creates a DiaryNote XML message for the patient, including the information passed as parameter.
+	 * @param pat the iCure Patient.
+	 * @param sfks the Patient Secret Foreign Keys. Used to decrypt the document.
+	 * @param sender the HCP responsible for the export.
+	 * @param recipient the HCP recipient of the message
+	 * @param note the note to add in the Folder.
+	 * @param tags the tags to add in the Folder.
+	 * @param contexts
+	 * @param isPsy true if the note is related to the psychiatry department.
+	 * @param documentId the iCure Document to include in the Folder.
+	 * @param attachmentId the id of the Document Attachment to include in the Folder.
+	 * @return a Flow of ByteBuffer containing the XML.
+	 */
+	fun createDiaryNote(pat: Patient, sfks: List<String>, sender: HealthcareParty, recipient: HealthcareParty, note: String?, tags: List<String>, contexts: List<String>, isPsy: Boolean, documentId: String?, attachmentId: String?): Flow<DataBuffer>
 
-    /**
-     * Imports a Diary Note XML into iCure.
-     * @param inputStream the InputStream containing the XML.
-     * @param author the User responsible for the import.
-     * @param language the language of the Content.
-     * @param mappings
-     * @param dest
-     * @return a List of ImportResult.
-     */
-    fun importDiaryNote(inputStream: InputStream, author: User, language: String, dest: Patient? = null, mappings: Map<String, List<ImportMapping>> = HashMap()): List<ImportResult>
+	/**
+	 * Imports a Diary Note XML into iCure.
+	 * @param inputStream the InputStream containing the XML.
+	 * @param author the User responsible for the import.
+	 * @param language the language of the Content.
+	 * @param mappings
+	 * @param dest
+	 * @return a List of ImportResult.
+	 */
+	fun importDiaryNote(inputStream: InputStream, author: User, language: String, dest: Patient? = null, mappings: Map<String, List<ImportMapping>> = HashMap()): List<ImportResult>
 }

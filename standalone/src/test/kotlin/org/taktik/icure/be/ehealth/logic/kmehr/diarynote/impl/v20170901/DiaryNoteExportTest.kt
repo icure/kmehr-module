@@ -38,6 +38,33 @@ class DiaryNoteExportTest(
 			folderMatches.size shouldBe 1
 		}
 
+		"CSM-456 - The belgian variation of the language should be used if specified in the sender" {
+
+			suspend fun doTest(doctorLanguages: List<String>, expectedLanguage: String) {
+				val xml = diaryNoteExport.createDiaryNote(
+					pat = Patient(id = uuid()),
+					sfks = listOf(uuid()),
+					sender = HealthcareParty(
+						id = uuid(),
+						languages = doctorLanguages
+					),
+					recipient = HealthcareParty(id = uuid()),
+					note = "Some note",
+					tags = listOf("Tag 1", "Test"),
+					contexts = listOf("Context?"),
+					isPsy = false,
+					documentId = null,
+					attachmentId = null
+				).toList().combineToString()
+				val folderMatches = Regex("<usuallanguage>$expectedLanguage</usuallanguage>").findAll(xml).toList()
+				folderMatches.size shouldBe 1
+			}
+			doTest(listOf("nl"), "nl-BE")
+			doTest(listOf("fr"), "fr-BE")
+			doTest(emptyList(), "fr-BE")
+			doTest(listOf("en"), "fr-BE")
+		}
+
 	}
 
 }
