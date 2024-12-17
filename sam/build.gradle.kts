@@ -33,13 +33,18 @@ version = gitVersion ?: "0.0.1-SNAPSHOT"
 
 dependencies {
 
-    implementation(project(":kraken-common:core"))
-    implementation(project(":kraken-common:dao"))
-    implementation(project(":kraken-common:domain"))
-    implementation(project(":kraken-common:logic"))
-    implementation(project(":kraken-common:mapper"))
-    implementation(project(":kraken-common:dto"))
-    implementation(project(":kraken-common:utils"))
+    val projectPrefix = when(rootProject.name) {
+        "kmehr-importer" -> ":kmehr-module"
+        else -> ""
+    }
+
+    implementation(project("$projectPrefix:kraken-common:core"))
+    implementation(project("$projectPrefix:kraken-common:dao"))
+    implementation(project("$projectPrefix:kraken-common:domain"))
+    implementation(project("$projectPrefix:kraken-common:logic"))
+    implementation(project("$projectPrefix:kraken-common:mapper"))
+    implementation(project("$projectPrefix:kraken-common:dto"))
+    implementation(project("$projectPrefix:kraken-common:utils"))
 
     implementation(coreLibs.bundles.swaggerLibs)
     implementation(coreLibs.bundles.krouchLibs)
