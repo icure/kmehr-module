@@ -106,7 +106,7 @@ class KmehrController(
             healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentHealthcarePartyId())?.let { it1 ->
                 emitAll(diaryNoteLogic.createDiaryNote(
                     it,
-                    info.secretForeignKeys,
+                    info.encryptionDecryptionKeys,
                     it1,
                     healthcarePartyV2Mapper.map(info.recipient!!),
                     info.note,

@@ -67,7 +67,7 @@ class KmehrWsController(
                     operation.binaryResponse(
                         diaryNoteLogic.createDiaryNote(
                             it,
-                            info.secretForeignKeys,
+                            info.encryptionDecryptionKeys,
                             it1, healthcarePartyV2Mapper.map(info.recipient!!),
                             info.note,
                             info.tags,
