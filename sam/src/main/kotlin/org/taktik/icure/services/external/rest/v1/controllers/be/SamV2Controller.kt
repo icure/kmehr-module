@@ -120,7 +120,7 @@ class SamV2Controller(
 		val realLimit = limit ?: SamV2Controller.DEFAULT_LIMIT
 		val paginationOffset = PaginationOffset(null, startDocumentId, null, realLimit)
 
-		val result = samV2Logic.findAmpsByLabel(language, label, paginationOffset).map(ampMapper::map)
+		val result = samV2Logic.findAmpsByLabel(language, label, false, paginationOffset).map(ampMapper::map)
 
 		return addProductIdsToAmps(result)
 			.toPaginatedFlow(paginationOffset.limit, { it.id }) { null }

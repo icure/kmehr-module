@@ -16,6 +16,8 @@ import org.taktik.icure.asynclogic.samv2.SamV2Logic
 import org.taktik.icure.db.PaginationOffset
 import org.taktik.icure.db.sanitize
 import org.taktik.icure.entities.samv2.*
+import org.taktik.icure.entities.samv2.embed.AmpStatus
+import org.taktik.icure.entities.samv2.embed.Ampp
 import org.taktik.icure.entities.samv2.embed.SamText
 import org.taktik.icure.pagination.PaginationElement
 import org.taktik.icure.pagination.limitIncludingKey
@@ -23,6 +25,7 @@ import org.taktik.icure.pagination.toPaginatedFlow
 import org.taktik.icure.utils.aggregateResultsAsFlow
 import org.taktik.icure.utils.bufferedChunks
 import org.taktik.icure.utils.distinct
+import java.time.Duration
 import java.util.*
 
 @Service
@@ -158,7 +161,34 @@ class SamV2LogicImpl(
 		)
 	}
 
-	override fun findAmpsByLabel(language: String?, label: String, paginationOffset: PaginationOffset<Nothing>): Flow<Amp> = flow {
+	private fun Ampp.isValid(now: Long, twoYearsAgo: Long): Boolean =
+		from != null && from < now && (to == null || to > now) && status == AmpStatus.AUTHORIZED && commercializations?.any {
+			it.from != null && (it.to == null || it.to > twoYearsAgo)
+		} ?: false
+
+	private fun hasValidAmpps(amp: Amp): Boolean {
+		val now = System.currentTimeMillis()
+		val twoYearsAgo = now - Duration.ofDays(365 * 2).toMillis()
+		return amp.to != null && amp.to < now && amp.ampps.any {
+			it.isValid(now, twoYearsAgo)
+		}
+	}
+
+	private fun removeInvalidAmpps(amp: Amp): Amp {
+		val now = System.currentTimeMillis()
+		val twoYearsAgo = now - Duration.ofDays(365 * 2).toMillis()
+		return amp.copy(
+			ampps = if (amp.to != null && amp.to < now) amp.ampps.filter { it.isValid(now, twoYearsAgo) }.toSet()
+				else emptySet()
+		)
+	}
+
+	override fun findAmpsByLabel(
+		language: String?,
+		label: String,
+		onlyValidAmpps: Boolean,
+		paginationOffset: PaginationOffset<Nothing>
+	): Flow<Amp> = flow {
 		val datastore = datastoreInstanceProvider.getInstanceAndGroup()
 		val labelComponents = label.split(" ").mapNotNull { it.sanitize() }
 		val ampIds = ampDAO.listAmpIdsByLabel(datastore, language, labelComponents.maxByOrNull { it.length }).toSet(TreeSet())
@@ -168,16 +198,21 @@ class SamV2LogicImpl(
 				ids = ampIds,
 				limit = paginationOffset.limitIncludingKey().limit,
 				supplier = { ids -> ampDAO.getEntities(ids) },
-				filter = { amp -> labelComponents.all { labelComponent ->
-					listOfNotNull(
-						amp.officialName,
-						amp.abbreviatedName?.localized(language)?.sanitize(),
-						amp.prescriptionName?.localized(language)?.sanitize(),
-						amp.name?.localized(language)?.sanitize(),
-					).any { it.contains(other = labelComponent, ignoreCase = true) }
-				} },
+				filter = { amp ->
+					labelComponents.all { labelComponent ->
+						listOfNotNull(
+							amp.officialName,
+							amp.abbreviatedName?.localized(language)?.sanitize(),
+							amp.prescriptionName?.localized(language)?.sanitize(),
+							amp.name?.localized(language)?.sanitize(),
+						).any { it.contains(other = labelComponent, ignoreCase = true) }
+					} && (!onlyValidAmpps || hasValidAmpps(amp))
+				},
 				startDocumentId = paginationOffset.startDocumentId,
-			)
+			).map {
+				if (onlyValidAmpps) removeInvalidAmpps(it)
+				else it
+			}
 		)
 	}
 

@@ -102,6 +102,9 @@ class SamV2Controller(
 		@Parameter(description = "label")
 		@RequestParam(required = false)
 		label: String?,
+		@Parameter(description = "Whether to only include amps with valid ampps, filtering out the ampps that are not valid.")
+		@RequestParam(required = false)
+		onlyValidAmpps: Boolean = false,
 		@Parameter(description = "The start key for pagination: a JSON representation of an array containing all the necessary components to form the Complex Key's startKey")
 		@RequestParam(required = false)
 		startKey: String?,
@@ -119,7 +122,7 @@ class SamV2Controller(
 		val realLimit = limit ?: DEFAULT_LIMIT
 		val paginationOffset = PaginationOffset(null, startDocumentId, null, realLimit)
 
-		val result = samV2Logic.findAmpsByLabel(language, label, paginationOffset).map(ampV2Mapper::map)
+		val result = samV2Logic.findAmpsByLabel(language, label, onlyValidAmpps, paginationOffset).map(ampV2Mapper::map)
 
 		return addProductIdsToAmps(result)
 			.toPaginatedFlow(paginationOffset.limit, { it.id }) { null }
