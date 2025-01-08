@@ -1,8 +1,11 @@
 package org.taktik.icure.asynclogic.bridge
 
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
+import io.kotest.matchers.collections.shouldNotBeEmpty
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.TestInstance
 import org.springframework.beans.factory.annotation.Value
@@ -199,6 +202,26 @@ private fun StringSpec.codeLogicBridgeTest(
 				uuid().substring(0, 6),
 				uuid().substring(0, 6)
 			) shouldBe null
+		}
+	}
+
+	"Can get codes by type" {
+		withAuthenticatedReactorContext(credentials) {
+			val types = List(3) { uuid().substring(0, 6) }
+			val codes = types.flatMap { type ->
+				listOf(
+					Code(id = "$type|CODE-A|1", type = type, code = "CODE-A", version = "1", regions = setOf("fr", "be")),
+					Code(id = "$type|CODE-A|2", type = type, code = "CODE-A", version = "2", regions = setOf("fr", "be")),
+					Code(id = "$type|CODE-B|1", type = type, code = "CODE-B", version = "1", regions = setOf("fr", "be")),
+					Code(id = "$type|CODE-B|2", type = type, code = "CODE-B", version = "2", regions = setOf("fr", "be")),
+					Code(id = "$type|CODE-C|1", type = type, code = "CODE-C", version = "1", regions = setOf("fr", "be")),
+					Code(id = "$type|CODE-C|2", type = type, code = "CODE-C", version = "2", regions = setOf("fr", "be")),
+				)
+			}.map { codeBridge.create(it) }
+			val typeToRetrieve = types.random()
+			val retrievedCodes = codeBridge.findCodesBy(typeToRetrieve, null, null).toList()
+			retrievedCodes.shouldNotBeEmpty()
+			retrievedCodes shouldContainExactlyInAnyOrder codes.filter { it?.type == typeToRetrieve }
 		}
 	}
 }

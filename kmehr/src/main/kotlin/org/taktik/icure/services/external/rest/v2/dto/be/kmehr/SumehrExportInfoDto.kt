@@ -23,13 +23,13 @@ import org.taktik.icure.services.external.rest.v2.dto.embed.ServiceDto
 import java.io.Serializable
 
 class SumehrExportInfoDto (
-    val secretForeignKeys: List<String> = emptyList(),
-    val excludedIds: List<String> = emptyList(),
-    val recipient: HealthcarePartyDto? = null,
-    val softwareName: String? = null,
-    val softwareVersion: String? = null,
-    val comment: String = "",
-    val includeIrrelevantInformation: Boolean? = null,
-    val services: List<ServiceDto>? = null,
-    val healthElements: List<HealthElementDto>? = null
+	val secretForeignKeys: List<String> = emptyList(),
+	val excludedIds: List<String> = emptyList(),
+	val recipient: HealthcarePartyDto? = null,
+	val softwareName: String? = null,
+	val softwareVersion: String? = null,
+	val comment: String = "",
+	val includeIrrelevantInformation: Boolean? = null,
+	val services: List<ServiceDto>? = null,
+	val healthElements: List<HealthElementDto>? = null
 ) : Serializable

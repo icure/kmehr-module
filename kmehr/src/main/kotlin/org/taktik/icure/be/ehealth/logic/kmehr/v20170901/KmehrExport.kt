@@ -949,7 +949,7 @@ open class KmehrExport(
 	 * Creates a local KmEHR id from an Int and a config.
 	 * @param itemIndex the Int value.
 	 * @param config the Config.
-	 * @return the IDKMEHR.
+	 * @return the [IDKMEHR].
 	 */
 	fun localIdKmehrElement(itemIndex: Int, config: Config): IDKMEHR =
 		localIdKmehr("Element", (itemIndex + 1).toString(), config)
