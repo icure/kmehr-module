@@ -120,6 +120,8 @@ dependencies {
     implementation(kmehrLibs.credentialsRotation)
     implementation(coreLibs.websocketCommons)
 
+//    implementation(kmehrLibs.cloudBooster)
+
     testImplementation(coreLibs.bundles.kotestLibs)
     testImplementation(coreLibs.springBootTest)
     testImplementation(coreLibs.jupiter)

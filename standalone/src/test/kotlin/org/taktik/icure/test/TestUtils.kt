@@ -38,9 +38,10 @@ import org.springframework.security.core.context.SecurityContext
 import org.taktik.icure.constants.Roles
 import org.taktik.icure.security.KmehrJWTDetails
 import org.taktik.icure.security.jwt.EncodedJWTAuth
+import org.taktik.icure.security.jwt.JwtDecoder
 import org.taktik.icure.security.jwt.JwtDetails
-import org.taktik.icure.security.jwt.JwtUtils
 import reactor.core.publisher.Mono
+import java.security.PublicKey
 import java.util.*
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.coroutineContext
@@ -51,9 +52,9 @@ fun ssin() = "${Random.nextInt(10,99)}.${Random.nextInt(10,12)}.${Random.nextInt
 fun generateEmail() = "${uuid().subSequence(0, 6)}@icure.test"
 
 val testHttpClient = HttpClient(CIO) {
-    install(ContentNegotiation) {
-        json(json = Serialization.json)
-    }
+	install(ContentNegotiation) {
+		json(json = Serialization.json)
+	}
 }
 
 @OptIn(InternalIcureApi::class)
@@ -61,197 +62,211 @@ val authProviders = mutableMapOf<Pair<String, String>, JwtBasedAuthProvider>()
 
 @OptIn(InternalIcureApi::class)
 fun getAuthProvider(iCureUrl: String, username: String, password: String) =
-    authProviders[Pair(username, password)] ?: AuthenticationMethod.UsingCredentials(
-        UsernamePassword(username, password)
-    ).getAuthProvider(
-        authApi = RawAnonymousAuthApiImpl(iCureUrl, testHttpClient, json = Serialization.json),
-        cryptoService = defaultCryptoService,
-        applicationId = null,
-        options = BasicSdkOptions(),
-        messageGatewayApi = RawMessageGatewayApi(testHttpClient, defaultCryptoService)
-    ) as JwtBasedAuthProvider
+	authProviders[Pair(username, password)] ?: AuthenticationMethod.UsingCredentials(
+		UsernamePassword(username, password)
+	).getAuthProvider(
+		authApi = RawAnonymousAuthApiImpl(iCureUrl, testHttpClient, json = Serialization.json),
+		cryptoService = defaultCryptoService,
+		applicationId = null,
+		options = BasicSdkOptions(),
+		messageGatewayApi = RawMessageGatewayApi(testHttpClient, defaultCryptoService)
+	) as JwtBasedAuthProvider
 
 @OptIn(InternalIcureApi::class)
 suspend fun getAuthJWT(iCureUrl: String, username: String, password: String) =
-    getAuthProvider(iCureUrl, username, password).getBearerAndRefreshToken().bearer.token
+	getAuthProvider(iCureUrl, username, password).getBearerAndRefreshToken().bearer.token
 
 data class UserCredentials(
-    val userId: String,
-    val login: String,
-    val password: String,
-    val dataOwnerId: String? = null,
-    val authJWT: String? = null,
-    val jwtClaims: JwtDetails? = null
+	val userId: String,
+	val login: String,
+	val password: String,
+	val dataOwnerId: String? = null,
+	val authJWT: String? = null,
+	val jwtClaims: JwtDetails? = null
 )
 
 @OptIn(InternalIcureApi::class)
-suspend fun createHealthcarePartyUser(iCureUrl: String, username: String, password: String, jwtUtils: JwtUtils): UserCredentials {
-    val login = generateEmail()
-    val authProvider = getAuthProvider(iCureUrl, username, password)
+suspend fun createHealthcarePartyUser(
+	iCureUrl: String,
+	username: String,
+	password: String,
+	jwtAuthPublicKey: PublicKey,
+	defaultExpirationTimeMillis: Long
+): UserCredentials {
+	val login = generateEmail()
+	val authProvider = getAuthProvider(iCureUrl, username, password)
 
-    val hcp = RawHealthcarePartyApiImpl(
-        apiUrl = iCureUrl,
-        authProvider = authProvider,
-        httpClient = testHttpClient,
-        json = Serialization.json
-    ).createHealthcareParty(
-        HealthcareParty(
-            id = uuid(),
-            firstName = "hcp",
-            lastName = login,
-        )
-    ).successBody()
+	val hcp = RawHealthcarePartyApiImpl(
+		apiUrl = iCureUrl,
+		authProvider = authProvider,
+		httpClient = testHttpClient,
+		json = Serialization.json
+	).createHealthcareParty(
+		HealthcareParty(
+			id = uuid(),
+			firstName = "hcp",
+			lastName = login,
+		)
+	).successBody()
 
-    val userPassword = uuid()
-    val user = RawUserApiImpl(
-        apiUrl = iCureUrl,
-        authProvider = authProvider,
-        httpClient = testHttpClient,
-        json = Serialization.json
-    ).createUser(
-        User(
-            id = uuid(),
-            login = login,
-            email = login,
-            passwordHash = userPassword,
-            healthcarePartyId = hcp.id
-        )
-    ).successBody()
+	val userPassword = uuid()
+	val user = RawUserApiImpl(
+		apiUrl = iCureUrl,
+		authProvider = authProvider,
+		httpClient = testHttpClient,
+		json = Serialization.json
+	).createUser(
+		User(
+			id = uuid(),
+			login = login,
+			email = login,
+			passwordHash = userPassword,
+			healthcarePartyId = hcp.id
+		)
+	).successBody()
 
-    val authJwt = getAuthJWT(iCureUrl, login, userPassword)
+	val authJwt = getAuthJWT(iCureUrl, login, userPassword)
 
-    return UserCredentials(
-        user.id,
-        login,
-        userPassword,
-        hcp.id,
-        authJwt,
-        jwtUtils.decodeAndGetClaims(authJwt).let { jwtUtils.jwtDetailsFromClaims(KmehrJWTDetails, it) }
-    )
+	val claims = JwtDecoder.decodeAndGetClaims(
+		jwt = authJwt,
+		ignoreExpiration = false,
+		publicKey = jwtAuthPublicKey
+	).let { claims ->
+		JwtDecoder.jwtDetailsFromClaims(KmehrJWTDetails, claims, defaultExpirationTimeMillis)
+	}
+
+	return UserCredentials(
+		user.id,
+		login,
+		userPassword,
+		hcp.id,
+		authJwt,
+		claims
+	)
 }
 
 @OptIn(InternalIcureApi::class)
 suspend fun createPatientUser(iCureUrl: String, username: String, password: String): UserCredentials {
-    val login = generateEmail()
-    val authProvider = getAuthProvider(iCureUrl, username, password)
+	val login = generateEmail()
+	val authProvider = getAuthProvider(iCureUrl, username, password)
 
-    val patient = RawPatientApiImpl(
-        apiUrl = iCureUrl,
-        authProvider = authProvider,
-        httpClient = testHttpClient,
-        json = Serialization.json,
-        accessControlKeysHeadersProvider = NoAccessControlKeysHeadersProvider
-    ).createPatient(
-        EncryptedPatient(
-            id = uuid(),
-            firstName = "patient",
-            lastName = login,
-        )
-    ).successBody()
+	val patient = RawPatientApiImpl(
+		apiUrl = iCureUrl,
+		authProvider = authProvider,
+		httpClient = testHttpClient,
+		json = Serialization.json,
+		accessControlKeysHeadersProvider = NoAccessControlKeysHeadersProvider
+	).createPatient(
+		EncryptedPatient(
+			id = uuid(),
+			firstName = "patient",
+			lastName = login,
+		)
+	).successBody()
 
-    val userPassword = uuid()
-    val user = RawUserApiImpl(
-        apiUrl = iCureUrl,
-        authProvider = authProvider,
-        httpClient = testHttpClient,
-        json = Serialization.json
-    ).createUser(
-        User(
-            id = uuid(),
-            login = login,
-            email = login,
-            passwordHash = userPassword,
-            patientId = patient.id
-        )
-    ).successBody()
+	val userPassword = uuid()
+	val user = RawUserApiImpl(
+		apiUrl = iCureUrl,
+		authProvider = authProvider,
+		httpClient = testHttpClient,
+		json = Serialization.json
+	).createUser(
+		User(
+			id = uuid(),
+			login = login,
+			email = login,
+			passwordHash = userPassword,
+			patientId = patient.id
+		)
+	).successBody()
 
-    val authJwt = getAuthJWT(iCureUrl, login, userPassword)
+	val authJwt = getAuthJWT(iCureUrl, login, userPassword)
 
-    return UserCredentials(
-        user.id,
-        login,
-        userPassword,
-        patient.id,
-        authJwt
-    )
+	return UserCredentials(
+		user.id,
+		login,
+		userPassword,
+		patient.id,
+		authJwt
+	)
 }
 
 @OptIn(InternalIcureApi::class)
 suspend fun createAdminUser(iCureUrl: String, username: String, password: String): UserCredentials {
-    val login = generateEmail()
-    val authProvider = getAuthProvider(iCureUrl, username, password)
+	val login = generateEmail()
+	val authProvider = getAuthProvider(iCureUrl, username, password)
 
-    val userPassword = uuid()
-    val user = RawUserApiImpl(
-        apiUrl = iCureUrl,
-        authProvider = authProvider,
-        httpClient = testHttpClient,
-        json = Serialization.json
-    ).createUser(
-        User(
-            id = uuid(),
-            login = login,
-            email = login,
-            passwordHash = userPassword
-        )
-    ).successBody()
+	val userPassword = uuid()
+	val user = RawUserApiImpl(
+		apiUrl = iCureUrl,
+		authProvider = authProvider,
+		httpClient = testHttpClient,
+		json = Serialization.json
+	).createUser(
+		User(
+			id = uuid(),
+			login = login,
+			email = login,
+			passwordHash = userPassword
+		)
+	).successBody()
 
-    RawPermissionApiImpl(
-        apiUrl = iCureUrl,
-        authProvider = authProvider,
-        httpClient = testHttpClient,
-        json = Serialization.json
-    ).modifyUserPermissions(
-        "${user.groupId}:${user.id}",
-        Permission(
-            grants = setOf(
-                AlwaysPermissionItem(
-                    PermissionType.Admin
-                )
-            )
-        )
-    ).successBody()
+	RawPermissionApiImpl(
+		apiUrl = iCureUrl,
+		authProvider = authProvider,
+		httpClient = testHttpClient,
+		json = Serialization.json
+	).modifyUserPermissions(
+		"${user.groupId}:${user.id}",
+		Permission(
+			grants = setOf(
+				AlwaysPermissionItem(
+					PermissionType.Admin
+				)
+			)
+		)
+	).successBody()
 
-    val authJwt = getAuthJWT(iCureUrl, login, userPassword)
+	val authJwt = getAuthJWT(iCureUrl, login, userPassword)
 
-    return UserCredentials(
-        user.id,
-        login,
-        userPassword,
-        null,
-        authJwt
-    )
+	return UserCredentials(
+		user.id,
+		login,
+		userPassword,
+		null,
+		authJwt
+	)
 }
 
 suspend fun <T> withAuthenticatedReactorContext(credentials: UserCredentials, block: suspend CoroutineScope.() -> T): T {
-    val fakeSecurityContext = object : SecurityContext {
+	val fakeSecurityContext = object : SecurityContext {
 
-        var auth: Authentication = EncodedJWTAuth(
-            token = credentials.authJWT.shouldNotBeNull(),
-            claims = credentials.jwtClaims.shouldNotBeNull(),
-            authorities = mutableSetOf(
-                SimpleGrantedAuthority(Roles.GrantedAuthority.ROLE_USER),
-                SimpleGrantedAuthority(Roles.GrantedAuthority.ROLE_HCP)
-            )
-        )
+		var auth: Authentication = EncodedJWTAuth(
+			token = credentials.authJWT.shouldNotBeNull(),
+			claims = credentials.jwtClaims.shouldNotBeNull(),
+			authorities = mutableSetOf(
+				SimpleGrantedAuthority(Roles.GrantedAuthority.ROLE_USER),
+				SimpleGrantedAuthority(Roles.GrantedAuthority.ROLE_HCP)
+			)
+		)
 
-        override fun getAuthentication(): Authentication = auth
+		override fun getAuthentication(): Authentication = auth
 
-        override fun setAuthentication(authentication: Authentication?) {
-            authentication?.let {
-                auth = it
-            }
-        }
-    }
+		override fun setAuthentication(authentication: Authentication?) {
+			authentication?.let {
+				auth = it
+			}
+		}
+	}
 
-    val ctx = ReactiveSecurityContextHolder.withSecurityContext(Mono.just(fakeSecurityContext))
-    return withContext(coroutineContext.plus(ctx?.asCoroutineContext() as CoroutineContext), block)
+	val ctx = ReactiveSecurityContextHolder.withSecurityContext(Mono.just(fakeSecurityContext))
+	return withContext(coroutineContext.plus(ctx?.asCoroutineContext() as CoroutineContext), block)
 }
 
 fun List<DataBuffer>.combineToString(): String {
-    val dataBufferFactory = DefaultDataBufferFactory()
-    val combinedBuffer = dataBufferFactory.join(this)
-    val byteArray = ByteArray(combinedBuffer.readableByteCount())
-    combinedBuffer.read(byteArray)
-    return String(byteArray, Charsets.UTF_8)
+	val dataBufferFactory = DefaultDataBufferFactory()
+	val combinedBuffer = dataBufferFactory.join(this)
+	val byteArray = ByteArray(combinedBuffer.readableByteCount())
+	combinedBuffer.read(byteArray)
+	return String(byteArray, Charsets.UTF_8)
 }

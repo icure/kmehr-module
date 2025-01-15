@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.TestInstance
 import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.test.context.ActiveProfiles
@@ -40,7 +41,8 @@ import org.taktik.icure.entities.samv2.embed.SamText
 import org.taktik.icure.entities.samv2.stub.VmpGroupStub
 import org.taktik.icure.entities.samv2.stub.VmpStub
 import org.taktik.icure.properties.CouchDbProperties
-import org.taktik.icure.security.jwt.JwtUtils
+import org.taktik.icure.security.jwt.JwtDecoder
+import org.taktik.icure.security.jwt.JwtKeyUtils
 import org.taktik.icure.services.external.rest.v1.dto.ListOfIdsDto
 import org.taktik.icure.services.external.rest.v1.dto.PaginatedList
 import org.taktik.icure.services.external.rest.v1.dto.samv2.AmpDto
@@ -76,15 +78,18 @@ class SAMV2ControllerE2ETest(
     @LocalServerPort val port: Int,
     val httpClient: TestHttpClient,
     val bridgeConfig: BridgeConfig,
-    val jwtUtils: JwtUtils,
     val ampDAO: AmpDAO,
     val vmpDAO: VmpDAO,
     val nmpDAO: NmpDAO,
     val vmpGroupDAO: VmpGroupDAO,
     val objectMapper: ObjectMapper,
     @Qualifier("drugCouchDbDispatcher") val couchDbDispatcher: CouchDbDispatcher,
-    val couchDbProperties: CouchDbProperties
+    val couchDbProperties: CouchDbProperties,
+    @Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String,
+    @Value("\${icure.auth.jwt.expirationMillis}") private val defaultExpirationTimeMillis: Long
 ) : StringSpec() {
+
+    private val jwtAuthPublicKey = JwtKeyUtils.decodePublicKeyFromString(jwtAuthPublicKeyAsString)
 
     private fun InputStream.toFlow() = flow {
         do {
@@ -107,12 +112,13 @@ class SAMV2ControllerE2ETest(
         private val credentials = mutableMapOf<CredentialsType, UserCredentials>()
 
         suspend fun getCredentials(type: CredentialsType): UserCredentials =
-            credentials[type]?.takeIf { jwtUtils.isNotExpired(it.authJWT!!) } ?: when(type) {
+            credentials[type]?.takeIf { JwtDecoder.isNotExpired(it.authJWT!!, jwtAuthPublicKey) } ?: when(type) {
                 CredentialsType.HCP -> createHealthcarePartyUser(
                     bridgeConfig.iCureUrl,
                     KmehrTestApplication.masterHcp.login,
                     KmehrTestApplication.masterHcp.password,
-                    jwtUtils
+                    jwtAuthPublicKey = jwtAuthPublicKey,
+                    defaultExpirationTimeMillis = defaultExpirationTimeMillis
                 )
                 CredentialsType.PATIENT -> createPatientUser(
                     bridgeConfig.iCureUrl,

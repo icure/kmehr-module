@@ -23,27 +23,27 @@ import java.nio.ByteBuffer
 @Profile("kmehr")
 @Service
 class SoftwareMedicalFileLogicImpl(
-    private val softwareMedicalFileExport: SoftwareMedicalFileExport,
-    private val softwareMedicalFileImport: SoftwareMedicalFileImport,
+	private val softwareMedicalFileExport: SoftwareMedicalFileExport,
+	private val softwareMedicalFileImport: SoftwareMedicalFileImport,
 ) : SoftwareMedicalFileLogic {
 
-    override suspend fun importSmfFile(
-        inputData: ByteArray,
-        author: User,
-        language: String,
-        dryRun: Boolean,
-        dest: Patient?,
-        mappings: Map<String, List<ImportMapping>>,
-    ): List<ImportResult> =
-        softwareMedicalFileImport.importSMF(inputData, author, language, !dryRun, mappings, dest)
+	override suspend fun importSmfFile(
+		inputData: ByteArray,
+		author: User,
+		language: String,
+		dryRun: Boolean,
+		dest: Patient?,
+		mappings: Map<String, List<ImportMapping>>,
+	): List<ImportResult> =
+		softwareMedicalFileImport.importSMF(inputData, author, language, !dryRun, mappings, dest)
 
-    override suspend fun checkIfSMFPatientsExists(
-        inputData: Flow<ByteBuffer>,
-        author: User,
-        dest: Patient?,
-    ): List<CheckSMFPatientResult> =
-        softwareMedicalFileImport.checkIfSMFPatientsExists(inputData, author, dest)
+	override suspend fun checkIfSMFPatientsExists(
+		inputData: Flow<ByteBuffer>,
+		author: User,
+		dest: Patient?,
+	): List<CheckSMFPatientResult> =
+		softwareMedicalFileImport.checkIfSMFPatientsExists(inputData, author, dest)
 
-    override fun createSmfExport(patient: Patient, sfks: List<String>, sender: HealthcareParty, language: String, decryptor: AsyncDecrypt?, progressor: AsyncProgress?, config: Config): Flow<DataBuffer> =
-        softwareMedicalFileExport.exportSMF(patient, sfks, sender, language, decryptor, progressor, config)
+	override fun createSmfExport(patient: Patient, sfks: List<String>, sender: HealthcareParty, language: String, decryptor: AsyncDecrypt?, progressor: AsyncProgress?, config: Config): Flow<DataBuffer> =
+		softwareMedicalFileExport.exportSMF(patient, sfks, sender, language, decryptor, progressor, config)
 }
