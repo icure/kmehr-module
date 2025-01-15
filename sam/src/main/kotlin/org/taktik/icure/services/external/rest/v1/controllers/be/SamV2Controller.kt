@@ -105,7 +105,7 @@ class SamV2Controller(
 		label: String?,
 		@Parameter(description = "The start key for pagination: a JSON representation of an array containing all the necessary components to form the Complex Key's startKey")
 		@RequestParam(required = false)
-		startKey: String?,
+		startKey: String?, // Start key is actually not used in the logic
 		@Parameter(description = "An amp document ID")
 		@RequestParam(required = false)
 		startDocumentId: String?,
