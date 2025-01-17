@@ -161,28 +161,6 @@ class SamV2LogicImpl(
 		)
 	}
 
-	private fun Ampp.isValid(now: Long, twoYearsAgo: Long): Boolean =
-		from != null && from < now && (to == null || to > now) && status == AmpStatus.AUTHORIZED && commercializations?.any {
-			it.from != null && (it.to == null || it.to > twoYearsAgo)
-		} ?: false
-
-	private fun hasValidAmpps(amp: Amp): Boolean {
-		val now = System.currentTimeMillis()
-		val twoYearsAgo = now - Duration.ofDays(365 * 2).toMillis()
-		return amp.to != null && amp.to < now && amp.ampps.any {
-			it.isValid(now, twoYearsAgo)
-		}
-	}
-
-	private fun removeInvalidAmpps(amp: Amp): Amp {
-		val now = System.currentTimeMillis()
-		val twoYearsAgo = now - Duration.ofDays(365 * 2).toMillis()
-		return amp.copy(
-			ampps = if (amp.to != null && amp.to < now) amp.ampps.filter { it.isValid(now, twoYearsAgo) }.toSet()
-				else emptySet()
-		)
-	}
-
 	override fun findAmpsByLabel(
 		language: String?,
 		label: String,
@@ -206,11 +184,11 @@ class SamV2LogicImpl(
 							amp.prescriptionName?.localized(language)?.sanitize(),
 							amp.name?.localized(language)?.sanitize(),
 						).any { it.contains(other = labelComponent, ignoreCase = true) }
-					} && (!onlyValidAmpps || hasValidAmpps(amp))
+					} && (!onlyValidAmpps || amp.hasValidAmpps(includeWithoutCommercializations = false))
 				},
 				startDocumentId = paginationOffset.startDocumentId,
 			).map {
-				if (onlyValidAmpps) removeInvalidAmpps(it)
+				if (onlyValidAmpps) it.removeInvalidAmpps(includeWithoutCommercializations = false)
 				else it
 			}
 		)
