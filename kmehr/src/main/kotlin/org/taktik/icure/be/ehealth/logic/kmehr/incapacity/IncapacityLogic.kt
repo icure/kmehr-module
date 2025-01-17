@@ -32,20 +32,20 @@ import org.taktik.icure.entities.Patient
  */
 interface IncapacityLogic {
 
-    /**
-     * Exports an Incapacity as KmEHR XML message.
-     * @param patient the iCure Patient.
-     * @param sender the HCP responsible for the export.
-     * @param language the language of the content.
-     * @param exportInfo the IncapacityExportInfo to include in the message.
-     * @param timeZone the timezone to include in the Config.
-     * @return a Flow of DataBuffer containing the XML.
-     */
-    fun createIncapacityExport(
-        patient: Patient,
-        sender: HealthcareParty,
-        language: String,
-        exportInfo: IncapacityExportInfo,
-        timeZone: String?
-    ): Flow<DataBuffer>
+	/**
+	 * Exports an Incapacity as KmEHR XML message.
+	 * @param patient the iCure Patient.
+	 * @param sender the HCP responsible for the export.
+	 * @param language the language of the content.
+	 * @param exportInfo the IncapacityExportInfo to include in the message.
+	 * @param timeZone the timezone to include in the Config.
+	 * @return a Flow of DataBuffer containing the XML.
+	 */
+	fun createIncapacityExport(
+		patient: Patient,
+		sender: HealthcareParty,
+		language: String,
+		exportInfo: IncapacityExportInfo,
+		timeZone: String?
+	): Flow<DataBuffer>
 }

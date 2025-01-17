@@ -1,5 +1,6 @@
 package org.taktik.icure.config
 
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpMethod
@@ -15,59 +16,63 @@ import org.taktik.icure.constants.Roles
 import org.taktik.icure.security.CustomAuthenticationManager
 import org.taktik.icure.security.UnauthorizedEntryPoint
 import org.taktik.icure.security.jwt.EncodedJWTAuth
-import org.taktik.icure.security.jwt.JwtUtils
+import org.taktik.icure.security.jwt.JwtKeyUtils
 import reactor.core.publisher.Mono
 
 @Configuration
 class SecurityConfig {
 
-    @Bean
-    fun authenticationManager(
-        jwtUtils: JwtUtils
-    ) = CustomAuthenticationManager(jwtUtils)
+	@Bean
+	fun authenticationManager(
+		@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String,
+		@Value("\${icure.auth.jwt.expirationMillis}") defaultExpirationTimeMillis: Long
+	): CustomAuthenticationManager {
+		val jwtAuthPublicKey = JwtKeyUtils.decodePublicKeyFromString(jwtAuthPublicKeyAsString)
+		return CustomAuthenticationManager(jwtAuthPublicKey, defaultExpirationTimeMillis)
+	}
 }
 
 @Configuration
 @EnableWebFluxSecurity
 @EnableReactiveMethodSecurity
 class SecurityConfigAdapter(
-    private val authenticationManager: CustomAuthenticationManager,
+	private val authenticationManager: CustomAuthenticationManager,
 ) {
 
-    @Bean
-    fun securityWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain {
-        return http.authorizeExchange {
-            it.pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-            .pathMatchers("/ws/**").hasAnyAuthority(Roles.GrantedAuthority.ROLE_HCP, Roles.GrantedAuthority.ROLE_ADMINISTRATOR)
-            .pathMatchers("/rest/*/be_samv2/chap/**").permitAll()
-            .pathMatchers("/rest/v2/be_samv2/couchdb/notifyrotation").permitAll()
-            .pathMatchers("/rest/*/ehr_module/v").permitAll()
-            .pathMatchers("/actuator/**").permitAll()
-            .pathMatchers("/**").hasAnyAuthority(Roles.GrantedAuthority.ROLE_HCP, Roles.GrantedAuthority.ROLE_ADMINISTRATOR)
-        }.csrf {
-            it.disable()
-        }.addFilterAfter(
-                AuthenticationWebFilter(authenticationManager).apply {
-                    this.setAuthenticationFailureHandler(
-                        ServerAuthenticationEntryPointFailureHandler(
-                            UnauthorizedEntryPoint(),
-                        ),
-                    )
-                    this.setSecurityContextRepository(NoOpServerSecurityContextRepository.getInstance())
+	@Bean
+	fun securityWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain {
+		return http.authorizeExchange {
+			it.pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+				.pathMatchers("/ws/**").hasAnyAuthority(Roles.GrantedAuthority.ROLE_HCP, Roles.GrantedAuthority.ROLE_ADMINISTRATOR)
+				.pathMatchers("/rest/*/be_samv2/chap/**").permitAll()
+				.pathMatchers("/rest/v2/be_samv2/couchdb/notifyrotation").permitAll()
+				.pathMatchers("/rest/*/ehr_module/v").permitAll()
+				.pathMatchers("/actuator/**").permitAll()
+				.pathMatchers("/**").hasAnyAuthority(Roles.GrantedAuthority.ROLE_HCP, Roles.GrantedAuthority.ROLE_ADMINISTRATOR)
+		}.csrf {
+			it.disable()
+		}.addFilterAfter(
+			AuthenticationWebFilter(authenticationManager).apply {
+				this.setAuthenticationFailureHandler(
+					ServerAuthenticationEntryPointFailureHandler(
+						UnauthorizedEntryPoint(),
+					),
+				)
+				this.setSecurityContextRepository(NoOpServerSecurityContextRepository.getInstance())
 
-                    this.setServerAuthenticationConverter { exchange ->
-                        // First I check for the JWT Header
-                        (exchange?.request?.headers?.get("Authorization")
-                            ?.firstNotNullOfOrNull { h ->
-                                h?.takeIf { it.contains("Bearer") }?.replace("Bearer ", "")
-                            } ?: exchange?.request?.queryParams?.get("jwt")?.firstOrNull()
-                        )?.let {
-                            Mono.just(EncodedJWTAuth(token = it))
-                        } ?: Mono.empty()
-                    }
-                },
-                SecurityWebFiltersOrder.REACTOR_CONTEXT,
-            )
-            .build()
-    }
+				this.setServerAuthenticationConverter { exchange ->
+					// First I check for the JWT Header
+					(exchange?.request?.headers?.get("Authorization")
+						?.firstNotNullOfOrNull { h ->
+							h?.takeIf { it.contains("Bearer") }?.replace("Bearer ", "")
+						} ?: exchange?.request?.queryParams?.get("jwt")?.firstOrNull()
+						)?.let {
+							Mono.just(EncodedJWTAuth(token = it))
+						} ?: Mono.empty()
+				}
+			},
+			SecurityWebFiltersOrder.REACTOR_CONTEXT,
+		)
+			.build()
+	}
 }

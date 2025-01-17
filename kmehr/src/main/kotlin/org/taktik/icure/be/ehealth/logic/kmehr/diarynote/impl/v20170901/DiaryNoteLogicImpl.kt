@@ -20,30 +20,31 @@ import java.io.InputStream
 @Profile("kmehr")
 @Service("diaryNoteLogic")
 class DiaryNoteLogicImpl(
-    @Qualifier("dairyNoteExport") val diaryNoteExport: DiaryNoteExport,
-    @Qualifier("diaryNoteImport") val diaryNoteImport: DiaryNoteImport
+	@Qualifier("dairyNoteExport") val diaryNoteExport: DiaryNoteExport,
+	@Qualifier("diaryNoteImport") val diaryNoteImport: DiaryNoteImport
 ) : DiaryNoteLogic {
-    override fun createDiaryNote(
-        pat: Patient,
-        sfks: List<String>,
-        sender: HealthcareParty,
-        recipient: HealthcareParty,
-        note: String?,
-        tags: List<String>,
-        contexts: List<String>,
-        isPsy: Boolean,
-        documentId: String?,
-        attachmentId: String?) = flow {
-            emitAll(
-                diaryNoteExport.createDiaryNote(pat, sfks, sender, recipient, note, tags, contexts, isPsy, documentId, attachmentId)
-            )
-        }
+	override fun createDiaryNote(
+		pat: Patient,
+		sfks: List<String>,
+		sender: HealthcareParty,
+		recipient: HealthcareParty,
+		note: String?,
+		tags: List<String>,
+		contexts: List<String>,
+		isPsy: Boolean,
+		documentId: String?,
+		attachmentId: String?
+	) = flow {
+		emitAll(
+			diaryNoteExport.createDiaryNote(pat, sfks, sender, recipient, note, tags, contexts, isPsy, documentId, attachmentId)
+		)
+	}
 
-    override fun importDiaryNote(
-        inputStream: InputStream,
-        author: User,
-        language: String,
-        dest: Patient?,
-        mappings: Map<String, List<ImportMapping>>): List<ImportResult> =
-            diaryNoteImport.importDiaryNote(inputStream, author, language, mappings, dest)
+	override fun importDiaryNote(
+		inputStream: InputStream,
+		author: User,
+		language: String,
+		dest: Patient?,
+		mappings: Map<String, List<ImportMapping>>): List<ImportResult> =
+		diaryNoteImport.importDiaryNote(inputStream, author, language, mappings, dest)
 }
