@@ -33,6 +33,7 @@ import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.server.ResponseStatusException
 import org.taktik.couchdb.ViewRowWithDoc
 import org.taktik.icure.asynclogic.samv2.SamV2Logic
+import org.taktik.icure.asynclogic.samv2.impl.SamV2Updater
 import org.taktik.icure.db.PaginationOffset
 import org.taktik.icure.entities.samv2.Amp
 import org.taktik.icure.pagination.PaginatedFlux
@@ -81,6 +82,7 @@ class SamV2Controller(
 	private val paragraphV2Mapper: ParagraphV2Mapper,
 	private val verseV2Mapper: VerseV2Mapper,
 	private val objectMapper: ObjectMapper,
+	private val samV2Updater: SamV2Updater
 ) {
 
 	companion object {
@@ -92,6 +94,14 @@ class SamV2Controller(
 	@Operation(summary = "Get Samv2 version.", description = "Returns a list of codes matched with given input. If several types are provided, paginantion is not supported")
 	@GetMapping("/v")
 	fun getSamVersion() = mono { samV2Logic.getVersion()?.let { samVersionV2Mapper.map(it) } }
+
+	@PostMapping("/patch")
+	fun triggerSamUpdate(
+		@RequestParam jwt: String,
+	) = samV2Updater.startUpdateJob(jwt)
+
+	@GetMapping("/patch")
+	fun getSamUpdateStatus() = samV2Updater.getCurrentJobStatus()
 
 	@Operation(summary = "Finding AMPs by label with pagination.", description = "Returns a list of codes matched with given input. If several types are provided, paginantion is not supported")
 	@GetMapping("/amp")
