@@ -26,7 +26,7 @@ data class SamUpdate(
 	@JsonProperty("rev_history") override val revHistory: Map<String, String>? = emptyMap()
 ) : StoredDocument {
 
-	enum class BundleType { Amps, NonMedicinals, Paragraphs, Signatures, Verses, Vmps }
+	enum class BundleType { Amps, NonMedicinals, Paragraphs, PharmaceuticalForms, Signatures, Substances, Verses, Vmps, VmpGroups }
 
 	override fun withIdRev(id: String?, rev: String) = if (id != null) this.copy(id = id, rev = rev) else this.copy(rev = rev)
 	override fun withDeletionDate(deletionDate: Long?) = this.copy(deletionDate = deletionDate)

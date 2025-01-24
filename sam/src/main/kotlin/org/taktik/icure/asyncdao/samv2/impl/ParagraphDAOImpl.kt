@@ -41,7 +41,7 @@ class ParagraphDAOImpl(
 	idGenerator: IDGenerator,
 	datastoreInstanceProvider: DatastoreInstanceProvider,
 	designDocumentProvider: DesignDocumentProvider,
-	val ampDAO: AmpDAO
+	private val ampDAO: AmpDAO
 ) : InternalDAOImpl<Paragraph>(Paragraph::class.java, couchDbDispatcher, idGenerator, datastoreInstanceProvider, designDocumentProvider), ParagraphDAO {
 	@View(name = "by_language_label", map = "classpath:js/paragraph/By_language_label.js")
 	override fun findParagraphs(datastoreInformation: IDatastoreInformation, searchString: String, language: String, paginationOffset: PaginationOffset<List<String>>): Flow<ViewQueryResultEvent> = flow {

@@ -4,14 +4,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.stereotype.Component
@@ -23,11 +21,13 @@ import org.taktik.icure.asyncdao.InternalDAO
 import org.taktik.icure.asyncdao.samv2.AmpDAO
 import org.taktik.icure.asyncdao.samv2.NmpDAO
 import org.taktik.icure.asyncdao.samv2.ParagraphDAO
+import org.taktik.icure.asyncdao.samv2.PharmaceuticalFormDAO
 import org.taktik.icure.asyncdao.samv2.SamUpdateDAO
+import org.taktik.icure.asyncdao.samv2.SubstanceDAO
 import org.taktik.icure.asyncdao.samv2.VerseDAO
 import org.taktik.icure.asyncdao.samv2.VmpDAO
+import org.taktik.icure.asyncdao.samv2.VmpGroupDAO
 import org.taktik.icure.asynclogic.datastore.DatastoreInstanceProvider
-import org.taktik.icure.asynclogic.datastore.IDatastoreInformation
 import org.taktik.icure.asynclogic.samv2.UpdatesBridge
 import org.taktik.icure.entities.base.StoredDocument
 import org.taktik.icure.entities.samv2.updates.SamUpdate
@@ -42,8 +42,11 @@ class SamV2Updater(
 	@Qualifier("drugCouchDbDispatcher") private val drugsCouchDbDispatcher: CouchDbDispatcher,
 	private val ampDAO: AmpDAO,
 	private val vmpDAO: VmpDAO,
+	private val vmpGroupDAO: VmpGroupDAO,
 	private val nmpDAO: NmpDAO,
 	private val paragraphDAO: ParagraphDAO,
+	private val pharmaceuticalFormDAO: PharmaceuticalFormDAO,
+	private val substanceDAO: SubstanceDAO,
 	private val verseDAO: VerseDAO,
 	private val samUpdateDAO: SamUpdateDAO,
 	private val updatesBridge: UpdatesBridge,
@@ -84,8 +87,7 @@ class SamV2Updater(
 			}
 		}
 
-		private suspend fun getCurrentSamUpdate(datastoreInformation: IDatastoreInformation): SamUpdate? =
-			samUpdateDAO.getLastAppliedUpdate(datastoreInformation)
+		private suspend fun getCurrentSamUpdate(): SamUpdate? = samUpdateDAO.getLastAppliedUpdate()
 
 		suspend fun update(jwt: String) {
 			try {
@@ -93,12 +95,12 @@ class SamV2Updater(
 				val datastoreInfo = datastoreInstanceProvider.getInstanceAndGroup()
 				val client = drugsCouchDbDispatcher.getClient(datastoreInfo)
 				checkOnlyLocalNodeExists(client)
-				val currentDrugsVersion = getCurrentSamUpdate(datastoreInfo)
+				val currentDrugsVersion = getCurrentSamUpdate()
 				if (currentDrugsVersion == null) {
 					loadSnapshotUpdate(jwt)
 					loadDiffUpdate(
 						jwt,
-						checkNotNull(getCurrentSamUpdate(datastoreInfo)) { "After loading the snapshot, the current version cannot be null" }
+						checkNotNull(getCurrentSamUpdate()) { "After loading the snapshot, the current version cannot be null" }
 					)
 				} else {
 					loadDiffUpdate(jwt, currentDrugsVersion)
@@ -130,6 +132,16 @@ class SamV2Updater(
 						val currentParagraphIds = loadEntities(paragraphDAO, latestSnapshot.id, UpdateType.Snapshot, resourceName)
 						deleteUnused(paragraphDAO, currentParagraphIds)
 					}
+					SamUpdate.BundleType.PharmaceuticalForms -> {
+						_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying PharmaceuticalForms from snapshot update ${latestSnapshot.version} - ${latestSnapshot.date}"))
+						val currentParagraphIds = loadEntities(pharmaceuticalFormDAO, latestSnapshot.id, UpdateType.Snapshot, resourceName)
+						deleteUnused(pharmaceuticalFormDAO, currentParagraphIds)
+					}
+					SamUpdate.BundleType.Substances -> {
+						_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Substances from snapshot update ${latestSnapshot.version} - ${latestSnapshot.date}"))
+						val currentParagraphIds = loadEntities(substanceDAO, latestSnapshot.id, UpdateType.Snapshot, resourceName)
+						deleteUnused(substanceDAO, currentParagraphIds)
+					}
 					SamUpdate.BundleType.Verses -> {
 						_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Verses from snapshot update ${latestSnapshot.version} - ${latestSnapshot.date}"))
 						val currentVersesIds = loadEntities(verseDAO, latestSnapshot.id, UpdateType.Snapshot, resourceName)
@@ -139,6 +151,11 @@ class SamV2Updater(
 						_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Vmps from snapshot update ${latestSnapshot.version} - ${latestSnapshot.date}"))
 						val currentVmpIds = loadEntities(vmpDAO, latestSnapshot.id, UpdateType.Snapshot, resourceName)
 						deleteUnused(vmpDAO, currentVmpIds)
+					}
+					SamUpdate.BundleType.VmpGroups -> {
+						_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Vmp Groups from snapshot update ${latestSnapshot.version} - ${latestSnapshot.date}"))
+						val currentVmpIds = loadEntities(vmpGroupDAO, latestSnapshot.id, UpdateType.Snapshot, resourceName)
+						deleteUnused(vmpGroupDAO, currentVmpIds)
 					}
 					SamUpdate.BundleType.Signatures -> {
 						_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Signatures from snapshot update ${latestSnapshot.version} - ${latestSnapshot.date}"))
@@ -158,27 +175,42 @@ class SamV2Updater(
 						SamUpdate.BundleType.Amps -> {
 							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Amps from diff update ${samUpdate.version} - ${samUpdate.date}"))
 							loadEntities(ampDAO, samUpdate.id, UpdateType.Diff, resourceName)
-							deleteEntities(ampDAO, samUpdate.id, UpdateType.Diff, resourceName)
+							deleteEntities(ampDAO, samUpdate.id, UpdateType.Diff, resourceName, hardDelete = false)
 						}
 						SamUpdate.BundleType.NonMedicinals -> {
 							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Nmps from diff update ${samUpdate.version} - ${samUpdate.date}"))
 							loadEntities(nmpDAO, samUpdate.id, UpdateType.Diff, resourceName)
-							deleteEntities(nmpDAO, samUpdate.id, UpdateType.Diff, resourceName)
+							deleteEntities(nmpDAO, samUpdate.id, UpdateType.Diff, resourceName, hardDelete = false)
 						}
 						SamUpdate.BundleType.Paragraphs -> {
 							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Paragraphs from diff update ${samUpdate.version} - ${samUpdate.date}"))
 							loadEntities(paragraphDAO, samUpdate.id, UpdateType.Diff, resourceName)
-							deleteEntities(paragraphDAO, samUpdate.id, UpdateType.Diff, resourceName)
+							deleteEntities(paragraphDAO, samUpdate.id, UpdateType.Diff, resourceName, hardDelete = true)
+						}
+						SamUpdate.BundleType.PharmaceuticalForms -> {
+							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying PharmaceuticalForms from diff update ${samUpdate.version} - ${samUpdate.date}"))
+							loadEntities(pharmaceuticalFormDAO, samUpdate.id, UpdateType.Diff, resourceName)
+							deleteEntities(pharmaceuticalFormDAO, samUpdate.id, UpdateType.Diff, resourceName, hardDelete = false)
+						}
+						SamUpdate.BundleType.Substances -> {
+							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Substances from diff update ${samUpdate.version} - ${samUpdate.date}"))
+							loadEntities(substanceDAO, samUpdate.id, UpdateType.Diff, resourceName)
+							deleteEntities(substanceDAO, samUpdate.id, UpdateType.Diff, resourceName, hardDelete = false)
 						}
 						SamUpdate.BundleType.Verses -> {
 							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Verses from diff update ${samUpdate.version} - ${samUpdate.date}"))
 							loadEntities(verseDAO, samUpdate.id, UpdateType.Diff, resourceName)
-							deleteEntities(vmpDAO, samUpdate.id, UpdateType.Diff, resourceName)
+							deleteEntities(vmpDAO, samUpdate.id, UpdateType.Diff, resourceName, hardDelete = true)
 						}
 						SamUpdate.BundleType.Vmps -> {
 							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Vmps from diff update ${samUpdate.version} - ${samUpdate.date}"))
 							loadEntities(vmpDAO, samUpdate.id, UpdateType.Diff, resourceName)
-							deleteEntities(vmpDAO, samUpdate.id, UpdateType.Diff, resourceName)
+							deleteEntities(vmpDAO, samUpdate.id, UpdateType.Diff, resourceName, hardDelete = false)
+						}
+						SamUpdate.BundleType.VmpGroups -> {
+							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Vmp Groups from diff update ${samUpdate.version} - ${samUpdate.date}"))
+							loadEntities(vmpGroupDAO, samUpdate.id, UpdateType.Diff, resourceName)
+							deleteEntities(vmpGroupDAO, samUpdate.id, UpdateType.Diff, resourceName, hardDelete = false)
 						}
 						SamUpdate.BundleType.Signatures -> {
 							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Signatures from diff update ${samUpdate.version} - ${samUpdate.date}"))
@@ -251,12 +283,17 @@ class SamV2Updater(
 			dao: InternalDAO<T>,
 			updateVersion: String,
 			type: UpdateType,
-			resourceName: String
+			resourceName: String,
+			hardDelete: Boolean
 		): List<String> {
 			val entitiesToDelete = updatesBridge.getEntityDeleteContent(updateVersion, type, resourceName).let {
 				dao.getEntities(it.toList())
 			}
-			return dao.purge(entitiesToDelete).map { it.id }.toList()
+			return if (hardDelete) {
+				dao.purge(entitiesToDelete).map { it.id }.toList()
+			} else {
+				dao.remove(entitiesToDelete).map { it.id }.toList()
+			}
 		}
 
 		private suspend fun <T : StoredDocument> deleteUnused(dao: InternalDAO<T>, used: Set<String>): List<String> =
