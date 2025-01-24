@@ -6,6 +6,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
@@ -15,6 +16,7 @@ import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.stereotype.Component
 import org.taktik.couchdb.Client
 import org.taktik.couchdb.create
+import org.taktik.couchdb.exception.CouchDbConflictException
 import org.taktik.couchdb.update
 import org.taktik.icure.asyncdao.CouchDbDispatcher
 import org.taktik.icure.asyncdao.InternalDAO
@@ -34,6 +36,7 @@ import org.taktik.icure.entities.samv2.updates.SamUpdate
 import org.taktik.icure.entities.samv2.updates.SignatureUpdate
 import org.taktik.icure.entities.samv2.updates.UpdateType
 import org.taktik.icure.utils.GzipDeflateInputStream
+import org.taktik.icure.utils.log
 import org.taktik.icure.utils.toFlow
 import java.util.ArrayDeque
 
@@ -114,112 +117,145 @@ class SamV2Updater(
 
 		private suspend fun loadSnapshotUpdate(jwt: String) {
 			val latestSnapshot = updatesBridge.getMostRecentSnapshot(jwt)
-			_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying snapshot update ${latestSnapshot.version} - ${latestSnapshot.date}"))
+			_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying snapshot update ${latestSnapshot.version}"))
 			latestSnapshot.updates.forEach { (type, resourceName) ->
 				when (type) {
 					SamUpdate.BundleType.Amps -> {
-						_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Amp from snapshot update ${latestSnapshot.version} - ${latestSnapshot.date}"))
+						_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Amp from snapshot update ${latestSnapshot.version}"))
 						val currentAmpIds = loadEntities(ampDAO, latestSnapshot.id, UpdateType.Snapshot, resourceName)
 						deleteUnused(ampDAO, currentAmpIds)
 					}
 					SamUpdate.BundleType.NonMedicinals -> {
-						_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Nmp from snapshot update ${latestSnapshot.version} - ${latestSnapshot.date}"))
+						_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Nmp from snapshot update ${latestSnapshot.version}"))
 						val currentNmpIds = loadEntities(nmpDAO, latestSnapshot.id, UpdateType.Snapshot, resourceName)
 						deleteUnused(nmpDAO, currentNmpIds)
 					}
 					SamUpdate.BundleType.Paragraphs -> {
-						_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Paragraphs from snapshot update ${latestSnapshot.version} - ${latestSnapshot.date}"))
+						_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Paragraphs from snapshot update ${latestSnapshot.version}"))
 						val currentParagraphIds = loadEntities(paragraphDAO, latestSnapshot.id, UpdateType.Snapshot, resourceName)
 						deleteUnused(paragraphDAO, currentParagraphIds)
 					}
 					SamUpdate.BundleType.PharmaceuticalForms -> {
-						_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying PharmaceuticalForms from snapshot update ${latestSnapshot.version} - ${latestSnapshot.date}"))
+						_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying PharmaceuticalForms from snapshot update ${latestSnapshot.version}"))
 						val currentParagraphIds = loadEntities(pharmaceuticalFormDAO, latestSnapshot.id, UpdateType.Snapshot, resourceName)
 						deleteUnused(pharmaceuticalFormDAO, currentParagraphIds)
 					}
 					SamUpdate.BundleType.Substances -> {
-						_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Substances from snapshot update ${latestSnapshot.version} - ${latestSnapshot.date}"))
+						_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Substances from snapshot update ${latestSnapshot.version}"))
 						val currentParagraphIds = loadEntities(substanceDAO, latestSnapshot.id, UpdateType.Snapshot, resourceName)
 						deleteUnused(substanceDAO, currentParagraphIds)
 					}
 					SamUpdate.BundleType.Verses -> {
-						_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Verses from snapshot update ${latestSnapshot.version} - ${latestSnapshot.date}"))
+						_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Verses from snapshot update ${latestSnapshot.version}"))
 						val currentVersesIds = loadEntities(verseDAO, latestSnapshot.id, UpdateType.Snapshot, resourceName)
 						deleteUnused(verseDAO, currentVersesIds)
 					}
 					SamUpdate.BundleType.Vmps -> {
-						_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Vmps from snapshot update ${latestSnapshot.version} - ${latestSnapshot.date}"))
+						_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Vmps from snapshot update ${latestSnapshot.version}"))
 						val currentVmpIds = loadEntities(vmpDAO, latestSnapshot.id, UpdateType.Snapshot, resourceName)
 						deleteUnused(vmpDAO, currentVmpIds)
 					}
 					SamUpdate.BundleType.VmpGroups -> {
-						_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Vmp Groups from snapshot update ${latestSnapshot.version} - ${latestSnapshot.date}"))
+						_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Vmp Groups from snapshot update ${latestSnapshot.version}"))
 						val currentVmpIds = loadEntities(vmpGroupDAO, latestSnapshot.id, UpdateType.Snapshot, resourceName)
 						deleteUnused(vmpGroupDAO, currentVmpIds)
 					}
 					SamUpdate.BundleType.Signatures -> {
-						_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Signatures from snapshot update ${latestSnapshot.version} - ${latestSnapshot.date}"))
+						_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Signatures from snapshot update ${latestSnapshot.version}"))
 						loadSignatures(latestSnapshot.id, UpdateType.Snapshot, resourceName)
 					}
+					else -> {}
 				}
 			}
+			_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Saving version reference"))
 			samUpdateDAO.save(latestSnapshot.copy(rev = null))
-			_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Successfully applied snapshot update ${latestSnapshot.version} - ${latestSnapshot.date}"))
+			_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Successfully applied snapshot update ${latestSnapshot.version}"))
 		}
 
 		private suspend fun loadDiffUpdate(jwt: String, currentUpdateVersion: SamUpdate) {
 			updatesBridge.getFollowingUpdates(jwt, currentUpdateVersion).forEach { samUpdate ->
-				_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying diff update ${samUpdate.version} - ${samUpdate.date}"))
+				_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying diff update ${samUpdate.version}"))
 				samUpdate.updates.forEach { (type, resourceName) ->
 					when (type) {
 						SamUpdate.BundleType.Amps -> {
-							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Amps from diff update ${samUpdate.version} - ${samUpdate.date}"))
+							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Amps from diff update ${samUpdate.version}"))
 							loadEntities(ampDAO, samUpdate.id, UpdateType.Diff, resourceName)
-							deleteEntities(ampDAO, samUpdate.id, UpdateType.Diff, resourceName, hardDelete = false)
 						}
 						SamUpdate.BundleType.NonMedicinals -> {
-							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Nmps from diff update ${samUpdate.version} - ${samUpdate.date}"))
+							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Nmps from diff update ${samUpdate.version}"))
 							loadEntities(nmpDAO, samUpdate.id, UpdateType.Diff, resourceName)
-							deleteEntities(nmpDAO, samUpdate.id, UpdateType.Diff, resourceName, hardDelete = false)
 						}
 						SamUpdate.BundleType.Paragraphs -> {
-							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Paragraphs from diff update ${samUpdate.version} - ${samUpdate.date}"))
+							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Paragraphs updates from diff update ${samUpdate.version}"))
 							loadEntities(paragraphDAO, samUpdate.id, UpdateType.Diff, resourceName)
-							deleteEntities(paragraphDAO, samUpdate.id, UpdateType.Diff, resourceName, hardDelete = true)
 						}
 						SamUpdate.BundleType.PharmaceuticalForms -> {
-							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying PharmaceuticalForms from diff update ${samUpdate.version} - ${samUpdate.date}"))
+							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying PharmaceuticalForms updates from diff update ${samUpdate.version}"))
 							loadEntities(pharmaceuticalFormDAO, samUpdate.id, UpdateType.Diff, resourceName)
-							deleteEntities(pharmaceuticalFormDAO, samUpdate.id, UpdateType.Diff, resourceName, hardDelete = false)
 						}
 						SamUpdate.BundleType.Substances -> {
-							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Substances from diff update ${samUpdate.version} - ${samUpdate.date}"))
+							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Substances updates from diff update ${samUpdate.version}"))
 							loadEntities(substanceDAO, samUpdate.id, UpdateType.Diff, resourceName)
-							deleteEntities(substanceDAO, samUpdate.id, UpdateType.Diff, resourceName, hardDelete = false)
 						}
 						SamUpdate.BundleType.Verses -> {
-							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Verses from diff update ${samUpdate.version} - ${samUpdate.date}"))
+							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Verses updates from diff update ${samUpdate.version}"))
 							loadEntities(verseDAO, samUpdate.id, UpdateType.Diff, resourceName)
-							deleteEntities(vmpDAO, samUpdate.id, UpdateType.Diff, resourceName, hardDelete = true)
 						}
 						SamUpdate.BundleType.Vmps -> {
-							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Vmps from diff update ${samUpdate.version} - ${samUpdate.date}"))
+							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Vmps updates from diff update ${samUpdate.version}"))
 							loadEntities(vmpDAO, samUpdate.id, UpdateType.Diff, resourceName)
-							deleteEntities(vmpDAO, samUpdate.id, UpdateType.Diff, resourceName, hardDelete = false)
 						}
 						SamUpdate.BundleType.VmpGroups -> {
-							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Vmp Groups from diff update ${samUpdate.version} - ${samUpdate.date}"))
+							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Vmp updates Groups from diff update ${samUpdate.version}"))
 							loadEntities(vmpGroupDAO, samUpdate.id, UpdateType.Diff, resourceName)
-							deleteEntities(vmpGroupDAO, samUpdate.id, UpdateType.Diff, resourceName, hardDelete = false)
 						}
 						SamUpdate.BundleType.Signatures -> {
-							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Signatures from diff update ${samUpdate.version} - ${samUpdate.date}"))
-							loadSignatures(samUpdate.id, UpdateType.Diff, resourceName)
+							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Signatures updates from diff update ${samUpdate.version}"))
 						}
 					}
 				}
+				samUpdate.deletions.forEach { (type, resourceName) ->
+					when (type) {
+						SamUpdate.BundleType.Amps -> {
+							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Deleting Amps from diff update ${samUpdate.version}"))
+							deleteEntities(ampDAO, samUpdate.id, UpdateType.Diff, resourceName, hardDelete = false)
+						}
+						SamUpdate.BundleType.NonMedicinals -> {
+							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Deleting Nmps from diff update ${samUpdate.version}"))
+							deleteEntities(nmpDAO, samUpdate.id, UpdateType.Diff, resourceName, hardDelete = false)
+						}
+						SamUpdate.BundleType.Paragraphs -> {
+							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Deleting Paragraphs from diff update ${samUpdate.version}"))
+							deleteEntities(paragraphDAO, samUpdate.id, UpdateType.Diff, resourceName, hardDelete = true)
+						}
+						SamUpdate.BundleType.PharmaceuticalForms -> {
+							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Deleting PharmaceuticalForms from diff update ${samUpdate.version}"))
+							deleteEntities(pharmaceuticalFormDAO, samUpdate.id, UpdateType.Diff, resourceName, hardDelete = false)
+						}
+						SamUpdate.BundleType.Substances -> {
+							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Deleting Substances from diff update ${samUpdate.version}"))
+							deleteEntities(substanceDAO, samUpdate.id, UpdateType.Diff, resourceName, hardDelete = false)
+						}
+						SamUpdate.BundleType.Verses -> {
+							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Deleting Verses from diff update ${samUpdate.version}"))
+							deleteEntities(vmpDAO, samUpdate.id, UpdateType.Diff, resourceName, hardDelete = true)
+						}
+						SamUpdate.BundleType.Vmps -> {
+							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Deleting Vmps from diff update ${samUpdate.version}"))
+							deleteEntities(vmpDAO, samUpdate.id, UpdateType.Diff, resourceName, hardDelete = false)
+						}
+						SamUpdate.BundleType.VmpGroups -> {
+							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Deleting Vmp Groups from diff update ${samUpdate.version}"))
+							deleteEntities(vmpGroupDAO, samUpdate.id, UpdateType.Diff, resourceName, hardDelete = false)
+						}
+						else -> {
+							_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Ignoring deletion bundle $type"))
+						}
+					}
+				}
+				_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Saving version reference"))
 				samUpdateDAO.save(samUpdate.copy(rev = null))
-				_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Successfully applied diff update ${samUpdate.version} - ${samUpdate.date}"))
+				_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Successfully applied diff update ${samUpdate.version}"))
 			}
 		}
 
@@ -233,12 +269,12 @@ class SamV2Updater(
 			updatesBridge.getSignaturesUpdateContent(updateVersion, type, resourceName).collect { signatureUpdate ->
 				if (signatureUpdate.type == SignatureUpdate.SignatureType.SamV2) {
 					ampDAO.getVersion(datastoreInfo)?.let { samVersion ->
-						client.update(signatureUpdate.version.copy(rev = samVersion.rev))
+						client.update(samVersion.copy(version = signatureUpdate.version.version, date = signatureUpdate.version.date))
 					} ?: client.create(signatureUpdate.version.copy(rev = null))
 				} else {
 					val version = ampDAO.getSignature(datastoreInfo, signatureUpdate.type.name.lowercase())?.let {
-						client.update(signatureUpdate.version.copy(rev = it.rev))
-					} ?: client.create(signatureUpdate.version.copy(rev = null))
+						client.update(it.copy(version = signatureUpdate.version.version, date = signatureUpdate.version.date))
+					} ?: client.create(signatureUpdate.version.copy(rev = null, attachments = emptyMap()))
 					signatureUpdate.idsForAttachment?.also { productIds ->
 						client.createAttachment(version.id, "signatures", version.rev!!, "application/gzip", makeSignatures(productIds))
 					}
@@ -272,9 +308,9 @@ class SamV2Updater(
 						) as T
 						else -> null
 					}
-				}.let {
+				}.takeIf { it.isNotEmpty() }?.let {
 					dao.save(it)
-				}
+				} ?: emptyFlow()
 			}.toList()
 			return updatedAmpIds
 		}

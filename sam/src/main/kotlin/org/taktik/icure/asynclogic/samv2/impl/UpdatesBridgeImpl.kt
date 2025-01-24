@@ -36,7 +36,7 @@ class UpdatesBridgeImpl(
 	private val baseUri = URI(updaterUrl)
 
 	override suspend fun getFollowingUpdates(jwt: String, currentPatch: SamUpdate): List<SamUpdate> = client
-		.uri(baseUri.addSinglePathComponent("api").addSinglePathComponent("newerDiffs").addSinglePathComponent("${currentPatch.date}"))
+		.uri(baseUri.addSinglePathComponent("api").addSinglePathComponent("newerDiffs").addSinglePathComponent(currentPatch.id))
 		.header(HttpHeaderNames.AUTHORIZATION.toString(), "Bearer $jwt")
 		.method(HttpMethod.GET)
 		.retrieveAndParseArrayResponse(SamUpdate::class.java)
@@ -89,12 +89,18 @@ class UpdatesBridgeImpl(
 			check(firstEvent == StartArray) { "First event must be StartArray" }
 			do {
 				val nextValue = jsonEvents.nextValue(asyncParser) // This method returns null only if the next token is EndArray
-				when (val token = nextValue?.firstToken()) {
-					JsonToken.START_OBJECT -> {
+				val nextToken = nextValue?.firstToken()
+				when {
+					klass != String::class.java && nextToken == JsonToken.START_OBJECT -> {
 						emit(nextValue.asParser(objectMapper).readValueAs(klass))
 					}
-					null -> {}
-					else -> error("Unexpected token type: $token")
+					klass == String::class.java && nextToken == JsonToken.VALUE_STRING -> {
+						// It's ok to suppress it, type inference does not realize klass is string
+						@Suppress("UNCHECKED_CAST")
+						emit(nextValue.asParser(objectMapper).readValueAs(klass) as T)
+					}
+					nextToken == null -> {}
+					else -> error("Unexpected token type: $nextToken")
 				}
 			} while(nextValue?.firstToken() != null)
 			jsonEvents.cancel()
