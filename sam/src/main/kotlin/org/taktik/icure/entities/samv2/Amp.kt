@@ -12,6 +12,7 @@ import org.taktik.icure.entities.base.StoredDocument
 import org.taktik.icure.entities.embed.RevisionInfo
 import org.taktik.icure.entities.samv2.embed.*
 import org.taktik.icure.entities.samv2.stub.VmpStub
+import java.time.Duration
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -41,6 +42,25 @@ data class Amp(
 	@JsonProperty("_conflicts") override val conflicts: List<String>? = emptyList(),
 	@JsonProperty("rev_history") override val revHistory: Map<String, String>? = emptyMap()
 ) : StoredDocument {
+
 	override fun withIdRev(id: String?, rev: String) = if (id != null) this.copy(id = id, rev = rev) else this.copy(rev = rev)
+
 	override fun withDeletionDate(deletionDate: Long?) = this.copy(deletionDate = deletionDate)
+
+	fun hasValidAmpps(includeWithoutCommercializations: Boolean): Boolean {
+		val now = System.currentTimeMillis()
+		val twoYearsAgo = now - Duration.ofDays(365 * 2).toMillis()
+		return to != null && to < now && ampps.any {
+			it.isValid(now, twoYearsAgo, includeWithoutCommercializations)
+		}
+	}
+
+	fun removeInvalidAmpps(includeWithoutCommercializations: Boolean): Amp {
+		val now = System.currentTimeMillis()
+		val twoYearsAgo = now - Duration.ofDays(365 * 2).toMillis()
+		return copy(
+			ampps = if (to != null && to < now) ampps.filter { it.isValid(now, twoYearsAgo, includeWithoutCommercializations) }.toSet()
+			else emptySet()
+		)
+	}
 }

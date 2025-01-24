@@ -56,4 +56,11 @@ data class Ampp(
 	val vaccineIndicationCodes: Set<String>? = null,
 	val rmaKeyMessages: SamText? = null,
 	val genericPrescriptionRequired: Boolean? = null
-) : DataPeriod
+) : DataPeriod {
+
+	fun isValid(now: Long, twoYearsAgo: Long, includeWithoutCommercializations: Boolean): Boolean =
+		from != null && from < now && (to == null || to > now) && status == AmpStatus.AUTHORIZED && commercializations?.takeIf { it.isNotEmpty() }?.any {
+			it.from != null && (it.to == null || it.to > twoYearsAgo)
+		} ?: includeWithoutCommercializations
+
+}
