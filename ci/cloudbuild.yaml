@@ -1,4 +1,39 @@
 steps:
+  -   name: 'gcr.io/cloud-builders/gcloud'
+      args:
+        - kms
+        - decrypt
+        - --ciphertext-file=ci/ci_common_kmehr.enc
+        - --plaintext-file=/root/.ssh/ci_common_kmehr
+        - --location=global
+        - --keyring=ci-keyring
+        - --key=bitbucket-key
+      volumes:
+        -   name: 'ssh'
+            path: /root/.ssh
+
+  -   name: 'gcr.io/cloud-builders/git'
+      entrypoint: 'bash'
+      args:
+        - '-c'
+        - |
+          chmod 600 /root/.ssh/ci_common_kmehr
+          cat <<EOF >/root/.ssh/config
+          Hostname github.com
+          IdentityFile /root/.ssh/ci_common_kmehr
+          EOF
+          cp ci/known_hosts_ci /root/.ssh/known_hosts
+      volumes:
+        -   name: 'ssh'
+            path: /root/.ssh
+
+  -   name: 'gcr.io/cloud-builders/git'
+      entrypoint: 'bash'
+      args: [ '-c', 'git fetch --unshallow --tags && git checkout main && git submodule init && git submodule update' ]
+      volumes:
+        - name: 'ssh'
+          path: /root/.ssh
+
   -   name: 'gcr.io/cloud-builders/git'
       entrypoint: 'bash'
       args: [ '-c', 'git fetch --unshallow --tags && git checkout ${BRANCH_NAME} && git submodule init && git submodule update' ]
