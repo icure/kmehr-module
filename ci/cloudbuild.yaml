@@ -22,7 +22,7 @@ steps:
           Hostname github.com
           IdentityFile /root/.ssh/ci_common_kmehr
           EOF
-          cp ci/known_hosts_ci /root/.ssh/known_hosts
+          cp ci/known_hosts.ci /root/.ssh/known_hosts
       volumes:
         -   name: 'ssh'
             path: /root/.ssh
