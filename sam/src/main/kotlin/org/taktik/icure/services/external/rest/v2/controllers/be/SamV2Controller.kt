@@ -97,8 +97,8 @@ class SamV2Controller(
 
 	@PostMapping("/patch")
 	fun triggerSamUpdate(
-		@RequestParam jwt: String,
-	) = samV2Updater.startUpdateJob(jwt)
+		@RequestParam apiToken: String,
+	) = samV2Updater.startUpdateJob(apiToken)
 
 	@GetMapping("/patch")
 	fun getSamUpdateStatus() = samV2Updater.getCurrentJobStatus()
