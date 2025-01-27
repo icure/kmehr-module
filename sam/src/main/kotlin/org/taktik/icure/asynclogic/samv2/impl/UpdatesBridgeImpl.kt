@@ -35,22 +35,13 @@ class UpdatesBridgeImpl(
 
 	private val baseUri = URI(updaterUrl)
 
-	override suspend fun getFollowingUpdates(jwt: String, currentPatch: SamUpdate): List<SamUpdate> = client
-		.uri(baseUri.addSinglePathComponent("api").addSinglePathComponent("newerDiffs").addSinglePathComponent(currentPatch.id))
+	override suspend fun getFollowingUpdates(jwt: String, currentPatch: SamUpdate?): List<SamUpdate> = client
+		.uri(baseUri.addSinglePathComponent("api").addSinglePathComponent("updates"))
 		.header(HttpHeaderNames.AUTHORIZATION.toString(), "Bearer $jwt")
-		.method(HttpMethod.GET)
+		.method(HttpMethod.POST)
+		.body(objectMapper.writeValueAsString(currentPatch))
 		.retrieveAndParseArrayResponse(SamUpdate::class.java)
 		.toList()
-
-	override suspend fun getMostRecentSnapshot(jwt: String): SamUpdate = buildString {
-		client
-			.uri(baseUri.addSinglePathComponent("api").addSinglePathComponent("latestSnapshot"))
-			.method(HttpMethod.GET)
-			.header(HttpHeaderNames.AUTHORIZATION.toString(), "Bearer $jwt")
-			.retrieve()
-			.toTextFlow(Charsets.UTF_8)
-			.collect { append(it) }
-	}.let { objectMapper.readValue<SamUpdate>(it) }
 
 	override fun <T : StoredDocument> getEntityUpdateContent(
 		klass: Class<T>,
