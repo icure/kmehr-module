@@ -21,6 +21,7 @@ import org.springframework.context.annotation.Profile
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.MediaType.APPLICATION_JSON_VALUE
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -102,6 +103,9 @@ class SamV2Controller(
 
 	@GetMapping("/patch")
 	fun getSamUpdateStatus() = samV2Updater.getCurrentJobStatus()
+
+	@DeleteMapping("/patch")
+	fun stopCurrentUpdateJob() = samV2Updater.stopUpdateJob()
 
 	@Operation(summary = "Finding AMPs by label with pagination.", description = "Returns a list of codes matched with given input. If several types are provided, paginantion is not supported")
 	@GetMapping("/amp")
