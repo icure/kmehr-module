@@ -14,6 +14,7 @@ data class SamUpdate(
 	@JsonProperty("_rev") override val rev: String? = null,
 	@JsonProperty("deleted") override val deletionDate: Long? = null,
 
+	val samVersion: SamVersion,
 	val version: String,
 	val date: Int,
 	val type: UpdateType,
@@ -27,6 +28,7 @@ data class SamUpdate(
 ) : StoredDocument {
 
 	enum class BundleType { Amps, NonMedicinals, Paragraphs, PharmaceuticalForms, Signatures, Substances, Verses, Vmps, VmpGroups }
+	enum class SamVersion(val urlComponent: String) { V5("5"), V6("6") }
 
 	override fun withIdRev(id: String?, rev: String) = if (id != null) this.copy(id = id, rev = rev) else this.copy(rev = rev)
 	override fun withDeletionDate(deletionDate: Long?) = this.copy(deletionDate = deletionDate)
