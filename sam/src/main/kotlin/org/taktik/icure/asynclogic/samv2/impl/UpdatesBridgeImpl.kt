@@ -39,10 +39,10 @@ class UpdatesBridgeImpl(
 		.header(HttpHeaderNames.AUTHORIZATION.toString(), "Bearer $jwt")
 		.header(HttpHeaderNames.CONTENT_TYPE.toString(), "application/json")
 		.method(HttpMethod.POST)
-		.apply {
+		.let {
 			if (currentPatch != null) {
-				body(objectMapper.writeValueAsString(currentPatch))
-			}
+				it.body(objectMapper.writeValueAsString(currentPatch))
+			} else it
 		}
 		.retrieveAndParseArrayResponse(SamUpdate::class.java)
 		.toList()
