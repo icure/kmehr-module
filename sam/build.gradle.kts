@@ -49,6 +49,7 @@ dependencies {
     implementation(coreLibs.bundles.swaggerLibs)
     implementation(coreLibs.bundles.krouchLibs)
     implementation(coreLibs.bundles.kotlinxCoroutinesLibs)
+    implementation(coreLibs.caffeine)
 
     implementation(coreLibs.kotlinxCollectionsImmutableJvm)
 
