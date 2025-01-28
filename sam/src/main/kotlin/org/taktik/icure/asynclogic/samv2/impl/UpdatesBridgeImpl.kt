@@ -2,7 +2,6 @@ package org.taktik.icure.asynclogic.samv2.impl
 
 import com.fasterxml.jackson.core.JsonToken
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import io.icure.asyncjacksonhttpclient.net.addSinglePathComponent
 import io.icure.asyncjacksonhttpclient.net.web.HttpMethod
 import io.icure.asyncjacksonhttpclient.net.web.Request
@@ -38,8 +37,13 @@ class UpdatesBridgeImpl(
 	override suspend fun getFollowingUpdates(jwt: String, currentPatch: SamUpdate?): List<SamUpdate> = client
 		.uri(baseUri.addSinglePathComponent("api").addSinglePathComponent("updates"))
 		.header(HttpHeaderNames.AUTHORIZATION.toString(), "Bearer $jwt")
+		.header(HttpHeaderNames.CONTENT_TYPE.toString(), "application/json")
 		.method(HttpMethod.POST)
-		.body(objectMapper.writeValueAsString(currentPatch))
+		.apply {
+			if (currentPatch != null) {
+				body(objectMapper.writeValueAsString(currentPatch))
+			}
+		}
 		.retrieveAndParseArrayResponse(SamUpdate::class.java)
 		.toList()
 
