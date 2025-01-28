@@ -80,6 +80,8 @@ class SamV2Updater(
 	fun getCurrentJobStatus() = currentJob?.processStatus()
 		?: listOf(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Missing, System.currentTimeMillis(), "No update job running or completed"))
 
+	suspend fun getAppliedUpdates() = samUpdateDAO.getAppliedUpdates()
+
 	private inner class SamV2UpdateTask {
 		var job: Job? = null
 		private val _processStatus = mutableListOf<SamV2UpdateTaskLog>()
@@ -105,12 +107,12 @@ class SamV2Updater(
 				val client = drugsCouchDbDispatcher.getClient(datastoreInfo)
 				checkOnlyLocalNodeExists(client)
 				val currentUpdate = getCurrentSamUpdate()
-				_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Completed, System.currentTimeMillis(), "Retrieving updates to apply"))
+				_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Retrieving updates to apply"))
 				val updates = updatesBridge.getFollowingUpdates(jwt, currentUpdate)
 				if (updates.isNotEmpty()) {
-					_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Completed, System.currentTimeMillis(), "Updates to apply: ${updates.joinToString(", ") { "${it.type} - ${it.id}" }}"))
+					_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Updates to apply: ${updates.joinToString(", ") { "${it.type} - ${it.id}" }}"))
 				} else {
-					_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Completed, System.currentTimeMillis(), "Drugs and ChapIV are up to date"))
+					_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Drugs and ChapIV are up to date"))
 				}
 				updates.forEach { update ->
 					when(update.type) {

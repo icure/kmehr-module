@@ -104,6 +104,11 @@ class SamV2Controller(
 	@GetMapping("/patch")
 	fun getSamUpdateStatus() = samV2Updater.getCurrentJobStatus()
 
+	@GetMapping("/patch/history")
+	fun getSamUpdateHistory() = mono {
+		samV2Updater.getAppliedUpdates()
+	}
+
 	@DeleteMapping("/patch")
 	fun stopCurrentUpdateJob() = samV2Updater.stopUpdateJob()
 
