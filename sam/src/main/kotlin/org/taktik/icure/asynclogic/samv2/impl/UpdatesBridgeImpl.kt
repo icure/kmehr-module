@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.produceIn
 import kotlinx.coroutines.flow.toList
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.taktik.icure.asynclogic.samv2.UpdatesBridge
 import org.taktik.icure.entities.base.StoredDocument
 import org.taktik.icure.entities.samv2.updates.SamUpdate
@@ -26,6 +27,7 @@ import java.net.URI
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @Component
+@ConditionalOnProperty(name = ["icure.sam.updaterUrl"], matchIfMissing = false)
 class UpdatesBridgeImpl(
 	private val client: WebClient,
 	private val objectMapper: ObjectMapper,
