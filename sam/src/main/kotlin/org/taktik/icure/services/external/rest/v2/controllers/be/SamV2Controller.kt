@@ -83,7 +83,7 @@ class SamV2Controller(
 	private val paragraphV2Mapper: ParagraphV2Mapper,
 	private val verseV2Mapper: VerseV2Mapper,
 	private val objectMapper: ObjectMapper,
-	private val samV2Updater: SamV2Updater
+	private val samV2Updater: SamV2Updater?
 ) {
 
 	companion object {
@@ -99,18 +99,20 @@ class SamV2Controller(
 	@PostMapping("/patch")
 	fun triggerSamUpdate(
 		@RequestParam apiToken: String,
-	) = samV2Updater.startUpdateJob(apiToken)
+	) = samV2Updater?.startUpdateJob(apiToken) ?: throw IllegalStateException("Updater backend url is not defined")
 
 	@GetMapping("/patch")
-	fun getSamUpdateStatus() = samV2Updater.getCurrentJobStatus()
+	fun getSamUpdateStatus() =
+		samV2Updater?.getCurrentJobStatus() ?: throw IllegalStateException("Updater backend url is not defined")
 
 	@GetMapping("/patch/history")
 	fun getSamUpdateHistory() = mono {
-		samV2Updater.getAppliedUpdates()
+		samV2Updater?.getAppliedUpdates() ?: throw IllegalStateException("Updater backend url is not defined")
 	}
 
 	@DeleteMapping("/patch")
-	fun stopCurrentUpdateJob() = samV2Updater.stopUpdateJob()
+	fun stopCurrentUpdateJob() =
+		samV2Updater?.stopUpdateJob() ?: throw IllegalStateException("Updater backend url is not defined")
 
 	@Operation(summary = "Finding AMPs by label with pagination.", description = "Returns a list of codes matched with given input. If several types are provided, paginantion is not supported")
 	@GetMapping("/amp")
