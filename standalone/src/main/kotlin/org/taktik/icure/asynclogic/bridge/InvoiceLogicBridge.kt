@@ -156,6 +156,13 @@ class InvoiceLogicBridge(
         throw BridgeException()
     }
 
+    override fun listInvoiceIdsByDataOwnerDecisionReference(
+        dataOwnerId: String,
+        decisionReference: String
+    ): Flow<String> {
+        throw BridgeException()
+    }
+
     override fun listInvoicesByHcPartySendingModeStatus(
         hcParty: String,
         sendingMode: String?,
