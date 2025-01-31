@@ -35,11 +35,10 @@ map = function(doc) {
             "ʐ":"z","ƶ":"z","ɀ":"z","ﬀ":"ff","ﬃ":"ffi","ﬄ":"ffl","ﬁ":"fi","ﬂ":"fl","ĳ":"ij","œ":"oe","ﬆ":"st","ₐ":"a","ₑ":"e","ᵢ":"i","ⱼ":"j",
             "ₒ":"o","ᵣ":"r","ᵤ":"u","ᵥ":"v","ₓ":"x"};
         var wordsPerLanguage = {};
-        var stub = {name:doc.name};
         (["name"]).forEach(function(k) {
-            Object.keys(stub[k]||{}).forEach(function (l) {
-                if (stub[k][l]) {
-                    wordsPerLanguage[l] = (wordsPerLanguage[l]||[]).concat(normalize_substrings(stub[k][l], latin_map))
+            Object.keys(doc[k]||{}).forEach(function (l) {
+                if (doc[k][l]) {
+                    wordsPerLanguage[l] = (wordsPerLanguage[l]||[]).concat(normalize_substrings(doc[k][l], latin_map))
                 }
             })
         })
@@ -47,7 +46,7 @@ map = function(doc) {
             var terms = wordsPerLanguage[l]
             terms.sort().forEach(function (t, idx) {
                 if (idx === terms.length - 1 || !(terms[idx + 1].indexOf(t) === 0)) {
-                    emit([l, t], 1)
+                    emit([l, t], doc.name[l])
                 }
             })
         })

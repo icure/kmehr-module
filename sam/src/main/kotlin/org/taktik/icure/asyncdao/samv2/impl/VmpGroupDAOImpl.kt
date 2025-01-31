@@ -4,12 +4,18 @@
 
 package org.taktik.icure.asyncdao.samv2.impl
 
+import com.github.benmanes.caffeine.cache.Caffeine
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.future.await
+import kotlinx.coroutines.future.future
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Repository
+import org.taktik.couchdb.ViewRowWithDoc
 import org.taktik.couchdb.annotation.View
 import org.taktik.couchdb.dao.DesignDocumentProvider
 import org.taktik.couchdb.entity.ComplexKey
@@ -25,6 +31,8 @@ import org.taktik.icure.db.PaginationOffset
 import org.taktik.icure.db.sanitizeString
 import org.taktik.icure.entities.samv2.VmpGroup
 import org.taktik.icure.utils.makeFromTo
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.toJavaDuration
 
 @Repository("vmpGroupDAO")
 @Profile("sam")
@@ -35,6 +43,8 @@ class VmpGroupDAOImpl(
 	datastoreInstanceProvider: DatastoreInstanceProvider,
 	designDocumentProvider: DesignDocumentProvider
 ) : InternalDAOImpl<VmpGroup>(VmpGroup::class.java, couchDbDispatcher, idGenerator, datastoreInstanceProvider, designDocumentProvider), VmpGroupDAO {
+	val cache = Caffeine.newBuilder().maximumSize(1000).expireAfterAccess(1.minutes.toJavaDuration()).buildAsync<String, List<String>>()
+
 	@View(name = "by_groupcode", map = "classpath:js/vmpgroup/By_groupcode.js")
 	override fun findVmpGroupsByVmpGroupCode(datastoreInformation: IDatastoreInformation, vmpgCode: String, paginationOffset: PaginationOffset<String>) = flow {
 		val client = couchDbDispatcher.getClient(datastoreInformation)
@@ -60,21 +70,26 @@ class VmpGroupDAOImpl(
 
 	@View(name = "by_language_label", map = "classpath:js/vmpgroup/By_language_label.js")
 	override fun findVmpGroupsByLabel(datastoreInformation: IDatastoreInformation, language: String?, label: String?, paginationOffset: PaginationOffset<List<String>>) = flow {
-		val client = couchDbDispatcher.getClient(datastoreInformation)
-		emitAll(
-			makeFromTo(label, language).let { (from, to) ->
-				client.queryView(
-					pagedViewQuery(
-						"by_language_label",
-						from,
-						to,
-						paginationOffset.toPaginationOffset { sk -> ComplexKey.of(*sk.mapIndexed { i, s -> if (i == 1) sanitizeString(s) else s }.toTypedArray()) },
-						false
-					),
-					ComplexKey::class.java, String::class.java, VmpGroup::class.java
-				)
-			}
-		)
+		require(label != null && label.length >= 3) { "Label must be at least 3 characters long" }
+		val rowIds = coroutineScope {
+			//TODO check the relevance of using a SupervisorScope to avoid failure on parallel cancellation
+			//TODO Use Pair<Long,Long> for key (SHA) and it
+			cache.get(label) { key, _ ->
+				future {
+					val client = couchDbDispatcher.getClient(datastoreInformation)
+					makeFromTo(key, language).let { (from, to) ->
+						val viewQuery = createQuery("by_language_label")
+							.startKey(from)
+							.endKey(to)
+							.reduce(false)
+							.includeDocs(false)
+						client.queryView<ComplexKey, String>(viewQuery).toList().sortedBy { it.value }.map { it.id }
+					}
+				}
+			}.await()
+		}
+
+		emitAll(getEntities(rowIds.asSequence().let { seq -> paginationOffset.startDocumentId?.let { start -> seq.dropWhile { it != start } } ?: seq }.take(paginationOffset.limit).toList()).map { ViewRowWithDoc(it.id, ComplexKey.of(language, ""), "", it) })
 	}
 
 	override fun listVmpGroupIdsByLabel(datastoreInformation: IDatastoreInformation, language: String?, label: String?) = flow {
