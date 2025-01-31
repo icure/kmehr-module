@@ -4,14 +4,21 @@
 
 package org.taktik.icure.asyncdao.samv2.impl
 
+import com.github.benmanes.caffeine.cache.Caffeine
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.future.await
+import kotlinx.coroutines.future.future
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Repository
 import org.taktik.couchdb.ViewQueryResultEvent
+import org.taktik.couchdb.ViewRowNoDoc
+import org.taktik.couchdb.ViewRowWithDoc
 import org.taktik.couchdb.annotation.View
 import org.taktik.couchdb.dao.DesignDocumentProvider
 import org.taktik.couchdb.entity.ComplexKey
@@ -26,6 +33,9 @@ import org.taktik.icure.asynclogic.datastore.IDatastoreInformation
 import org.taktik.icure.db.PaginationOffset
 import org.taktik.icure.db.sanitizeString
 import org.taktik.icure.entities.samv2.Nmp
+import org.taktik.icure.utils.makeFromTo
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.toJavaDuration
 
 @Repository("nmpDAO")
 @Profile("sam")
@@ -36,26 +46,28 @@ class NmpDAOImpl(
 	datastoreInstanceProvider: DatastoreInstanceProvider,
 	designDocumentProvider: DesignDocumentProvider
 ) : InternalDAOImpl<Nmp>(Nmp::class.java, couchDbDispatcher, idGenerator, datastoreInstanceProvider, designDocumentProvider), NmpDAO {
+	val cache = Caffeine.newBuilder().maximumSize(1000).expireAfterAccess(1.minutes.toJavaDuration()).buildAsync<String, List<String>>()
+
 	@View(name = "by_language_label", map = "classpath:js/nmp/By_language_label.js")
 	override fun findNmpsByLabel(datastoreInformation: IDatastoreInformation, language: String?, label: String?, paginationOffset: PaginationOffset<List<String>>): Flow<ViewQueryResultEvent> = flow {
-		val client = couchDbDispatcher.getClient(datastoreInformation)
-		val sanitizedLabel = label?.let { sanitizeString(it) }
-		val from = ComplexKey.of(
-			language ?: "\u0000",
-			sanitizedLabel ?: "\u0000"
-		)
-		val to = ComplexKey.of(
-			language ?: ComplexKey.emptyObject(),
-			if (sanitizedLabel == null) ComplexKey.emptyObject() else sanitizedLabel + "\ufff0"
-		)
-		val viewQuery = pagedViewQuery(
-			"by_language_label",
-			from,
-			to,
-			paginationOffset.toPaginationOffset { sk -> ComplexKey.of(*sk.mapIndexed { i, s -> if (i == 1) sanitizeString(s) else s }.toTypedArray()) },
-			false
-		)
-		emitAll(client.queryView(viewQuery, ComplexKey::class.java, String::class.java, Nmp::class.java))
+		require(label != null && label.length >= 3) { "Label must be at least 3 characters long" }
+		val rowIds = coroutineScope {
+			cache.get(label) { key, _ ->
+				future {
+					val client = couchDbDispatcher.getClient(datastoreInformation)
+					makeFromTo(key, language).let { (from, to) ->
+						val viewQuery = createQuery("by_language_label")
+							.startKey(from)
+							.endKey(to)
+							.reduce(false)
+							.includeDocs(false)
+						client.queryView<ComplexKey, String>(viewQuery).toList().sortedBy { it.value }.map { it.id }
+					}
+				}
+			}.await()
+		}
+
+		emitAll(getEntities(rowIds.asSequence().let { seq -> paginationOffset.startDocumentId?.let { start -> seq.dropWhile { it != start } } ?: seq }.take(paginationOffset.limit).toList()).map { ViewRowWithDoc(it.id, ComplexKey.of(language, ""), "", it) })
 	}
 
 	override fun listNmpIdsByLabel(datastoreInformation: IDatastoreInformation, language: String?, label: String?): Flow<String> = flow {
