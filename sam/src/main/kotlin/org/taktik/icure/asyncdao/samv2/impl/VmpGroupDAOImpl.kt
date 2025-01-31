@@ -72,6 +72,8 @@ class VmpGroupDAOImpl(
 	override fun findVmpGroupsByLabel(datastoreInformation: IDatastoreInformation, language: String?, label: String?, paginationOffset: PaginationOffset<List<String>>) = flow {
 		require(label != null && label.length >= 3) { "Label must be at least 3 characters long" }
 		val rowIds = coroutineScope {
+			//TODO check the relevance of using a SupervisorScope to avoid failure on parallel cancellation
+			//TODO Use Pair<Long,Long> for key (SHA) and it
 			cache.get(label) { key, _ ->
 				future {
 					val client = couchDbDispatcher.getClient(datastoreInformation)
@@ -84,8 +86,8 @@ class VmpGroupDAOImpl(
 						client.queryView<ComplexKey, String>(viewQuery).toList().sortedBy { it.value }.map { it.id }
 					}
 				}
-			}
-		}.await()
+			}.await()
+		}
 
 		emitAll(getEntities(rowIds.asSequence().let { seq -> paginationOffset.startDocumentId?.let { start -> seq.dropWhile { it != start } } ?: seq }.take(paginationOffset.limit).toList()).map { ViewRowWithDoc(it.id, ComplexKey.of(language, ""), "", it) })
 	}

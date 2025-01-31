@@ -52,6 +52,8 @@ class NmpDAOImpl(
 	override fun findNmpsByLabel(datastoreInformation: IDatastoreInformation, language: String?, label: String?, paginationOffset: PaginationOffset<List<String>>): Flow<ViewQueryResultEvent> = flow {
 		require(label != null && label.length >= 3) { "Label must be at least 3 characters long" }
 		val rowIds = coroutineScope {
+			//TODO check the relevance of using a SupervisorScope to avoid failure on parallel cancellation
+			//TODO Use Pair<Long,Long> for key (SHA) and it
 			cache.get(label) { key, _ ->
 				future {
 					val client = couchDbDispatcher.getClient(datastoreInformation)
