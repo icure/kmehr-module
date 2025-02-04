@@ -4,7 +4,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filter
@@ -339,23 +338,29 @@ class SamV2Updater(
 			type: UpdateType,
 			resourceName: String,
 			hardDelete: Boolean
-		): List<String> {
-			val entitiesToDelete = updatesBridge.getEntityDeleteContent(updateVersion, type, resourceName).let {
-				dao.getEntities(it.toList())
-			}
-			return if (hardDelete) {
-				dao.purge(entitiesToDelete).map { it.id }.toList()
-			} else {
-				dao.remove(entitiesToDelete).map { it.id }.toList()
-			}
-		}
+		): List<String> =
+			updatesBridge.getEntityDeleteContent(updateVersion, type, resourceName)
+				.toList()
+				.chunked(100)
+				.flatMap { idsChunk ->
+					val entitiesToDelete = dao.getEntities(idsChunk)
+					if (hardDelete) {
+						dao.purge(entitiesToDelete).map { it.id }.toList()
+					} else {
+						dao.remove(entitiesToDelete).map { it.id }.toList()
+					}
+				}
+
 
 		private suspend fun <T : StoredDocument> deleteUnused(dao: InternalDAO<T>, used: Set<String>): List<String> =
-			dao.getEntities().filter {
-				it.id !in used
-			}.toList().let { entitiesToRemove ->
-				dao.purge(entitiesToRemove.asFlow())
-				entitiesToRemove.map { it.id }
+			dao.getEntityIds().filter {
+				it !in used
+			}.toList().let { idsToRemove ->
+				idsToRemove.chunked(100).flatMap { idsChunk ->
+					dao.purge(dao.getEntities(idsChunk)).map {
+						it.id
+					}.toList()
+				}
 			}
 
 		private fun <T : Any, R: Any> Flow<T>.buffered(bufferSize: Int, block: suspend (ArrayDeque<T>) -> Flow<R>): Flow<R> = flow {
