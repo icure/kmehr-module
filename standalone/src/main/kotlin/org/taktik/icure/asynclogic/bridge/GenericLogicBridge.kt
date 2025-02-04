@@ -32,59 +32,59 @@ open class GenericLogicBridge<E : Identifiable<String>> {
     }
 
     fun solveConflicts(groupId: String, limit: Int?): Flow<IdAndRev> {
-        throw IllegalStateException("Bridge method not implemented")
+        throw BridgeException()
     }
 
     fun filter(filter: FilterChain<E>): Flow<E> {
-        throw IllegalStateException("Bridge method not implemented")
+        throw BridgeException()
     }
 
     open fun createEntities(entities: Collection<E>): Flow<E> {
-        throw IllegalStateException("Bridge method not implemented")
+        throw BridgeException()
     }
 
     fun createEntities(entities: Flow<E>): Flow<E> {
-        throw IllegalStateException("Bridge method not implemented")
+        throw BridgeException()
     }
 
     suspend fun exists(id: String): Boolean {
-        throw IllegalStateException("Bridge method not implemented")
+        throw BridgeException()
     }
 
     fun getEntities(): Flow<E> {
-        throw IllegalStateException("Bridge method not implemented")
+        throw BridgeException()
     }
 
     fun getEntities(identifiers: Collection<String>): Flow<E> {
-        throw IllegalStateException("Bridge method not implemented")
+        throw BridgeException()
     }
 
     fun getEntities(identifiers: Flow<String>): Flow<E> {
-        throw IllegalStateException("Bridge method not implemented")
+        throw BridgeException()
     }
 
     suspend fun getEntity(id: String): E? {
-        throw IllegalStateException("Bridge method not implemented")
+        throw BridgeException()
     }
 
     fun getEntityIds(): Flow<String> {
-        throw IllegalStateException("Bridge method not implemented")
+        throw BridgeException()
     }
 
     suspend fun hasEntities(): Boolean {
-        throw IllegalStateException("Bridge method not implemented")
+        throw BridgeException()
     }
 
     open fun modifyEntities(entities: Collection<E>): Flow<E> {
-        throw IllegalStateException("Bridge method not implemented")
+        throw BridgeException()
     }
 
     open fun modifyEntities(entities: Flow<E>): Flow<E> {
-        throw IllegalStateException("Bridge method not implemented")
+        throw BridgeException()
     }
 
     fun undeleteByIds(identifiers: Collection<String>): Flow<DocIdentifier> {
-        throw IllegalStateException("Bridge method not implemented")
+        throw BridgeException()
     }
 
     fun listEntityIdsInCustomView(

@@ -5,7 +5,6 @@ import com.icure.cardinal.sdk.api.raw.successBodyOrNull404
 import com.icure.utils.InternalIcureApi
 import com.icure.cardinal.sdk.utils.Serialization
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import org.springframework.stereotype.Service
 import org.taktik.icure.asynclogic.InsuranceLogic
