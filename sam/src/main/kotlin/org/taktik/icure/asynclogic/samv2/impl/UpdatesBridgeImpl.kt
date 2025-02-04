@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import io.icure.asyncjacksonhttpclient.net.addSinglePathComponent
 import io.icure.asyncjacksonhttpclient.net.web.HttpMethod
 import io.icure.asyncjacksonhttpclient.net.web.Request
+import io.icure.asyncjacksonhttpclient.net.web.Response
 import org.springframework.stereotype.Component
 import io.icure.asyncjacksonhttpclient.net.web.WebClient
 import io.icure.asyncjacksonhttpclient.parser.StartArray
@@ -33,6 +34,8 @@ class UpdatesBridgeImpl(
 	private val objectMapper: ObjectMapper,
 	@Value("\${icure.sam.updaterUrl}") updaterUrl: String,
 ) : UpdatesBridge {
+
+	class UpdaterBridgeException(code: Int, message: String): Exception("Error received from updater backend $code: $message")
 
 	private val baseUri = URI(updaterUrl)
 
@@ -81,7 +84,10 @@ class UpdatesBridgeImpl(
 	private fun <T : Any> Request.retrieveAndParseArrayResponse(klass: Class<T>): Flow<T> = flow {
 		coroutineScope {
 			val asyncParser = objectMapper.createNonBlockingByteArrayParser()
-			val jsonEvents = this@retrieveAndParseArrayResponse.retrieve().toJsonEvents(asyncParser).produceIn(this)
+			val jsonEvents = this@retrieveAndParseArrayResponse.retrieve()
+				.throwOnError()
+				.toJsonEvents(asyncParser)
+				.produceIn(this)
 			val firstEvent = jsonEvents.receive()
 			check(firstEvent == StartArray) { "First event must be StartArray" }
 			do {
@@ -102,5 +108,21 @@ class UpdatesBridgeImpl(
 			} while(nextValue?.firstToken() != null)
 			jsonEvents.cancel()
 		}
+	}
+
+	private fun Response.throwOnError() = onStatus(400) {
+		throw UpdaterBridgeException(it.statusCode, it.responseBodyAsString())
+	}.onStatus(401) {
+		throw UpdaterBridgeException(it.statusCode, it.responseBodyAsString())
+	}.onStatus(403) {
+		throw UpdaterBridgeException(it.statusCode, it.responseBodyAsString())
+	}.onStatus(404) {
+		throw UpdaterBridgeException(it.statusCode, it.responseBodyAsString())
+	}.onStatus(500) {
+		throw UpdaterBridgeException(it.statusCode, it.responseBodyAsString())
+	}.onStatus(502) {
+		throw UpdaterBridgeException(it.statusCode, it.responseBodyAsString())
+	}.onStatus(503) {
+		throw UpdaterBridgeException(it.statusCode, it.responseBodyAsString())
 	}
 }
