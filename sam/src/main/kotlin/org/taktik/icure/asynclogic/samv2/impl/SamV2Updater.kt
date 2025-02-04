@@ -124,7 +124,11 @@ class SamV2Updater(
 				}
 				_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Completed, System.currentTimeMillis(), "Update completed successfully"))
 			} catch(e: Exception) {
-				_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Error, System.currentTimeMillis(), e.stackTraceToString()))
+				if (e is UpdatesBridgeImpl.UpdaterBridgeException) {
+					_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Error, System.currentTimeMillis(), e.message ?: "Error received from updater backend"))
+				} else {
+					_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Error, System.currentTimeMillis(), e.stackTraceToString()))
+				}
 			}
 
 		}
