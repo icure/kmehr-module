@@ -81,7 +81,7 @@ class SamV2Updater(
 	fun getCurrentJobStatus() = currentJob?.processStatus()
 		?: listOf(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Missing, System.currentTimeMillis(), "No update job running or completed"))
 
-	suspend fun getAppliedUpdates() = samUpdateDAO.getAppliedUpdates()
+	fun getAppliedUpdates() = samUpdateDAO.getEntities()
 
 	private inner class SamV2UpdateTask {
 		var job: Job? = null
