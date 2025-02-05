@@ -5,6 +5,7 @@ import com.icure.cardinal.sdk.api.raw.successBodyOrNull404
 import com.icure.utils.InternalIcureApi
 import com.icure.cardinal.sdk.utils.Serialization
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flow
 import org.springframework.stereotype.Service
 import org.taktik.icure.asynclogic.InsuranceLogic
@@ -53,12 +54,15 @@ class InsuranceLogicBridge(
 	}
 
 	@OptIn(InternalIcureApi::class)
-	override fun listInsurancesByCode(code: String): Flow<Insurance> = flow {
-		getApi().listInsurancesByCode(code)
-			.successBody()
-			.map(insuranceMapper::map)
-			.forEach { emit(it) }
-	}
+	override fun listInsurancesByCode(code: String): Flow<Insurance> =
+		if(code.isNotBlank())
+			flow {
+				getApi().listInsurancesByCode(code)
+					.successBody()
+					.map(insuranceMapper::map)
+					.forEach { emit(it) }
+			}
+		else emptyFlow()
 
 	override fun listInsurancesByName(name: String): Flow<Insurance> {
 		throw BridgeException()
