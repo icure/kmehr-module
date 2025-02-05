@@ -6,6 +6,5 @@ import org.taktik.icure.entities.samv2.updates.SamUpdate
 interface SamUpdateDAO : InternalDAO<SamUpdate> {
 
 	suspend fun getLastAppliedUpdate(): SamUpdate?
-	suspend fun getAppliedUpdates(): List<SamUpdate>
 
 }
