@@ -106,9 +106,9 @@ class SamV2Controller(
 		samV2Updater?.getCurrentJobStatus() ?: throw IllegalStateException("Updater backend url is not defined")
 
 	@GetMapping("/patch/history")
-	fun getSamUpdateHistory() = mono {
-		samV2Updater?.getAppliedUpdates() ?: throw IllegalStateException("Updater backend url is not defined")
-	}
+	fun getSamUpdateHistory() =
+		samV2Updater?.getAppliedUpdates()?.injectReactorContext()
+			?: throw IllegalStateException("Updater backend url is not defined")
 
 	@DeleteMapping("/patch")
 	fun stopCurrentUpdateJob() =

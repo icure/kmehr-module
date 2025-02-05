@@ -21,65 +21,51 @@ import org.taktik.icure.asyncdao.samv2.SamUpdateDAO
 import org.taktik.icure.asynclogic.datastore.DatastoreInstanceProvider
 import org.taktik.icure.entities.samv2.updates.SamUpdate
 import com.github.benmanes.caffeine.cache.Caffeine
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.future.await
+import org.taktik.couchdb.ViewRowWithDoc
+import org.taktik.couchdb.annotation.View
 import org.taktik.couchdb.get
+import org.taktik.couchdb.queryViewIncludeDocs
 import java.time.Duration
 
 @Repository("samUpdateDAO")
 @Profile("sam")
+@View(name = "all", map = "function(doc) { if (doc.java_type == 'org.taktik.icure.entities.samv2.updates.SamUpdate') emit( null, doc._id )}", reduce = "function(keys, values, rereduce) { return values.reduce((maxValue, currentValue) => currentValue > maxValue ? currentValue : maxValue); }")
 class SamUpdateDAOImpl(
 	@Qualifier("drugCouchDbDispatcher") couchDbDispatcher: CouchDbDispatcher,
 	idGenerator: IDGenerator,
 	datastoreInstanceProvider: DatastoreInstanceProvider,
 	designDocumentProvider: DesignDocumentProvider
-) : InternalDAOImpl<SamUpdate>(SamUpdate::class.java, couchDbDispatcher, idGenerator, datastoreInstanceProvider, designDocumentProvider),
-	SamUpdateDAO, DisposableBean {
+) : InternalDAOImpl<SamUpdate>(SamUpdate::class.java, couchDbDispatcher, idGenerator, datastoreInstanceProvider, designDocumentProvider), SamUpdateDAO {
 
-	private val samUpdateKey = "sam-update"
-	private val samVersionRegex = Regex("E\\.[0-9]{8}_[0-9]{4,}")
-	private val samUpdateScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
-	private val samUpdatesCache = Caffeine.newBuilder()
-		.expireAfterWrite(Duration.ofDays(1))
-		.buildAsync<String, List<SamUpdate>>()
-
-	override fun destroy() {
-		samUpdateScope.cancel()
-	}
-
-	override suspend fun getAppliedUpdates(): List<SamUpdate> =
-		samUpdateScope.async {
-			val client = couchDbDispatcher.getClient(datastoreInstanceProvider.getInstanceAndGroup())
-			samUpdatesCache.get(samUpdateKey) { _, _ ->
-				future {
-					val ids = client.queryView<String, Any>(
-						ViewQuery().allDocs().includeDocs(false)
-					).filter {
-						samVersionRegex.matches(it.id)
-					}.map { it.id }.toList().sorted()
-					client.get<SamUpdate>(ids).toList()
-				}
-			}.await()
-		}.await()
-
-	override suspend fun save(entity: SamUpdate): SamUpdate? {
-		samUpdatesCache.synchronous().invalidate(samUpdateKey)
-		return super.save(entity)
+	override fun getEntities(): Flow<SamUpdate> = flow {
+		val client = couchDbDispatcher.getClient(datastoreInstanceProvider.getInstanceAndGroup())
+		emitAll(
+			client.queryViewIncludeDocs<String?, String, SamUpdate>(
+				createQuery("all")
+					.reduce(false)
+					.includeDocs(true)
+					.descending(true)
+			).map { it.doc }
+		)
 	}
 
 	override suspend fun getLastAppliedUpdate(): SamUpdate? {
 		val client = couchDbDispatcher.getClient(datastoreInstanceProvider.getInstanceAndGroup())
-		var lastUpdateId: String? = null
-		client.queryView<String, Any>(
-			ViewQuery().allDocs().includeDocs(false)
-		).filter {
-			samVersionRegex.matches(it.id)
-		}.collect {
-			if (lastUpdateId == null || it.id > lastUpdateId!!) {
-				lastUpdateId = it.id
-			}
-		}
+		val lastUpdateId = client.queryView<String?, String>(
+			createQuery("all")
+				.reduce(true)
+				.groupLevel(1)
+				.includeDocs(false)
+		).firstOrNull()?.value
 		return lastUpdateId?.let { get(it) }
 	}
 }
