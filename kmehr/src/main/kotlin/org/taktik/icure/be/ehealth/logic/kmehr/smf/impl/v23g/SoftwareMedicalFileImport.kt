@@ -515,11 +515,8 @@ class SoftwareMedicalFileImport(
                                     }?.id ?: author.healthcarePartyId,
                                 created = svcRecordDateTime,
                                 modified = svcRecordDateTime,
-                                name = docName,
-                                mainUti = mainUti, // Keep as they are needed for patching
-                                otherUtis = otherUtis
+                                name = docName
                             ).let {
-                                v.documents.add(it)
                                 if (saveToDatabase) {
                                     documentLogic.createDocument(it, true)?.let { doc ->
                                         documentLogic.updateAttachments(
@@ -532,8 +529,11 @@ class SoftwareMedicalFileImport(
                                             ),
                                         )
                                     }
-                                } else it
-                            }?.id,
+                                } else it.copy(
+                                    mainUti = mainUti, // Keep as they are needed for patching
+                                    otherUtis = otherUtis
+                                )
+                            }?.also { v.documents.add(it) }?.id,
                         ),
                     ),
                 )
