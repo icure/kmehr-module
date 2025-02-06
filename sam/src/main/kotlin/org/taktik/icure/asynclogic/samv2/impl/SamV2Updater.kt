@@ -341,12 +341,12 @@ class SamV2Updater(
 					}
 				}.takeIf { it.isNotEmpty() }?.let { entitiesToSave ->
 					dao.save(entitiesToSave).onEach {
-						updatedEntitiesId.addAll(loadedAmpsIds)
-						when(it) {
-							is BulkSaveResult.Failure -> throw IllegalStateException("Cannot save entity ${it.entityId}: ${it.code} - ${it.message}")
-							is BulkSaveResult.Success<*> -> updatedEntitiesId.add(it.entityOrThrow().id)
+						if (it is BulkSaveResult.Failure) {
+							throw IllegalStateException("Cannot save entity ${it.entityId}: ${it.code} - ${it.message}")
 						}
-					}
+					}.toList().also {
+						updatedEntitiesId.addAll(loadedEntities.map { it.id })
+					}.asFlow()
 				} ?: emptyFlow()
 			}.toList()
 			updatedEntitiesId
@@ -406,7 +406,7 @@ class SamV2Updater(
 			val queue = ArrayDeque<T>(bufferSize)
 			this@buffered.collect {
 				queue.add(it)
-				if (queue.size == 20) {
+				if (queue.size == bufferSize) {
 					emitAll(block(queue))
 					queue.clear()
 				}
