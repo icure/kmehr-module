@@ -4,18 +4,24 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.dropWhile
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.flow.toSet
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Component
 import org.taktik.couchdb.Client
+import org.taktik.couchdb.ViewRowNoDoc
 import org.taktik.couchdb.create
 import org.taktik.couchdb.update
 import org.taktik.icure.asyncdao.CouchDbDispatcher
@@ -32,12 +38,14 @@ import org.taktik.icure.asyncdao.samv2.VmpDAO
 import org.taktik.icure.asyncdao.samv2.VmpGroupDAO
 import org.taktik.icure.asynclogic.datastore.DatastoreInstanceProvider
 import org.taktik.icure.asynclogic.samv2.UpdatesBridge
+import org.taktik.icure.db.PaginationOffset
 import org.taktik.icure.entities.base.StoredDocument
 import org.taktik.icure.entities.samv2.updates.SamUpdate
 import org.taktik.icure.entities.samv2.updates.SignatureUpdate
 import org.taktik.icure.entities.samv2.updates.UpdateType
 import org.taktik.icure.utils.GzipDeflateInputStream
 import org.taktik.icure.utils.toFlow
+import reactor.netty.http.client.PrematureCloseException
 import java.util.ArrayDeque
 
 @Component
@@ -307,17 +315,29 @@ class SamV2Updater(
 			updateVersion: String,
 			type: UpdateType,
 			resourceName: String
-		): Set<String> {
-			val updatedAmpIds = mutableSetOf<String>()
-			updatesBridge.getEntityUpdateContent(T::class.java, updateVersion, type, resourceName).buffered(20) { loadedEntities ->
+		): Set<String> = loadEntitiesRecursive(dao, T::class.java, updateVersion, type, resourceName)
+
+		private suspend fun <T : StoredDocument> loadEntitiesRecursive(
+			dao: InternalDAO<T>,
+			klass: Class<T>,
+			updateVersion: String,
+			type: UpdateType,
+			resourceName: String,
+			updatedEntitiesId: LinkedHashSet<String> = LinkedHashSet(),
+		): Set<String> = try {
+			val lastApplied = updatedEntitiesId.lastOrNull()
+			updatesBridge.getEntityUpdateContent(klass, updateVersion, type, resourceName).dropWhile {
+				lastApplied != null && it.id != lastApplied
+			}.buffered(20) { loadedEntities ->
 				val loadedAmpsIds = loadedEntities.map { it.id }
-				updatedAmpIds.addAll(loadedAmpsIds)
-				val currentAmps = dao.getEntities(loadedEntities.map { it.id }).toList().associateBy { it.id }
+				updatedEntitiesId.addAll(loadedAmpsIds)
+				val currentEntities = dao.getEntities(loadedEntities.map { it.id }).toList().associateBy { it.id }
 				loadedEntities.mapNotNull { entity ->
+					@Suppress("UNCHECKED_CAST")
 					when {
-						!currentAmps.containsKey(entity.id) -> entity as T
-						entity.withIdRev(rev = "0") != currentAmps.getValue(entity.id).withIdRev(rev = "0") -> entity.withIdRev(
-							rev = checkNotNull(currentAmps.getValue(entity.id).rev) { "Entity ${entity.id} has no revision in the database" }
+						!currentEntities.containsKey(entity.id) -> entity as T
+						entity.withIdRev(rev = "0") != currentEntities.getValue(entity.id).withIdRev(rev = "0") -> entity.withIdRev(
+							rev = checkNotNull(currentEntities.getValue(entity.id).rev) { "Entity ${entity.id} has no revision in the database" }
 						) as T
 						else -> null
 					}
@@ -329,7 +349,14 @@ class SamV2Updater(
 					}
 				} ?: emptyFlow()
 			}.toList()
-			return updatedAmpIds
+			updatedEntitiesId
+		} catch (e: Exception) {
+			if (e is PrematureCloseException) {
+				_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Connection closed prematurely, retrying ${klass.name} from ${updatedEntitiesId.lastOrNull() ?: "the beginning"}."))
+				loadEntitiesRecursive(dao, klass, updateVersion, type, resourceName, updatedEntitiesId)
+			} else {
+				throw e
+			}
 		}
 
 		private suspend fun <T : StoredDocument> deleteEntities(
@@ -353,15 +380,27 @@ class SamV2Updater(
 
 
 		private suspend fun <T : StoredDocument> deleteUnused(dao: InternalDAO<T>, used: Set<String>): List<String> =
-			dao.getEntityIds().filter {
+			getEntityIdsExhaustingPagination(dao).filter {
 				it !in used
-			}.toList().let { idsToRemove ->
+			}.toSet().let { idsToRemove ->
 				idsToRemove.chunked(100).flatMap { idsChunk ->
 					dao.purge(dao.getEntities(idsChunk)).map {
 						it.id
 					}.toList()
 				}
 			}
+
+		private fun <T: StoredDocument> getEntityIdsExhaustingPagination(dao: InternalDAO<T>): Flow<String> = flow {
+			val pageSize = 1001
+			var paginationOffset = PaginationOffset<Nothing>(pageSize)
+			do {
+				val result = dao.getEntityIdsPaginated(paginationOffset).filterIsInstance<ViewRowNoDoc<*, *>>().map { it.id }.toList()
+				emitAll(result.take(pageSize - 1).asFlow())
+				if (result.size >= pageSize) {
+					paginationOffset = PaginationOffset(pageSize, result.last())
+				}
+			} while (result.size >= pageSize)
+		}
 
 		private fun <T : Any, R: Any> Flow<T>.buffered(bufferSize: Int, block: suspend (ArrayDeque<T>) -> Flow<R>): Flow<R> = flow {
 			val queue = ArrayDeque<T>(bufferSize)
