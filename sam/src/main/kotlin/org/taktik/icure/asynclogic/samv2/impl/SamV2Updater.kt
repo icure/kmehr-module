@@ -16,7 +16,6 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.toSet
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Component
@@ -44,6 +43,8 @@ import org.taktik.icure.entities.samv2.updates.SamUpdate
 import org.taktik.icure.entities.samv2.updates.SignatureUpdate
 import org.taktik.icure.entities.samv2.updates.UpdateType
 import org.taktik.icure.utils.GzipDeflateInputStream
+import org.taktik.icure.utils.retry
+import org.taktik.icure.utils.suspendRetry
 import org.taktik.icure.utils.toFlow
 import reactor.netty.http.client.PrematureCloseException
 import java.util.ArrayDeque
@@ -394,7 +395,9 @@ class SamV2Updater(
 			val pageSize = 1001
 			var paginationOffset = PaginationOffset<Nothing>(pageSize)
 			do {
-				val result = dao.getEntityIdsPaginated(paginationOffset).filterIsInstance<ViewRowNoDoc<*, *>>().map { it.id }.toList()
+				val result = suspendRetry(10) {
+					dao.getEntityIdsPaginated(paginationOffset).filterIsInstance<ViewRowNoDoc<*, *>>().map { it.id }.toList()
+				}
 				emitAll(result.take(pageSize - 1).asFlow())
 				if (result.size >= pageSize) {
 					paginationOffset = PaginationOffset(pageSize, result.last())
