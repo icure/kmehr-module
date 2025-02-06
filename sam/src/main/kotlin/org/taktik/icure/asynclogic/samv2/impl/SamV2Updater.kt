@@ -329,8 +329,6 @@ class SamV2Updater(
 			updatesBridge.getEntityUpdateContent(klass, updateVersion, type, resourceName).dropWhile {
 				lastApplied != null && it.id != lastApplied
 			}.buffered(20) { loadedEntities ->
-				val loadedAmpsIds = loadedEntities.map { it.id }
-				updatedEntitiesId.addAll(loadedAmpsIds)
 				val currentEntities = dao.getEntities(loadedEntities.map { it.id }).toList().associateBy { it.id }
 				loadedEntities.mapNotNull { entity ->
 					@Suppress("UNCHECKED_CAST")
@@ -343,8 +341,10 @@ class SamV2Updater(
 					}
 				}.takeIf { it.isNotEmpty() }?.let { entitiesToSave ->
 					dao.save(entitiesToSave).onEach {
-						if (it is BulkSaveResult.Failure) {
-							throw IllegalStateException("Cannot save entity ${it.entityId}: ${it.code} - ${it.message}")
+						updatedEntitiesId.addAll(loadedAmpsIds)
+						when(it) {
+							is BulkSaveResult.Failure -> throw IllegalStateException("Cannot save entity ${it.entityId}: ${it.code} - ${it.message}")
+							is BulkSaveResult.Success<*> -> updatedEntitiesId.add(it.entityOrThrow().id)
 						}
 					}
 				} ?: emptyFlow()
