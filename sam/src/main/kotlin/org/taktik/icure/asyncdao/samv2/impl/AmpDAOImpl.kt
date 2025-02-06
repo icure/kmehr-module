@@ -4,10 +4,16 @@
 
 package org.taktik.icure.asyncdao.samv2.impl
 
+import com.github.benmanes.caffeine.cache.Caffeine
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.future.await
+import kotlinx.coroutines.future.future
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Repository
@@ -30,6 +36,8 @@ import org.taktik.icure.entities.samv2.SamVersion
 import org.taktik.icure.utils.makeFromTo
 import org.taktik.icure.utils.toInputStream
 import java.util.zip.GZIPInputStream
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.toJavaDuration
 
 @Repository("ampDAO")
 @Profile("sam")
@@ -44,6 +52,8 @@ class AmpDAOImpl(
 	companion object {
 		const val ampPaginationLimit = 101
 	}
+
+	private val cache = Caffeine.newBuilder().maximumSize(1000).expireAfterAccess(1.minutes.toJavaDuration()).buildAsync<String, List<String>>()
 
 	@View(name = "by_dmppcode", map = "classpath:js/amp/By_dmppcode.js")
 	override fun findAmpsByDmppCode(datastoreInformation: IDatastoreInformation, dmppCode: String) = flow {
@@ -270,13 +280,24 @@ class AmpDAOImpl(
 	}
 
 	override fun listAmpIdsByLabel(datastoreInformation: IDatastoreInformation, language: String?, label: String?): Flow<String> = flow {
-		val client = couchDbDispatcher.getClient(datastoreInformation)
-		val (from, to) = makeFromTo(label, language)
-		val viewQuery = createQuery("by_language_label")
-			.startKey(from)
-			.endKey(to)
-			.reduce(false)
-			.includeDocs(false)
-		emitAll(client.queryView<ComplexKey, String>(viewQuery).map { it.id })
+		require(label != null && label.length >= 3) { "Label must be at least 3 characters long" }
+		val rowIds = coroutineScope {
+			//TODO check the relevance of using a SupervisorScope to avoid failure on parallel cancellation
+			//TODO Use Pair<Long,Long> for key (SHA) and it
+			cache.get(label) { key, _ ->
+				future {
+					val client = couchDbDispatcher.getClient(datastoreInformation)
+					makeFromTo(key, language).let { (from, to) ->
+						val viewQuery = createQuery("by_language_label")
+							.startKey(from)
+							.endKey(to)
+							.reduce(false)
+							.includeDocs(false)
+						client.queryView<ComplexKey, String>(viewQuery).toList().sortedBy { it.value }.map { it.id }
+					}
+				}
+			}.await()
+		}
+		emitAll(rowIds.asFlow())
 	}
 }

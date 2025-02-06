@@ -50,7 +50,7 @@ map = function(doc) {
             var terms = wordsPerLanguage[l]
             terms.sort().forEach(function (t, idx) {
                 if (idx === terms.length - 1 || !(terms[idx + 1].indexOf(t) === 0)) {
-                    emit([l, t], 1)
+                    emit([l, t], doc.prescriptionName ? doc.prescriptionName[l] : null)
                 }
             })
         })
