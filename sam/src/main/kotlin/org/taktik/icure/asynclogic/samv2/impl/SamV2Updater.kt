@@ -43,7 +43,6 @@ import org.taktik.icure.entities.samv2.updates.SamUpdate
 import org.taktik.icure.entities.samv2.updates.SignatureUpdate
 import org.taktik.icure.entities.samv2.updates.UpdateType
 import org.taktik.icure.utils.GzipDeflateInputStream
-import org.taktik.icure.utils.retry
 import org.taktik.icure.utils.suspendRetry
 import org.taktik.icure.utils.toFlow
 import reactor.netty.http.client.PrematureCloseException
@@ -345,9 +344,9 @@ class SamV2Updater(
 						if (it is BulkSaveResult.Failure) {
 							throw IllegalStateException("Cannot save entity ${it.entityId}: ${it.code} - ${it.message}")
 						}
-					}.toList().also {
-						updatedEntitiesId.addAll(loadedEntities.map { it.id })
-					}.asFlow()
+					}.toList().asFlow()
+				}.also {
+					updatedEntitiesId.addAll(loadedEntities.map { it.id })
 				} ?: emptyFlow()
 			}.toList()
 			updatedEntitiesId
