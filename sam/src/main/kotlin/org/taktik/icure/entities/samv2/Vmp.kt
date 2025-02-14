@@ -24,6 +24,7 @@ data class Vmp(
 	val to: Long? = null,
 	val code: String? = null,
 	val vmpGroup: VmpGroupStub? = null,
+	val singleAdministrationDose: Quantity? = null,
 	val name: SamText? = null,
 	val abbreviation: SamText? = null,
 	val vtm: Vtm? = null,

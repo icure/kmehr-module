@@ -12,6 +12,7 @@ import org.taktik.icure.entities.base.StoredDocument
 import org.taktik.icure.entities.embed.RevisionInfo
 import org.taktik.icure.entities.samv2.embed.NoGenericPrescriptionReason
 import org.taktik.icure.entities.samv2.embed.NoSwitchReason
+import org.taktik.icure.entities.samv2.embed.Quantity
 import org.taktik.icure.entities.samv2.embed.SamText
 import org.taktik.icure.entities.samv2.embed.StandardDosage
 
@@ -29,6 +30,7 @@ data class VmpGroup(
 	val noGenericPrescriptionReason: NoGenericPrescriptionReason? = null,
 	val noSwitchReason: NoSwitchReason? = null,
 	val standardDosage: List<StandardDosage>? = null,
+	val singleAdministrationDose: Quantity? = null,
 
 	@JsonProperty("_attachments") override val attachments: Map<String, Attachment>? = emptyMap(),
 	@JsonProperty("_revs_info") override val revisionsInfo: List<RevisionInfo>? = emptyList(),

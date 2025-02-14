@@ -20,6 +20,7 @@ package org.taktik.icure.services.external.rest.v2.dto.samv2
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonInclude
+import org.taktik.icure.services.external.rest.v2.dto.samv2.embed.QuantityDto
 import org.taktik.icure.services.external.rest.v2.dto.base.StoredDocumentDto
 import org.taktik.icure.services.external.rest.v2.dto.samv2.embed.CommentedClassificationDto
 import org.taktik.icure.services.external.rest.v2.dto.samv2.embed.SamTextDto
@@ -39,6 +40,7 @@ data class VmpDto(
 	val to: Long? = null,
 	val code: String? = null,
 	val vmpGroup: VmpGroupStubDto? = null,
+	val singleAdministrationDose: QuantityDto? = null,
 	val name: SamTextDto? = null,
 	val abbreviation: SamTextDto? = null,
 	val vtm: VtmDto? = null,

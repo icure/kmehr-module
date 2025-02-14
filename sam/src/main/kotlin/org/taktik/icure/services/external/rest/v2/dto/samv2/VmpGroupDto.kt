@@ -23,6 +23,7 @@ import com.fasterxml.jackson.annotation.JsonInclude
 import org.taktik.icure.services.external.rest.v2.dto.base.StoredDocumentDto
 import org.taktik.icure.services.external.rest.v2.dto.samv2.embed.NoGenericPrescriptionReasonDto
 import org.taktik.icure.services.external.rest.v2.dto.samv2.embed.NoSwitchReasonDto
+import org.taktik.icure.services.external.rest.v2.dto.samv2.embed.QuantityDto
 import org.taktik.icure.services.external.rest.v2.dto.samv2.embed.SamTextDto
 import org.taktik.icure.services.external.rest.v2.dto.samv2.embed.StandardDosageDto
 
@@ -40,6 +41,7 @@ data class VmpGroupDto(
 	val name: SamTextDto? = null,
 	val noGenericPrescriptionReason: NoGenericPrescriptionReasonDto? = null,
 	val noSwitchReason: NoSwitchReasonDto? = null,
+	val singleAdministrationDose: QuantityDto? = null,
 	val standardDosage: List<StandardDosageDto>? = null,
 
 	) : StoredDocumentDto {
