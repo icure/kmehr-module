@@ -11,4 +11,4 @@ import org.taktik.icure.entities.base.CodeStub
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-data class RouteOfAdministration(val code: String?, val name: SamText? = null, val standardRoutes: Set<CodeStub> = emptySet()) : Serializable
+data class RouteOfAdministration(val code: String? = null, val name: SamText? = null, val standardRoutes: Set<CodeStub> = emptySet()) : Serializable
