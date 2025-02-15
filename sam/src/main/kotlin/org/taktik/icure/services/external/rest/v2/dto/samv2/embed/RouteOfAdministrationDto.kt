@@ -25,4 +25,4 @@ import java.io.Serializable
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-data class RouteOfAdministrationDto(val name: SamTextDto? = null, val standardRoutes: List<CodeStubDto> = emptyList()) : Serializable
+data class RouteOfAdministrationDto(val code: String? = null, val name: SamTextDto? = null, val standardRoutes: List<CodeStubDto> = emptyList()) : Serializable
