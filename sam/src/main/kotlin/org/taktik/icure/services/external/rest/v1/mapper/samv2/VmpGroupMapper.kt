@@ -22,7 +22,8 @@ interface VmpGroupMapper {
 		Mapping(target = "revHistory", ignore = true),
 		Mapping(target = "conflicts", ignore = true),
 		Mapping(target = "revisionsInfo", ignore = true),
-		Mapping(target = "standardDosage", ignore = true)
+		Mapping(target = "standardDosage", ignore = true),
+		Mapping(target = "singleAdministrationDose", ignore = true)
 	)
 	fun map(vmpGroupDto: VmpGroupDto): VmpGroup
 	@Mappings(
