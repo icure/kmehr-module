@@ -26,12 +26,13 @@ import org.taktik.icure.entities.samv2.Vmp
 import org.taktik.icure.services.external.rest.v2.dto.samv2.VmpDto
 import org.taktik.icure.services.external.rest.v2.mapper.EntityReferenceV2Mapper
 import org.taktik.icure.services.external.rest.v2.mapper.samv2.embed.CommentedClassificationV2Mapper
+import org.taktik.icure.services.external.rest.v2.mapper.samv2.embed.QuantityV2Mapper
 import org.taktik.icure.services.external.rest.v2.mapper.samv2.embed.SamTextV2Mapper
 import org.taktik.icure.services.external.rest.v2.mapper.samv2.embed.VmpComponentV2Mapper
 import org.taktik.icure.services.external.rest.v2.mapper.samv2.embed.VtmV2Mapper
 import org.taktik.icure.services.external.rest.v2.mapper.samv2.embed.WadaV2Mapper
 
-@Mapper(componentModel = "spring", uses = [VtmV2Mapper::class, SamTextV2Mapper::class, VmpGroupStubV2Mapper::class, CommentedClassificationV2Mapper::class, VmpComponentV2Mapper::class, EntityReferenceV2Mapper::class, WadaV2Mapper::class], injectionStrategy = InjectionStrategy.CONSTRUCTOR)
+@Mapper(componentModel = "spring", uses = [QuantityV2Mapper::class, VtmV2Mapper::class, SamTextV2Mapper::class, VmpGroupStubV2Mapper::class, CommentedClassificationV2Mapper::class, VmpComponentV2Mapper::class, EntityReferenceV2Mapper::class, WadaV2Mapper::class], injectionStrategy = InjectionStrategy.CONSTRUCTOR)
 interface VmpV2Mapper {
 	@Mappings(
 		Mapping(target = "attachments", ignore = true),
