@@ -15,6 +15,7 @@ import org.springframework.web.reactive.function.client.ExchangeFilterFunction
 import org.taktik.couchdb.springframework.webclient.SpringWebfluxWebClient
 import org.taktik.icure.asyncdao.SAMCouchDBDispatcher
 import org.taktik.icure.properties.SAMCouchDBCredentialsProvider
+import org.taktik.icure.properties.SAMCouchDbProperties
 import reactor.core.publisher.Mono
 import reactor.netty.http.client.HttpClient
 import reactor.netty.resources.ConnectionProvider
@@ -24,7 +25,8 @@ import java.time.Duration
 @Profile("sam")
 @Configuration
 class SAMCouchDBConfig(
-    private val credentialsProvider: SAMCouchDBCredentialsProvider
+    private val credentialsProvider: SAMCouchDBCredentialsProvider,
+    private val samCouchDbProperties: SAMCouchDbProperties
 ) {
 
     private val log = LogFactory.getLog("org.taktik.icure.config.WebClient")
@@ -69,7 +71,7 @@ class SAMCouchDBConfig(
         httpClient,
         objectMapper,
         "icure",
-        "drugs",
+        "drugs${samCouchDbProperties.samSuffix}",
         credentialsProvider,
         3
     )
@@ -82,7 +84,7 @@ class SAMCouchDBConfig(
         httpClient,
         objectMapper,
         "icure",
-        "chapiv",
+        "chapiv${samCouchDbProperties.samSuffix}",
         credentialsProvider,
         3
     )

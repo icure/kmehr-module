@@ -18,7 +18,8 @@ class SAMCouchDbProperties(
 	override var username: String? = null,
 	override var password: String? = null,
 	override var maxConnections: Int? = null,
-	override var maxPendingAcquire: Int? = 10_000
+	override var maxPendingAcquire: Int? = 10_000,
+	var samSuffix: String = "",
 ) : CouchDbProperties {
 	override fun knownServerUrls() = if (altUrls.isBlank()) listOf(url) else altUrls.split(";").let { if (it.contains(url)) it else listOf(url) + it }
 	override fun knownServerUris() = knownServerUrls().map { URI(it) }
