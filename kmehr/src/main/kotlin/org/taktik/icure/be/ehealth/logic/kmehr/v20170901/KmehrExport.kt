@@ -340,8 +340,10 @@ open class KmehrExport(
 		}
 
 		isIsrelevant = ServiceStatus.isRelevant(svc.status)
-		beginmoment = (svc.openingDate ?: svc.valueDate ?: svc.content.entries.mapNotNull { it.value.medicationValue }.firstOrNull()?.beginMoment)?.let { if (it != 0L) Utils.makeMomentTypeDateFromFuzzyLong(it) else null }
-		endmoment = (svc.closingDate ?: svc.content.entries.mapNotNull { it.value.medicationValue }.firstOrNull()?.endMoment)?.let { if (it != 0L) Utils.makeMomentTypeDateFromFuzzyLong(it) else null }
+		beginmoment = (svc.valueDate ?: svc.openingDate ?: svc.modified)?.let { if (it != 0L) Utils.makeMomentTypeDateFromFuzzyLong(it) else null }?.also {
+			throw IllegalArgumentException("No valid date on service ${svc.id} (valueDate, openingDate, modified) to use as beginmoment")
+		}
+		endmoment = svc.closingDate?.let { Utils.makeMomentTypeFromFuzzyLong(it) }
 		recorddatetime = makeXGC(svc.modified ?: svc.created ?: svc.valueDate)
 	}
 
