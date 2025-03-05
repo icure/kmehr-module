@@ -98,6 +98,7 @@ import org.taktik.icure.be.ehealth.logic.getAndDecryptMainAttachment
 import org.taktik.icure.be.ehealth.logic.kmehr.Config
 import org.taktik.icure.config.KmehrConfiguration
 import org.taktik.icure.constants.ServiceStatus
+import org.taktik.icure.entities.Contact
 import org.taktik.icure.entities.Document
 import org.taktik.icure.entities.Form
 import org.taktik.icure.entities.HealthElement
@@ -240,9 +241,22 @@ open class KmehrExport(
 		}
 	}
 
+	private fun getBeginMomentFromServiceAndParentContact(
+		svc: Service,
+		ctc: Contact
+	): Long = svc.content.entries.firstNotNullOfOrNull { it.value.medicationValue }?.beginMoment?.takeIf { it != 0L }
+		?: svc.valueDate?.takeIf { it != 0L }
+		?: svc.openingDate?.takeIf { it != 0L }
+		?: ctc.openingDate?.takeIf { it != 0L }
+		?: svc.modified?.takeIf { it != 0L }?.let { FuzzyValues.getFuzzyDateTime(it) }
+		?: svc.created?.takeIf { it != 0L }?.let { FuzzyValues.getFuzzyDateTime(it) }
+		?: ctc.created?.takeIf { it != 0L }?.let { FuzzyValues.getFuzzyDateTime(it) }
+		?: FuzzyValues.getCurrentFuzzyDateTime(ChronoUnit.SECONDS)
+
 	/**
 	 * Creates a KmEHR ItemType and fills it with the information from a iCure Service.
-	 * @param svc the iCure Service
+	 * @param svc the [Service]
+	 * @param ctc the [Contact] that contains [svc].
 	 * @param idx the ItemType id
 	 * @param cdItem
 	 * @param contents the Contents to add to the ItemType
@@ -252,6 +266,7 @@ open class KmehrExport(
 	 */
 	open fun createItemWithContent(
 		svc: Service,
+		ctc: Contact,
 		idx: Int,
 		cdItem: String,
 		contents: List<ContentType>,
@@ -340,10 +355,8 @@ open class KmehrExport(
 		}
 
 		isIsrelevant = ServiceStatus.isRelevant(svc.status)
-		beginmoment = (svc.valueDate ?: svc.openingDate ?: svc.modified)?.let { if (it != 0L) Utils.makeMomentTypeDateFromFuzzyLong(it) else null }?.also {
-			throw IllegalArgumentException("No valid date on service ${svc.id} (valueDate, openingDate, modified) to use as beginmoment")
-		}
-		endmoment = svc.closingDate?.let { Utils.makeMomentTypeFromFuzzyLong(it) }
+		beginmoment = Utils.makeDateTypeFromFuzzyLong(getBeginMomentFromServiceAndParentContact(svc, ctc))
+		endmoment = (svc.closingDate ?: svc.content.entries.firstNotNullOfOrNull { it.value.medicationValue }?.endMoment)?.let { if (it != 0L) Utils.makeMomentTypeDateFromFuzzyLong(it) else null }
 		recorddatetime = makeXGC(svc.modified ?: svc.created ?: svc.valueDate)
 	}
 
