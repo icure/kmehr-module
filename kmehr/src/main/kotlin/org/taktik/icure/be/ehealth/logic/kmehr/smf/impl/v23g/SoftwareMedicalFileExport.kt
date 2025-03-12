@@ -574,7 +574,9 @@ class SoftwareMedicalFileExport(
 							)
 						}
 						documentLogic.getDocument(docId)?.let { d ->
-							documentLogic.getAndDecryptMainAttachment(d.id).let { headingsAndItemsAndTexts.add(makeMultimediaLnkType(d, it, decryptor)) }
+							documentLogic.getAndDecryptMainAttachment(d.id).let {
+								headingsAndItemsAndTexts.add(makeMultimediaLnkType(d, it, decryptor))
+							}
 						}
 						headingsAndItemsAndTexts.add(LnkType().apply { type = CDLNKvalues.ISACHILDOF; url = makeLnkUrl(con.id) })
 					},
@@ -1085,7 +1087,7 @@ class SoftwareMedicalFileExport(
 
 	/**
 	 * Gets the insurance from the Insurability passed as parameter and converts it to an ItemType.
-	 * @param itemIndex the index of the ItemType to create.
+	 * @param itemIndex the index of the ItemType to create.1
 	 * @param config the Config for the Local KmEHR id.
 	 * @param insurability the Insurability.
 	 * @return an ItemType.
