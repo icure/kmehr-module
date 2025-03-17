@@ -8,6 +8,8 @@ import java.math.BigDecimal
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class StandardDosageDto(
+    val from: Long? = null,
+    val to: Long? = null,
     val code: Int? = null,
     val targetGroup: String? = null,
     val kidneyFailureClass: Int? = null,
