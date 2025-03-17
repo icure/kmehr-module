@@ -28,4 +28,4 @@ suspend fun DocumentLogic.getAndDecryptMainAttachment(documentId: String, encKey
 		}
 
 suspend fun DocumentLogic.getAndDecryptMainAttachment(documentId: String, encKey: String? = null) =
-	getAndDecryptMainAttachment(documentId, encKey?.let{ listOf(it) } ?: emptyList())
+	getAndDecryptMainAttachment(documentId, encKey?.let { listOf(it) } ?: emptyList())

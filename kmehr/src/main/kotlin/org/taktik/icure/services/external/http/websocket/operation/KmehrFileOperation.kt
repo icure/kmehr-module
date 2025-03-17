@@ -33,7 +33,9 @@ class KmehrFileOperation(webSocket: WebSocketSession, objectMapper: ObjectMapper
         decodingSessions[uuid] = decodingSession
         log.info("Submit $uuid for decryption")
         val jsonMessage = objectMapper.writeValueAsString(message)
-        val wsMessage = if (jsonMessage.length > 65000) webSocket.binaryMessage { it.wrap(jsonMessage.toByteArray(Charsets.UTF_8)) } else webSocket.textMessage(objectMapper.writeValueAsString(message))
+        val wsMessage =
+            if (jsonMessage.length > 65000) webSocket.binaryMessage { it.wrap(jsonMessage.toByteArray(Charsets.UTF_8)) }
+            else webSocket.textMessage(jsonMessage)
         webSocket.send(Mono.just(wsMessage)).awaitFirstOrNull()
         return try {
             val result = Mono.fromFuture(future).timeout(Duration.ofSeconds(240)).awaitFirst()

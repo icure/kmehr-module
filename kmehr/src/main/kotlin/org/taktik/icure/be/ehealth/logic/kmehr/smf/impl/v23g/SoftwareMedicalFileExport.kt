@@ -255,13 +255,13 @@ class SoftwareMedicalFileExport(
 			progressor?.progress((1.0 * index) / (contacts.size + documents.size))
 			log.info("Treating contact $index/${contacts.size}")
 
-			var contact: Contact? = null
-			if (decryptor != null) {
+			val contact = if (decryptor != null) {
 				log.info("Decrypt ${encContact.id}")
 				val ctcDto = contactMapper.map(encContact)
-				contact = decryptor.decrypt(listOf(ctcDto), ContactDto::class.java).firstOrNull()?.let { contactMapper.map(it) }
-				log.info("${encContact.id} decrypted")
-			}
+				decryptor.decrypt(listOf(ctcDto), ContactDto::class.java).firstOrNull()?.let { contactMapper.map(it) }?.also {
+					log.info("${encContact.id} decrypted")
+				}
+			} else null
 
 			if (contact == null) return@contactsLoop
 			val subContacts = if (config.soft?.name == "Medispring")
@@ -379,7 +379,15 @@ class SoftwareMedicalFileExport(
 									} + codesToKmehr(svc.codes)
 									if (contents.isNotEmpty()) {
 										val mfId = svc.id
-										createItemWithContent(svc, headingsAndItemsAndTexts.size + 1, cdItem, contents, "MF-ID", mfId)?.apply {
+										createItemWithContent(
+											svc = svc,
+											ctc = contact,
+											idx = headingsAndItemsAndTexts.size + 1,
+											cdItem = cdItem,
+											contents = contents,
+											localIdName = "MF-ID",
+											mfId = mfId
+										)?.apply {
 											this.ids.add(
 												IDKMEHR().apply {
 													this.s = IDKMEHRschemes.LOCAL
@@ -492,7 +500,14 @@ class SoftwareMedicalFileExport(
 					}.toMutableList()
 					contents += codesToKmehr(svc.codes)
 					if (contents.isNotEmpty()) {
-						createItemWithContent(svc, headingsAndItemsAndTexts.size + 1, cdItem, contents, "MF-ID")?.apply {
+						createItemWithContent(
+							svc = svc,
+							ctc = con,
+							idx = headingsAndItemsAndTexts.size + 1,
+							cdItem = cdItem,
+							contents = contents,
+							localIdName = "MF-ID"
+						)?.apply {
 							this.ids.add(
 								IDKMEHR().apply {
 									this.s = IDKMEHRschemes.LOCAL
@@ -559,7 +574,9 @@ class SoftwareMedicalFileExport(
 							)
 						}
 						documentLogic.getDocument(docId)?.let { d ->
-							documentLogic.getAndDecryptMainAttachment(d.id)?.let { headingsAndItemsAndTexts.add(makeMultimediaLnkType(d, it, decryptor)) }
+							documentLogic.getAndDecryptMainAttachment(d.id).let {
+								headingsAndItemsAndTexts.add(makeMultimediaLnkType(d, it, decryptor))
+							}
 						}
 						headingsAndItemsAndTexts.add(LnkType().apply { type = CDLNKvalues.ISACHILDOF; url = makeLnkUrl(con.id) })
 					},
@@ -723,7 +740,7 @@ class SoftwareMedicalFileExport(
 
 		service.content[language]?.documentId?.let { documentId ->
 			try {
-				documentLogic.getDocument(documentId)?.let { d -> documentLogic.getAndDecryptMainAttachment(d.id)?.let { headingsAndItemsAndTexts.add(makeMultimediaLnkType(d, it, decryptor)) } }
+				documentLogic.getDocument(documentId)?.let { d -> documentLogic.getAndDecryptMainAttachment(d.id).let { headingsAndItemsAndTexts.add(makeMultimediaLnkType(d, it, decryptor)) } }
 			} catch (e: Exception) {
 				log.error("Cannot export document $documentId")
 			}
@@ -924,7 +941,7 @@ class SoftwareMedicalFileExport(
 						)
 					}
 					documentLogic.getDocument(documentId)?.let { d ->
-						documentLogic.getAndDecryptMainAttachment(d.id)?.let {
+						documentLogic.getAndDecryptMainAttachment(d.id).let {
 							val element = makeMultimediaLnkType(d, it, decryptor)
 							headingsAndItemsAndTexts.add(element)
 						}
@@ -1070,7 +1087,7 @@ class SoftwareMedicalFileExport(
 
 	/**
 	 * Gets the insurance from the Insurability passed as parameter and converts it to an ItemType.
-	 * @param itemIndex the index of the ItemType to create.
+	 * @param itemIndex the index of the ItemType to create.1
 	 * @param config the Config for the Local KmEHR id.
 	 * @param insurability the Insurability.
 	 * @return an ItemType.
@@ -1375,7 +1392,7 @@ class SoftwareMedicalFileExport(
 				it.stringValue
 					?: it.booleanValue?.let { b -> if (b) "X" else "" }
 					?: it.numberValue?.toString()
-					?: it.measureValue?.let { n -> n.value.toString() }
+					?: it.measureValue?.value?.toString()
 			} ?: ""
 		}
 
@@ -1454,7 +1471,7 @@ class SoftwareMedicalFileExport(
 				it.stringValue
 					?: it.booleanValue?.let { b ->  if (b) "X" else "" }
 					?: it.numberValue?.toString()
-					?: it.measureValue?.let { m -> m.value.toString() }
+					?: it.measureValue?.value?.toString()
 			} ?: ""
 		}
 
