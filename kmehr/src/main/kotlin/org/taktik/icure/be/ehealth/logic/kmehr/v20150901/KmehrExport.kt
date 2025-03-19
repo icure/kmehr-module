@@ -17,6 +17,7 @@ import org.taktik.icure.be.ehealth.dto.kmehr.v20150901.be.fgov.ehealth.standards
 import org.taktik.icure.be.ehealth.dto.kmehr.v20150901.be.fgov.ehealth.standards.kmehr.schema.v1.*
 import org.taktik.icure.be.ehealth.dto.kmehr.v20150901.be.fgov.ehealth.standards.kmehr.schema.v1.ObjectFactory
 import org.taktik.icure.be.ehealth.logic.getAndDecryptMainAttachment
+import org.taktik.icure.be.isBeforeNow
 import org.taktik.icure.config.KmehrConfiguration
 import org.taktik.icure.constants.ServiceStatus
 import org.taktik.icure.entities.*
@@ -141,11 +142,11 @@ open class KmehrExport(
             lifecycle = LifecycleType().apply {
                 cd = CDLIFECYCLE().apply {
                     s = "CD-LIFECYCLE"
-                    value = if (ServiceStatus.isIrrelevant(svc.status) || (svc.closingDate ?: 99999999 <= FuzzyValues.getFuzzyDate(LocalDateTime.now(), ChronoUnit.DAYS))) {
-                        CDLIFECYCLEvalues.INACTIVE
-                    } else {
-                        svc.tags.find { t -> t.type == "CD-LIFECYCLE" }?.let { CDLIFECYCLEvalues.fromValue(it.code) }
-                            ?: if (cdItem == "medication") CDLIFECYCLEvalues.PRESCRIBED else CDLIFECYCLEvalues.ACTIVE
+                    value = when {
+                        ServiceStatus.isIrrelevant(svc.status) || svc.closingDate.isBeforeNow() -> CDLIFECYCLEvalues.INACTIVE
+                        svc.tags.any { t -> t.type == "CD-LIFECYCLE" } -> CDLIFECYCLEvalues.fromValue(svc.tags.first { t -> t.type == "CD-LIFECYCLE" }.code)
+                        cdItem == "medication" -> CDLIFECYCLEvalues.PRESCRIBED
+                        else -> CDLIFECYCLEvalues.ACTIVE
                     }
                 }
             }
@@ -357,7 +358,7 @@ open class KmehrExport(
                 }
                 content.documentId?.let {
                     try {
-                        documentLogic.getDocument(it)?.let { d -> documentLogic.getAndDecryptMainAttachment(d.id)?.let { lnks.add(LnkType().apply { type = CDLNKvalues.MULTIMEDIA; mediatype = documentMediaType(d); value = it }) } }
+                        documentLogic.getDocument(it)?.let { d -> documentLogic.getAndDecryptMainAttachment(d.id).let { lnks.add(LnkType().apply { type = CDLNKvalues.MULTIMEDIA; mediatype = documentMediaType(d); value = it }) } }
                     } catch (e: Exception) {
                         log.warn("Document with id $it could not be loaded", e)
                     }

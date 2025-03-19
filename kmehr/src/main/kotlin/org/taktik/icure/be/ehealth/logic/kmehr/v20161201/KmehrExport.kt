@@ -63,6 +63,7 @@ import org.taktik.icure.be.ehealth.dto.kmehr.v20161201.be.fgov.ehealth.standards
 import org.taktik.icure.be.ehealth.dto.kmehr.v20161201.be.fgov.ehealth.standards.kmehr.schema.v1.*
 import org.taktik.icure.be.ehealth.logic.getAndDecryptMainAttachment
 import org.taktik.icure.be.ehealth.logic.kmehr.Config
+import org.taktik.icure.be.isBeforeNow
 import org.taktik.icure.config.KmehrConfiguration
 import org.taktik.icure.constants.ServiceStatus
 import org.taktik.icure.entities.Document
@@ -285,20 +286,19 @@ open class KmehrExport (
         lifecycle = LifecycleType().apply {
             cd = CDLIFECYCLE().apply {
                 s = "CD-LIFECYCLE"
-					value = if ((((FuzzyValues.getDateTime(svc.closingDate?.takeIf { it > 0 } ?: 99991231)
-                            ?: LocalDateTime.MAX) < LocalDateTime.now()))) {
-                    CDLIFECYCLEvalues.INACTIVE
-                } else {
-                    svc.tags.find { t -> t.type == "CD-LIFECYCLE" }?.let {
-                        try {
-                            CDLIFECYCLEvalues.fromValue(it.code)
-                        } catch (e: java.lang.IllegalArgumentException) {
-                            CDLIFECYCLEvalues.CORRECTED
-                        }
-                    } ?: if (cdItem == "medication") {
-                            if (suspension != null) CDLIFECYCLEvalues.fromValue(suspension.lifecycle) else CDLIFECYCLEvalues.PRESCRIBED
-                        } else CDLIFECYCLEvalues.ACTIVE
-                }
+					value = if (svc.closingDate.isBeforeNow()) {
+                        CDLIFECYCLEvalues.INACTIVE
+                    } else {
+                        svc.tags.find { t -> t.type == "CD-LIFECYCLE" }?.let {
+                            try {
+                                CDLIFECYCLEvalues.fromValue(it.code)
+                            } catch (e: java.lang.IllegalArgumentException) {
+                                CDLIFECYCLEvalues.CORRECTED
+                            }
+                        } ?: if (cdItem == "medication") {
+                                if (suspension != null) CDLIFECYCLEvalues.fromValue(suspension.lifecycle) else CDLIFECYCLEvalues.PRESCRIBED
+                            } else CDLIFECYCLEvalues.ACTIVE
+                    }
             }
         }
         if (cdItem == "medication") {
@@ -657,7 +657,7 @@ open class KmehrExport (
                 }
                 content.documentId?.let {
                     try {
-                        documentLogic.getDocument(it)?.let { d -> documentLogic.getAndDecryptMainAttachment(d.id)?.let { lnks.add(LnkType().apply { type = CDLNKvalues.MULTIMEDIA; mediatype = documentMediaType(d); value = it }) } }
+                        documentLogic.getDocument(it)?.let { d -> documentLogic.getAndDecryptMainAttachment(d.id).let { lnks.add(LnkType().apply { type = CDLNKvalues.MULTIMEDIA; mediatype = documentMediaType(d); value = it }) } }
                     } catch (e: Exception) {
                         log.warn("Document with id $it could not be loaded", e)
                     }
