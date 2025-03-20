@@ -416,11 +416,11 @@ class SoftwareMedicalFileImport(
      * @param kmehrIndex the KmehrMessageIndex.
      * @return a List of SubContacts or null.
      */
-    private fun makeSubContact(contactId: String, formId: String?, mfId: String?, service: Service, kmehrIndex: KmehrMessageIndex): List<SubContact>? {
+    private fun makeSubContact(contactId: String, formId: String?, mfId: String?, service: Service, kmehrIndex: KmehrMessageIndex): List<SubContact> {
         val relatedItemIds = kmehrIndex.serviceFor[mfId]
                 ?.mapNotNull { mf -> kmehrIndex.itemIds[mf]?.let { (mf to it) } }
-        if(!relatedItemIds.isNullOrEmpty()){
-            return relatedItemIds.map { (heOrHcaMfid, heOrHcaPair) ->
+        return when {
+            !relatedItemIds.isNullOrEmpty() -> relatedItemIds.map { (heOrHcaMfid, heOrHcaPair) ->
                 val item = heOrHcaPair.second
                 if (item.cds.find { it.s == CDITEMschemes.CD_ITEM }?.value == "healthcareapproach") {
                     val heId = kmehrIndex.approachFor[heOrHcaMfid]?.firstNotNullOfOrNull { kmehrIndex.itemIds[it] }?.first
@@ -440,17 +440,15 @@ class SoftwareMedicalFileImport(
                     )
                 }
             }
-        }
-        else if(!formId.isNullOrBlank()){
-            return listOf(
+            !formId.isNullOrBlank() -> listOf(
                     SubContact(
                             id = UUID.nameUUIDFromBytes(("$contactId|null|null|$formId").toByteArray()).toString(),
                             formId = formId,
                             services = listOf(ServiceLink(serviceId = service.id)),
                     ),
             )
+            else -> listOf()
         }
-        return listOf()
     }
 
     /**
