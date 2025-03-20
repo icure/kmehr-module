@@ -6,6 +6,7 @@ package org.taktik.icure.be.ehealth.dto.kmehr.v20130710
 
 import org.taktik.icure.be.ehealth.dto.kmehr.v20130710.be.fgov.ehealth.standards.kmehr.schema.v1.DateType
 import org.taktik.icure.be.ehealth.dto.kmehr.v20130710.be.fgov.ehealth.standards.kmehr.schema.v1.MomentType
+import org.taktik.icure.utils.FuzzyValues
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -29,7 +30,7 @@ object Utils {
 
     fun makeXMLGregorianCalendarFromFuzzyLong(date: Long?): XMLGregorianCalendar? {
         return date?.let {
-            if (it % 10000000000 == 0L) it / 10000000000 else if (it % 100000000 == 0L) it / 100000000 else if (it < 99991231 && it % 10000 == 0L) it / 10000 else if (it < 99991231 && it % 100 == 0L) it / 100 else it /*normalize*/
+            if (it % 10000000000 == 0L) it / 10000000000 else if (it % 100000000 == 0L) it / 100000000 else if (it < FuzzyValues.MAX_FUZZY_DATE && it % 10000 == 0L) it / 10000 else if (it < FuzzyValues.MAX_FUZZY_DATE && it % 100 == 0L) it / 100 else it /*normalize*/
         }?.let { d ->
             xmlDtf.newXMLGregorianCalendar().apply {
                 millisecond = FIELD_UNDEFINED
