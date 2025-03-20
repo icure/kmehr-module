@@ -8,8 +8,10 @@ import io.mockk.mockk
 import org.taktik.icure.be.ehealth.dto.kmehr.v20170901.be.fgov.ehealth.standards.kmehr.cd.v1.CDLIFECYCLEvalues
 import org.taktik.icure.config.KmehrConfiguration
 import org.taktik.icure.entities.Contact
+import org.taktik.icure.entities.HealthElement
 import org.taktik.icure.entities.base.CodeStub
 import org.taktik.icure.entities.embed.Service
+import org.taktik.icure.test.makeFuzzyLongFromMomentType
 import org.taktik.icure.test.uuid
 
 class KmehrExportTest : StringSpec({
@@ -22,6 +24,44 @@ class KmehrExportTest : StringSpec({
 		documentLogic = mockk(),
 		kmehrConfig = kmehrConfig
 	)
+
+	"In an item created from an HealthElement, the opening date should be used first, then the value date" {
+		val he1 = HealthElement(
+			id = uuid(),
+			openingDate = 20250320101010
+		)
+		val item1 = kmehrExport.createItemWithContent(
+			he = he1,
+			idx = 0,
+			cdItem = "something",
+			contents = emptyList(),
+			localIdName = "iCure-Service",
+		).shouldNotBeNull()
+		makeFuzzyLongFromMomentType(item1.beginmoment.shouldNotBeNull()) shouldBe he1.openingDate.shouldNotBeNull()
+
+		val he2 = HealthElement(
+			id = uuid(),
+			valueDate = 20250320101010
+		)
+		val item2 = kmehrExport.createItemWithContent(
+			he = he2,
+			idx = 0,
+			cdItem = "something",
+			contents = emptyList(),
+			localIdName = "iCure-Service",
+		).shouldNotBeNull()
+		makeFuzzyLongFromMomentType(item2.beginmoment.shouldNotBeNull()) shouldBe he2.valueDate.shouldNotBeNull()
+
+		val he3 = HealthElement(id = uuid())
+		val item3 = kmehrExport.createItemWithContent(
+			he = he3,
+			idx = 0,
+			cdItem = "something",
+			contents = emptyList(),
+			localIdName = "iCure-Service",
+		).shouldNotBeNull()
+		item3.beginmoment shouldBe null
+	}
 
 	"A service with an irrelevant status should be exported with an inactive lifecycle" {
 		val service = Service(status = 2)
