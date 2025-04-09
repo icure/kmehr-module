@@ -96,11 +96,11 @@ open class GenericLogicBridge<E : Identifiable<String>> {
         throw BridgeException()
     }
 
-    suspend fun deleteEntity(id: String, rev: String?): DocIdentifier {
+    suspend fun deleteEntity(id: String, rev: String?): E {
         throw BridgeException()
     }
 
-    fun deleteEntities(identifiers: Collection<IdAndRev>): Flow<DocIdentifier> {
+    fun deleteEntities(identifiers: Collection<IdAndRev>): Flow<E> {
         throw BridgeException()
     }
 

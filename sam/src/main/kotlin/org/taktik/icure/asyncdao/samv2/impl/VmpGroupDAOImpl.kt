@@ -12,9 +12,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.future.future
-import org.springframework.beans.factory.annotation.Qualifier
-import org.springframework.context.annotation.Profile
-import org.springframework.stereotype.Repository
 import org.taktik.couchdb.ViewRowWithDoc
 import org.taktik.couchdb.annotation.View
 import org.taktik.couchdb.dao.DesignDocumentProvider
@@ -28,17 +25,14 @@ import org.taktik.icure.asyncdao.samv2.VmpGroupDAO
 import org.taktik.icure.asynclogic.datastore.DatastoreInstanceProvider
 import org.taktik.icure.asynclogic.datastore.IDatastoreInformation
 import org.taktik.icure.db.PaginationOffset
-import org.taktik.icure.db.sanitizeString
 import org.taktik.icure.entities.samv2.VmpGroup
 import org.taktik.icure.utils.makeFromTo
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.toJavaDuration
 
-@Repository("vmpGroupDAO")
-@Profile("sam")
 @View(name = "all", map = "function(doc) { if (doc.java_type == 'org.taktik.icure.entities.samv2.VmpGroup' && !doc.deleted) emit( null, doc._id )}")
 class VmpGroupDAOImpl(
-	@Qualifier("drugCouchDbDispatcher") couchDbDispatcher: CouchDbDispatcher,
+	couchDbDispatcher: CouchDbDispatcher,
 	idGenerator: IDGenerator,
 	datastoreInstanceProvider: DatastoreInstanceProvider,
 	designDocumentProvider: DesignDocumentProvider

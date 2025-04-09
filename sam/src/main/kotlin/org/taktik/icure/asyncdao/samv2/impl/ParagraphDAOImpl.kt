@@ -11,9 +11,6 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.toList
-import org.springframework.beans.factory.annotation.Qualifier
-import org.springframework.context.annotation.Profile
-import org.springframework.stereotype.Repository
 import org.taktik.couchdb.ViewQueryResultEvent
 import org.taktik.couchdb.ViewRowWithDoc
 import org.taktik.couchdb.annotation.View
@@ -33,11 +30,9 @@ import org.taktik.icure.entities.samv2.Paragraph
 import org.taktik.icure.utils.distinct
 import java.text.DecimalFormat
 
-@Repository("paragraphDAO")
-@Profile("sam")
 @View(name = "all", map = "function(doc) { if (doc.java_type == 'org.taktik.icure.entities.samv2.Paragraph') emit( null, doc._id )}")
 class ParagraphDAOImpl(
-	@Qualifier("chapIVCouchDbDispatcher") couchDbDispatcher: CouchDbDispatcher,
+	couchDbDispatcher: CouchDbDispatcher,
 	idGenerator: IDGenerator,
 	datastoreInstanceProvider: DatastoreInstanceProvider,
 	designDocumentProvider: DesignDocumentProvider,

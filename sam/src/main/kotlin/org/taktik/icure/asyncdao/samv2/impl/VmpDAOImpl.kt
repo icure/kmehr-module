@@ -27,11 +27,9 @@ import org.taktik.icure.db.sanitizeString
 import org.taktik.icure.entities.samv2.Vmp
 import org.taktik.icure.utils.makeFromTo
 
-@Repository("vmpDAO")
-@Profile("sam")
 @View(name = "all", map = "function(doc) { if (doc.java_type == 'org.taktik.icure.entities.samv2.Vmp' && !doc.deleted) emit( null, doc._id )}")
 class VmpDAOImpl(
-	@Qualifier("drugCouchDbDispatcher") couchDbDispatcher: CouchDbDispatcher,
+	couchDbDispatcher: CouchDbDispatcher,
 	idGenerator: IDGenerator,
 	datastoreInstanceProvider: DatastoreInstanceProvider,
 	designDocumentProvider: DesignDocumentProvider

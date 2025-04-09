@@ -16,11 +16,9 @@ import org.taktik.icure.asynclogic.datastore.DatastoreInstanceProvider
 import org.taktik.icure.asynclogic.datastore.IDatastoreInformation
 import org.taktik.icure.entities.samv2.Verse
 
-@Repository("verseDAO")
-@Profile("sam")
 @View(name = "all", map = "function(doc) { if (doc.java_type == 'org.taktik.icure.entities.samv2.Verse') emit( null, doc._id )}")
 class VerseDAOImpl(
-	@Qualifier("chapIVCouchDbDispatcher") couchDbDispatcher: CouchDbDispatcher,
+	couchDbDispatcher: CouchDbDispatcher,
 	idGenerator: IDGenerator,
 	datastoreInstanceProvider: DatastoreInstanceProvider,
 	designDocumentProvider: DesignDocumentProvider
