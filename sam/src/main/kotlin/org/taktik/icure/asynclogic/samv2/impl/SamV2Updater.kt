@@ -16,9 +16,6 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.toSet
 import kotlinx.coroutines.launch
-import org.springframework.beans.factory.annotation.Qualifier
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
-import org.springframework.stereotype.Component
 import org.taktik.couchdb.Client
 import org.taktik.couchdb.ViewRowNoDoc
 import org.taktik.couchdb.create
@@ -48,10 +45,8 @@ import org.taktik.icure.utils.toFlow
 import reactor.netty.http.client.PrematureCloseException
 import java.util.ArrayDeque
 
-@Component
-@ConditionalOnProperty(name = ["icure.sam.updaterUrl"], matchIfMissing = false)
 class SamV2Updater(
-	@Qualifier("drugCouchDbDispatcher") private val drugsCouchDbDispatcher: CouchDbDispatcher,
+	private val drugsCouchDbDispatcher: CouchDbDispatcher,
 	private val ampDAO: AmpDAO,
 	private val vmpDAO: VmpDAO,
 	private val vmpGroupDAO: VmpGroupDAO,
@@ -68,6 +63,9 @@ class SamV2Updater(
 	private val coroutineScope = CoroutineScope(Dispatchers.Default)
 	private var currentJob: SamV2UpdateTask? = null
 
+	init {
+	    print("initializing SamV2Updater")
+	}
 	fun startUpdateJob(jwt: String) {
 		if (currentJob == null || currentJob?.isCompleted == true) {
 			val task = SamV2UpdateTask()

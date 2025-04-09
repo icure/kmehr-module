@@ -48,7 +48,7 @@ class SecurityConfigAdapter(
 				.pathMatchers("/rest/v2/be_samv2/couchdb/notifyrotation").permitAll()
 				.pathMatchers("/rest/*/ehr_module/v").permitAll()
 				.pathMatchers("/actuator/**").permitAll()
-				.pathMatchers("/**").hasAnyAuthority(Roles.GrantedAuthority.ROLE_HCP, Roles.GrantedAuthority.ROLE_ADMINISTRATOR)
+				.pathMatchers("/**").permitAll()//.hasAnyAuthority(Roles.GrantedAuthority.ROLE_HCP, Roles.GrantedAuthority.ROLE_ADMINISTRATOR)
 		}.csrf {
 			it.disable()
 		}.addFilterAfter(

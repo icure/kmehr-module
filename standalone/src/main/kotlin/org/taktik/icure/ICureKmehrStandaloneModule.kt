@@ -23,6 +23,7 @@ import javax.xml.bind.JAXBContext
         "org.taktik.icure.config",
         "org.taktik.icure.asynclogic",
         "org.taktik.icure.asyncdao",
+        "org.taktik.icure.config",
         "org.taktik.icure.security",
         "org.taktik.icure.be.ehealth.logic",
         "org.taktik.icure.be.format.logic",

@@ -13,11 +13,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.future.future
-import org.springframework.beans.factory.annotation.Qualifier
-import org.springframework.context.annotation.Profile
-import org.springframework.stereotype.Repository
 import org.taktik.couchdb.ViewQueryResultEvent
-import org.taktik.couchdb.ViewRowNoDoc
 import org.taktik.couchdb.ViewRowWithDoc
 import org.taktik.couchdb.annotation.View
 import org.taktik.couchdb.dao.DesignDocumentProvider
@@ -37,11 +33,9 @@ import org.taktik.icure.utils.makeFromTo
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.toJavaDuration
 
-@Repository("nmpDAO")
-@Profile("sam")
 @View(name = "all", map = "function(doc) { if (doc.java_type == 'org.taktik.icure.entities.samv2.Nmp' && !doc.deleted) emit( null, doc._id )}")
 class NmpDAOImpl(
-	@Qualifier("drugCouchDbDispatcher") couchDbDispatcher: CouchDbDispatcher,
+	couchDbDispatcher: CouchDbDispatcher,
 	idGenerator: IDGenerator,
 	datastoreInstanceProvider: DatastoreInstanceProvider,
 	designDocumentProvider: DesignDocumentProvider

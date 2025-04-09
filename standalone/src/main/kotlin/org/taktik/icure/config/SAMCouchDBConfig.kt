@@ -7,6 +7,7 @@ import io.netty.handler.timeout.ReadTimeoutHandler
 import io.netty.handler.timeout.WriteTimeoutHandler
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import org.apache.commons.logging.LogFactory
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Profile
@@ -71,7 +72,23 @@ class SAMCouchDBConfig(
         httpClient,
         objectMapper,
         "icure",
-        "drugs${samCouchDbProperties.samSuffix}",
+        "drugs${samCouchDbProperties.suffix}",
+        credentialsProvider,
+        3
+    )
+
+
+    //Only instantiate if there is a next version suffix
+    @ConditionalOnProperty(prefix = "icure.couchdb.sam", name = ["nextVersionSuffix"], matchIfMissing = false)
+    @Bean
+    fun drugNextVersionCouchDbDispatcher(
+        httpClient: WebClient,
+        objectMapper: ObjectMapper
+    ) = SAMCouchDBDispatcher(
+        httpClient,
+        objectMapper,
+        "icure",
+        "drugs${samCouchDbProperties.nextVersionSuffix}",
         credentialsProvider,
         3
     )
@@ -84,7 +101,22 @@ class SAMCouchDBConfig(
         httpClient,
         objectMapper,
         "icure",
-        "chapiv${samCouchDbProperties.samSuffix}",
+        "chapiv${samCouchDbProperties.suffix}",
+        credentialsProvider,
+        3
+    )
+
+    //Only instantiate if there is a next version suffix
+    @ConditionalOnProperty(prefix = "icure.couchdb.sam", name = ["nextVersionSuffix"], matchIfMissing = false)
+    @Bean
+    fun chapIVNextVersionCouchDbDispatcher(
+        httpClient: WebClient,
+        objectMapper: ObjectMapper
+    ) = SAMCouchDBDispatcher(
+        httpClient,
+        objectMapper,
+        "icure",
+        "chapiv${samCouchDbProperties.nextVersionSuffix}",
         credentialsProvider,
         3
     )

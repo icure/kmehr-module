@@ -18,11 +18,11 @@ import org.taktik.icure.security.credentialsrotation.RotationResponse
 @Component
 @Profile("sam")
 class SAMCouchDBCredentialsProvider(
-    val properties: SAMCouchDbProperties
+    val properties: CouchDbProperties
 ) : CouchDbCredentialsManager {
 
     companion object {
-        private val log = LoggerFactory.getLogger(SAMCouchDbProperties::class.java)
+        private val log = LoggerFactory.getLogger(SAMCouchDBCredentialsProvider::class.java)
     }
 
     private var currentCredentials = UsernamePassword(

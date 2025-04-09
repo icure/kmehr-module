@@ -23,7 +23,6 @@ class SAMCouchDBDispatcher (
     private val createdReplicasIfNotExists: Int? = null
 ): CouchDbDispatcher {
 
-
     private val connectors = AsyncSafeCache<CouchDbConnectorReference, Client>(
         CaffeineCache(
             "Connectors",
