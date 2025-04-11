@@ -14,9 +14,12 @@ import org.springframework.context.annotation.Profile
 import org.springframework.http.client.reactive.ReactorClientHttpConnector
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction
 import org.taktik.couchdb.springframework.webclient.SpringWebfluxWebClient
+import org.taktik.icure.asyncdao.CouchDbDispatcher
 import org.taktik.icure.asyncdao.SAMCouchDBDispatcher
+import org.taktik.icure.dao.CouchDbDispatcherProvider
 import org.taktik.icure.properties.SAMCouchDBCredentialsProvider
 import org.taktik.icure.properties.SAMCouchDbProperties
+import org.taktik.icure.security.CouchDbCredentialsProvider
 import reactor.core.publisher.Mono
 import reactor.netty.http.client.HttpClient
 import reactor.netty.resources.ConnectionProvider
@@ -65,60 +68,22 @@ class SAMCouchDBConfig(
     }
 
     @Bean
-    fun drugCouchDbDispatcher(
-        httpClient: WebClient,
-        objectMapper: ObjectMapper
-    ) = SAMCouchDBDispatcher(
-        httpClient,
-        objectMapper,
-        "icure",
-        "drugs${samCouchDbProperties.suffix}",
-        credentialsProvider,
-        3
-    )
-
-
-    //Only instantiate if there is a next version suffix
-    @ConditionalOnProperty(prefix = "icure.couchdb.sam", name = ["nextVersionSuffix"], matchIfMissing = false)
-    @Bean
-    fun drugNextVersionCouchDbDispatcher(
-        httpClient: WebClient,
-        objectMapper: ObjectMapper
-    ) = SAMCouchDBDispatcher(
-        httpClient,
-        objectMapper,
-        "icure",
-        "drugs${samCouchDbProperties.nextVersionSuffix}",
-        credentialsProvider,
-        3
-    )
-
-    @Bean
-    fun chapIVCouchDbDispatcher(
-        httpClient: WebClient,
-        objectMapper: ObjectMapper
-    ) = SAMCouchDBDispatcher(
-        httpClient,
-        objectMapper,
-        "icure",
-        "chapiv${samCouchDbProperties.suffix}",
-        credentialsProvider,
-        3
-    )
-
-    //Only instantiate if there is a next version suffix
-    @ConditionalOnProperty(prefix = "icure.couchdb.sam", name = ["nextVersionSuffix"], matchIfMissing = false)
-    @Bean
-    fun chapIVNextVersionCouchDbDispatcher(
-        httpClient: WebClient,
-        objectMapper: ObjectMapper
-    ) = SAMCouchDBDispatcher(
-        httpClient,
-        objectMapper,
-        "icure",
-        "chapiv${samCouchDbProperties.nextVersionSuffix}",
-        credentialsProvider,
-        3
-    )
+    fun samCouchDbDispatcherProvider(): CouchDbDispatcherProvider  = object : CouchDbDispatcherProvider {
+        override fun getDispatcher(
+            httpClient: WebClient,
+            objectMapper: ObjectMapper,
+            prefix: String,
+            dbFamily: String,
+            couchDbCredentialsProvider: CouchDbCredentialsProvider,
+            createdReplicasIfNotExists: Int?
+        ) = SAMCouchDBDispatcher(
+            httpClient,
+            objectMapper,
+            prefix,
+            dbFamily,
+            couchDbCredentialsProvider,
+            createdReplicasIfNotExists
+        )
+    }
 
 }

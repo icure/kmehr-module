@@ -10,7 +10,7 @@ import org.taktik.couchdb.ClientImpl
 import org.taktik.icure.asynccache.AsyncSafeCache
 import org.taktik.icure.asynclogic.datastore.IDatastoreInformation
 import org.taktik.icure.asynclogic.datastore.impl.SAMDatastoreInformation
-import org.taktik.icure.properties.SAMCouchDBCredentialsProvider
+import org.taktik.icure.security.CouchDbCredentialsProvider
 import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -19,7 +19,7 @@ class SAMCouchDBDispatcher (
     private val objectMapper: ObjectMapper,
     private val prefix: String,
     private val dbFamily: String,
-    private val couchDbCredentialsProvider: SAMCouchDBCredentialsProvider,
+    private val couchDbCredentialsProvider: CouchDbCredentialsProvider,
     private val createdReplicasIfNotExists: Int? = null
 ): CouchDbDispatcher {
 
