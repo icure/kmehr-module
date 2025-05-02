@@ -435,7 +435,7 @@ class KmehrController(
         @PathVariable patientId: String,
         @RequestParam language: String,
         @RequestParam recipientSafe: String,
-        @RequestParam(defaultValue = "0") version: Int,
+        @RequestParam(required = false, defaultValue = "0") version: Int,
         @RequestHeader("X-Timezone-Offset") tz: String?,
         @RequestBody medicationSchemeExportParams: MedicationSchemeExportInfoDto,
         response: ServerHttpResponse
