@@ -2,7 +2,6 @@ package org.taktik.icure.security
 
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactor.mono
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.security.authentication.ReactiveAuthenticationManager
 import org.springframework.security.core.Authentication
@@ -12,11 +11,10 @@ import org.taktik.icure.entities.DataOwnerType
 import org.taktik.icure.security.jwt.EncodedJWTAuth
 import org.taktik.icure.security.jwt.JwtDecoder
 import reactor.core.publisher.Mono
-import java.security.PublicKey
+import java.security.interfaces.RSAPublicKey
 
 class CustomAuthenticationManager(
-	private val jwtAuthPublicKey: PublicKey,
-	private val defaultExpirationTimeMillis: Long
+	private val jwtAuthPublicKey: RSAPublicKey,
 ): ReactiveAuthenticationManager {
 
 	override fun authenticate(authentication: Authentication?): Mono<Authentication> = mono {
@@ -24,12 +22,12 @@ class CustomAuthenticationManager(
 			.takeIf { it is EncodedJWTAuth }
 			?.let {
 				try {
-					JwtDecoder.decodeAndGetClaims(
+					JwtDecoder.validateAndGetClaims(
 						jwt = (it as EncodedJWTAuth).token,
-						ignoreExpiration = false,
-						publicKey = jwtAuthPublicKey
+						publicKey = jwtAuthPublicKey,
+						validationSkewSeconds = 0
 					).let { claims ->
-						JwtDecoder.jwtDetailsFromClaims(KmehrJWTDetails, claims, defaultExpirationTimeMillis)
+						JwtDecoder.jwtDetailsFromClaims(KmehrJWTDetails, claims)
 					}
 				} catch (_: Exception) { null }
 			}?.let { jwt ->

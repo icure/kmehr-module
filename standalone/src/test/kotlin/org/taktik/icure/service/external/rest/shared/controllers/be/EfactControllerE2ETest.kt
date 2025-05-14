@@ -51,7 +51,7 @@ import org.taktik.icure.test.getAuthProvider
 import org.taktik.icure.test.ssin
 import org.taktik.icure.test.testHttpClient
 import org.taktik.icure.test.uuid
-import java.security.PublicKey
+import java.security.interfaces.RSAPublicKey
 import kotlin.random.Random
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -60,7 +60,6 @@ class EfactControllerE2ETest(
 	val httpClient: TestHttpClient,
 	val bridgeConfig: BridgeConfig,
 	@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String,
-	@Value("\${icure.auth.jwt.expirationMillis}") private val defaultExpirationTimeMillis: Long
 ) : BaseKmehrTest() {
 
 	private val jwtAuthPublicKey = JwtKeyUtils.decodePublicKeyFromString(jwtAuthPublicKeyAsString)
@@ -115,15 +114,13 @@ class EfactControllerE2ETest(
 			hasCbe: Boolean = false,
 			hasNihii: Boolean = false,
 			insuranceCode: String? = null,
-			jwtAuthPublicKey: PublicKey,
-			expirationTimeMillis: Long
+			jwtAuthPublicKey: RSAPublicKey,
 		): UserCredentials {
 			val hcp = createHealthcarePartyUser(
 				iCureUrl,
 				KmehrTestApplication.masterHcp.login,
 				KmehrTestApplication.masterHcp.password,
-				jwtAuthPublicKey,
-				expirationTimeMillis
+				jwtAuthPublicKey
 			)
 			RawHealthcarePartyApiImpl(
 				apiUrl = iCureUrl,
@@ -176,7 +173,6 @@ class EfactControllerE2ETest(
 				iCureUrl = bridgeConfig.iCureUrl,
 				khmerUrl = "http://127.0.0.1:$port",
 				jwtAuthPublicKey = jwtAuthPublicKey,
-				expirationTimeMillis = defaultExpirationTimeMillis
 			)
 		}
 	}
@@ -187,8 +183,7 @@ private fun StringSpec.eFactControllerTest(
 	httpClient: TestHttpClient,
 	iCureUrl: String,
 	khmerUrl: String,
-	jwtAuthPublicKey: PublicKey,
-	expirationTimeMillis: Long
+	jwtAuthPublicKey: RSAPublicKey
 ) {
 
 	fun createMapOfIdsPayload(map: Map<String, List<String>>, apiVersion: String) =
@@ -207,7 +202,6 @@ private fun StringSpec.eFactControllerTest(
 		val hcpCredentials = createHcpWithBankInfo(
 			iCureUrl = iCureUrl,
 			jwtAuthPublicKey = jwtAuthPublicKey,
-			expirationTimeMillis = expirationTimeMillis,
 			hasCbe = true,
 			hasNihii = true,
 			insuranceCode = insurance.code
@@ -310,7 +304,6 @@ private fun StringSpec.eFactControllerTest(
 		val hcpCredentials = createHcpWithBankInfo(
 			iCureUrl = iCureUrl,
 			jwtAuthPublicKey = jwtAuthPublicKey,
-			expirationTimeMillis = expirationTimeMillis,
 			hasCbe = true,
 			hasNihii = true
 		)
@@ -329,7 +322,6 @@ private fun StringSpec.eFactControllerTest(
 		val hcpCredentials = createHcpWithBankInfo(
 			iCureUrl = iCureUrl,
 			jwtAuthPublicKey = jwtAuthPublicKey,
-			expirationTimeMillis = expirationTimeMillis,
 			hasCbe = true,
 			hasNihii = true
 		)
@@ -348,7 +340,6 @@ private fun StringSpec.eFactControllerTest(
 		val hcpCredentials = createHcpWithBankInfo(
 			iCureUrl = iCureUrl,
 			jwtAuthPublicKey = jwtAuthPublicKey,
-			expirationTimeMillis = expirationTimeMillis,
 			hasCbe = false,
 			hasNihii = true,
 			insuranceCode = insurance.code
@@ -406,7 +397,6 @@ private fun StringSpec.eFactControllerTest(
 		val hcpCredentials = createHcpWithBankInfo(
 			iCureUrl = iCureUrl,
 			jwtAuthPublicKey = jwtAuthPublicKey,
-			expirationTimeMillis = expirationTimeMillis,
 			hasCbe = true,
 			hasNihii = false,
 			insuranceCode = insurance.code
@@ -464,7 +454,6 @@ private fun StringSpec.eFactControllerTest(
 		val hcpCredentials = createHcpWithBankInfo(
 			iCureUrl = iCureUrl,
 			jwtAuthPublicKey = jwtAuthPublicKey,
-			expirationTimeMillis = expirationTimeMillis,
 			hasCbe = true,
 			hasNihii = true
 		)

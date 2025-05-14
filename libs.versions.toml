@@ -5,7 +5,7 @@ ktor = "3.0.0"
 commonsCodec = { group = "commons-codec", name = "commons-codec", version = "1.15"}
 mustacheJava = { group = "com.github.spullara.mustache.java", name = "compiler", version = "0.9.10" }
 icureKotlinSDK = { group = "com.icure", name = "cardinal-sdk", version = "1.0.0-RC.4" }
-icureTestStack = { group = "io.icure", name = "icure-e2e-test-setup", version = "0.0.26-g52fadd5a79" }
+icureTestStack = { group = "io.icure", name = "icure-e2e-test-setup", version = "0.0.35-g37fe96791a" }
 credentialsRotation = { group = "com.icure", name = "credentials-rotation", version = "0.0.4-gcfc84d62bd" }
 jaxbApi = { group = "javax.xml.bind", name = "jaxb-api", version = "2.3.1" }
 jaxbRuntime = { group = "org.glassfish.jaxb", name = "jaxb-runtime", version = "2.3.8" }
