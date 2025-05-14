@@ -10,6 +10,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.mapNotNull
@@ -86,8 +87,7 @@ class SAMV2ControllerE2ETest(
 	val objectMapper: ObjectMapper,
 	@Qualifier("drugCouchDbDispatcher") val couchDbDispatcher: CouchDbDispatcher,
 	val couchDbProperties: CouchDbProperties,
-	@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String,
-	@Value("\${icure.auth.jwt.expirationMillis}") private val defaultExpirationTimeMillis: Long
+	@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String
 ) : StringSpec() {
 
 	private val jwtAuthPublicKey = JwtKeyUtils.decodePublicKeyFromString(jwtAuthPublicKeyAsString)
@@ -112,14 +112,18 @@ class SAMV2ControllerE2ETest(
 	inner class CredentialsProvider {
 		private val credentials = mutableMapOf<CredentialsType, UserCredentials>()
 
+		private fun isJwtExpired(jwt: String): Boolean {
+			val expirationSeconds = JwtDecoder.decodeExpirationSeconds(jwt)
+			return expirationSeconds < (System.currentTimeMillis() / 1000) - 30
+		}
+
 		suspend fun getCredentials(type: CredentialsType): UserCredentials =
-			credentials[type]?.takeIf { JwtDecoder.isNotExpired(it.authJWT!!, jwtAuthPublicKey) } ?: when(type) {
+			credentials[type]?.takeIf { !isJwtExpired(it.authJWT!!) } ?: when(type) {
 				CredentialsType.HCP -> createHealthcarePartyUser(
 					bridgeConfig.iCureUrl,
 					KmehrTestApplication.masterHcp.login,
 					KmehrTestApplication.masterHcp.password,
-					jwtAuthPublicKey = jwtAuthPublicKey,
-					defaultExpirationTimeMillis = defaultExpirationTimeMillis
+					jwtAuthPublicKey = jwtAuthPublicKey
 				)
 				CredentialsType.PATIENT -> createPatientUser(
 					bridgeConfig.iCureUrl,
@@ -211,7 +215,7 @@ private fun StringSpec.findNmpsByCnkE2ETest(
 				id = uuid(),
 				code = uuid()
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makePostRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/nmp/byCnks",
@@ -233,7 +237,7 @@ private fun StringSpec.findNmpsByCnkE2ETest(
 				id = uuid(),
 				code = uuid()
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makePostRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/nmp/byCnks",
@@ -291,7 +295,7 @@ private fun StringSpec.findVmpGroupsByCodeE2ETest(
 				code = uuid(),
 				name = SamText(en = uuid(), fr = uuid())
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makeGetRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/vmpgroup/byGroupCode/${groupCode}",
@@ -331,7 +335,7 @@ private fun StringSpec.findVmpGroupsByCodeE2ETest(
 				code = uuid(),
 				name = SamText(en = uuid(), fr = uuid())
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makePostRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/vmpgroup/byGroupCodes",
@@ -354,7 +358,7 @@ private fun StringSpec.findVmpGroupsByCodeE2ETest(
 				code = uuid(),
 				name = SamText(en = uuid(), fr = uuid())
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makeGetRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/vmpgroup/byGroupCode/${uuid()}",
@@ -373,7 +377,7 @@ private fun StringSpec.findVmpGroupsByCodeE2ETest(
 				code = uuid(),
 				name = SamText(en = uuid(), fr = uuid())
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makePostRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/vmpgroup/byGroupCodes",
@@ -443,7 +447,7 @@ private fun StringSpec.findVmpGroupsByLabelE2ETest(
 					fr = uuid()
 				)
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makeGetRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/vmpgroup?language=en&label=${enLabel.first()}",
@@ -467,7 +471,7 @@ private fun StringSpec.findVmpGroupsByLabelE2ETest(
 					fr = uuid()
 				)
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makeGetRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/vmpgroup?language=en&label=${uuid()}",
@@ -530,7 +534,7 @@ private fun StringSpec.findAmpsByDmppE2ETest(
 					)
 				)
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makeGetRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/amp/byDmppCode/${dmppCode}",
@@ -578,7 +582,7 @@ private fun StringSpec.findAmpsByDmppE2ETest(
 					)
 				)
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makePostRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/amp/byDmppCodes",
@@ -605,7 +609,7 @@ private fun StringSpec.findAmpsByDmppE2ETest(
 					)
 				)
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makeGetRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/amp/byDmppCode/${uuid()}",
@@ -628,7 +632,7 @@ private fun StringSpec.findAmpsByDmppE2ETest(
 					)
 				)
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makePostRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/amp/byDmppCodes",
@@ -699,7 +703,7 @@ private fun StringSpec.findAmpsByVmpIdE2ETest(
 				),
 				name = SamText(en = uuid())
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makeGetRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/amp/byVmpId/${vmpId}",
@@ -745,7 +749,7 @@ private fun StringSpec.findAmpsByVmpIdE2ETest(
 				),
 				name = SamText(en = uuid())
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makePostRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/amp/byVmpIds",
@@ -771,7 +775,7 @@ private fun StringSpec.findAmpsByVmpIdE2ETest(
 				),
 				name = SamText(en = uuid())
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makeGetRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/amp/byVmpId/${uuid()}",
@@ -793,7 +797,7 @@ private fun StringSpec.findAmpsByVmpIdE2ETest(
 				),
 				name = SamText(en = uuid())
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makePostRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/amp/byVmpIds",
@@ -865,7 +869,7 @@ private fun StringSpec.findAmpsByAtcE2ETest(
 					)
 				)
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makeGetRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/amp/byAtc/${atcCode}",
@@ -891,7 +895,7 @@ private fun StringSpec.findAmpsByAtcE2ETest(
 					)
 				)
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makeGetRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/amp/byAtc/${uuid()}",
@@ -952,7 +956,7 @@ private fun StringSpec.findAmpsByVmpCodeE2ETest(
 				),
 				name = SamText(en = uuid())
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makeGetRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/amp/byVmpCode/${vmpCode}",
@@ -998,7 +1002,7 @@ private fun StringSpec.findAmpsByVmpCodeE2ETest(
 				),
 				name = SamText(en = uuid())
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makePostRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/amp/byVmpCodes",
@@ -1024,7 +1028,7 @@ private fun StringSpec.findAmpsByVmpCodeE2ETest(
 				),
 				name = SamText(en = uuid())
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makeGetRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/amp/byVmpCode/${uuid()}",
@@ -1046,7 +1050,7 @@ private fun StringSpec.findAmpsByVmpCodeE2ETest(
 				),
 				name = SamText(en = uuid())
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makePostRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/amp/byVmpCodes",
@@ -1123,7 +1127,7 @@ private fun StringSpec.findAmpsByVmpGroupIdE2ETest(
 				),
 				name = SamText(en = uuid())
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makeGetRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/amp/byGroupId/${groupId}",
@@ -1174,7 +1178,7 @@ private fun StringSpec.findAmpsByVmpGroupIdE2ETest(
 				),
 				name = SamText(en = uuid())
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makePostRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/amp/byGroupIds",
@@ -1203,7 +1207,7 @@ private fun StringSpec.findAmpsByVmpGroupIdE2ETest(
 				),
 				name = SamText(en = uuid())
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makeGetRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/amp/byGroupId/${uuid()}",
@@ -1228,7 +1232,7 @@ private fun StringSpec.findAmpsByVmpGroupIdE2ETest(
 				),
 				name = SamText(en = uuid())
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makePostRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/amp/byGroupIds",
@@ -1305,7 +1309,7 @@ private fun StringSpec.findAmpsByVmpGroupCodeE2ETest(
 				),
 				name = SamText(en = uuid())
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makeGetRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/amp/byGroupCode/${groupCode}",
@@ -1356,7 +1360,7 @@ private fun StringSpec.findAmpsByVmpGroupCodeE2ETest(
 				),
 				name = SamText(en = uuid())
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makePostRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/amp/byGroupCodes",
@@ -1385,7 +1389,7 @@ private fun StringSpec.findAmpsByVmpGroupCodeE2ETest(
 				),
 				name = SamText(en = uuid())
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makeGetRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/amp/byGroupCode/${uuid()}",
@@ -1410,7 +1414,7 @@ private fun StringSpec.findAmpsByVmpGroupCodeE2ETest(
 				),
 				name = SamText(en = uuid())
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makePostRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/amp/byGroupCodes",
@@ -1481,7 +1485,7 @@ private fun StringSpec.findVmpsByGroupIdE2ETest(
 				),
 				name = SamText(en = uuid())
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makeGetRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/vmp/byGroupId/${groupId}",
@@ -1526,7 +1530,7 @@ private fun StringSpec.findVmpsByGroupIdE2ETest(
 				),
 				name = SamText(en = uuid())
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makePostRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/vmp/byGroupIds",
@@ -1552,7 +1556,7 @@ private fun StringSpec.findVmpsByGroupIdE2ETest(
 				),
 				name = SamText(en = uuid())
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makeGetRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/vmp/byGroupId/${uuid()}",
@@ -1574,7 +1578,7 @@ private fun StringSpec.findVmpsByGroupIdE2ETest(
 				),
 				name = SamText(en = uuid())
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makePostRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/vmp/byGroupIds",
@@ -1644,7 +1648,7 @@ private fun StringSpec.findNmpsByLabelE2ETest(
 					fr = uuid()
 				)
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makeGetRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/nmp?language=en&label=${enLabel.first()}",
@@ -1668,7 +1672,7 @@ private fun StringSpec.findNmpsByLabelE2ETest(
 					fr = uuid()
 				)
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makeGetRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/nmp?language=en&label=${uuid()}",
@@ -1723,7 +1727,7 @@ private fun StringSpec.findVmpsByCodeE2ETest(
 				code = uuid(),
 				name = SamText(en = uuid())
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makeGetRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/vmp/byVmpCode/${code}",
@@ -1762,7 +1766,7 @@ private fun StringSpec.findVmpsByCodeE2ETest(
 				code = uuid(),
 				name = SamText(en = uuid())
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makePostRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/vmp/byVmpCodes",
@@ -1785,7 +1789,7 @@ private fun StringSpec.findVmpsByCodeE2ETest(
 				code = uuid(),
 				name = SamText(en = uuid())
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makeGetRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/vmp/byVmpCode/${uuid()}",
@@ -1804,7 +1808,7 @@ private fun StringSpec.findVmpsByCodeE2ETest(
 				code = uuid(),
 				name = SamText(en = uuid())
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makePostRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/vmp/byVmpCodes",
@@ -1875,7 +1879,7 @@ private fun StringSpec.findVmpsByGroupCodeE2ETest(
 				),
 				name = SamText(en = uuid())
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makeGetRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/vmp/byGroupCode/${groupCode}",
@@ -1900,7 +1904,7 @@ private fun StringSpec.findVmpsByGroupCodeE2ETest(
 				),
 				name = SamText(en = uuid())
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makeGetRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/vmp/byGroupCode/${uuid()}",
@@ -1960,7 +1964,7 @@ private fun StringSpec.findVmpsByLabelE2ETest(
 					fr = uuid()
 				)
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makeGetRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/vmp?language=en&label=${enLabel.first()}",
@@ -1984,7 +1988,7 @@ private fun StringSpec.findVmpsByLabelE2ETest(
 					fr = uuid()
 				)
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makeGetRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/vmp?language=en&label=${uuid()}",
@@ -2044,7 +2048,7 @@ private fun StringSpec.findAmpsByLabelE2ETest(
 					fr = uuid()
 				)
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makeGetRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/amp?language=en&label=${enLabel.first()}",
@@ -2089,7 +2093,7 @@ private fun StringSpec.findAmpsByLabelE2ETest(
 					fr = uuid()
 				)
 			)
-		})
+		}).collect()
 
 		val responseFirstPage = httpClient.makeGetRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/amp?language=en&label=${enLabel.first()}&limit=$limit",
@@ -2121,7 +2125,7 @@ private fun StringSpec.findAmpsByLabelE2ETest(
 					fr = uuid()
 				)
 			)
-		})
+		}).collect()
 
 		val responseString = httpClient.makeGetRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/amp?language=en&label=${uuid()}",

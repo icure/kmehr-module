@@ -16,7 +16,6 @@ import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.stereotype.Service
@@ -27,14 +26,15 @@ import org.taktik.icure.config.BridgeConfig
 import org.taktik.icure.constants.Roles
 import org.taktik.icure.entities.DataOwnerType
 import org.taktik.icure.entities.base.HasEncryptionMetadata
+import org.taktik.icure.entities.utils.SemanticVersion
 import org.taktik.icure.exceptions.BridgeException
 import org.taktik.icure.exceptions.ForbiddenRequestException
 import org.taktik.icure.security.BridgeCredentialsManager
 import org.taktik.icure.security.DataOwnerAuthenticationDetails
 import org.taktik.icure.security.KmehrJWTDetails
 import org.taktik.icure.security.jwt.EncodedJWTAuth
+import org.taktik.icure.security.jwt.JwtAuthentication
 import org.taktik.icure.security.jwt.JwtDecoder
-import org.taktik.icure.security.jwt.JwtKeyUtils
 import org.taktik.icure.security.loadSecurityContext
 import java.io.Serializable
 
@@ -42,13 +42,10 @@ import java.io.Serializable
 class BridgeAsyncSessionLogic(
 	private val bridgeConfig: BridgeConfig,
 	private val credentialsManager: BridgeCredentialsManager,
-	private val objectMapper: ObjectMapper,
-	@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String,
-	@Value("\${icure.auth.jwt.expirationMillis}") private val defaultExpirationTimeMillis: Long
+	private val objectMapper: ObjectMapper
 ) : AsyncSessionLogic, SessionInformationProvider {
 
 	private val log = LoggerFactory.getLogger(this.javaClass)
-	private val jwtAuthPublicKey = JwtKeyUtils.decodePublicKeyFromString(jwtAuthPublicKeyAsString)
 
 	companion object {
 		private suspend fun getCurrentAuthentication() =
@@ -71,7 +68,7 @@ class BridgeAsyncSessionLogic(
 		session: WebSession?,
 		groupId: String?,
 		applicationId: String?
-	): Authentication? {
+	): JwtAuthentication {
 		throw BridgeException()
 	}
 
@@ -80,12 +77,10 @@ class BridgeAsyncSessionLogic(
 	}
 
 	private suspend fun generateNewUserToken(jwt: String): String {
-		val claims = JwtDecoder.decodeAndGetClaims(
-			jwt = jwt,
-			ignoreExpiration = true,
-			publicKey = jwtAuthPublicKey
+		val claims = JwtDecoder.decodeWithoutValidation(
+			jwt = jwt
 		).let { claims ->
-			JwtDecoder.jwtDetailsFromClaims(KmehrJWTDetails, claims, defaultExpirationTimeMillis)
+			JwtDecoder.jwtDetailsFromClaims(KmehrJWTDetails, claims)
 		}
 		val tmpToken = httpClient.post(
 			"${bridgeConfig.iCureUrl}/rest/v2/user/inGroup/${claims.groupId}/token/${claims.userId}/kmehr?tokenValidity=60"
@@ -101,19 +96,23 @@ class BridgeAsyncSessionLogic(
 		}.let { objectMapper.readValue<JwtResponse>(it.bodyAsText()) }.token
 	}
 
+	private fun isJwtExpired(jwt: String): Boolean {
+		val expirationSeconds = JwtDecoder.decodeExpirationSeconds(jwt)
+		return expirationSeconds < (System.currentTimeMillis() / 1000) - 30
+	}
+
 	suspend fun getCurrentJWT() =
 		loadSecurityContext()?.map { (it.authentication as EncodedJWTAuth).token }
 			?.awaitFirstOrNull()
 			?.let { jwt ->
-				if(!JwtDecoder.isNotExpired(jwt, jwtAuthPublicKey)) log.debug("EXPIRED, refreshing")
-				jwt.takeIf { JwtDecoder.isNotExpired(it, jwtAuthPublicKey) }
+				val isJwtExpired = isJwtExpired(jwt)
+				if(!isJwtExpired) log.debug("EXPIRED, refreshing")
+				jwt.takeIf { !isJwtExpired }
 					?: generateNewUserToken(jwt).also {
-						val details = JwtDecoder.decodeAndGetClaims(
-							jwt = it,
-							ignoreExpiration = false,
-							publicKey = jwtAuthPublicKey
+						val details = JwtDecoder.decodeWithoutValidation(
+							jwt = jwt
 						).let { claims ->
-							JwtDecoder.jwtDetailsFromClaims(KmehrJWTDetails, claims, defaultExpirationTimeMillis)
+							JwtDecoder.jwtDetailsFromClaims(KmehrJWTDetails, claims)
 						}
 						loadSecurityContext()?.map { ctx ->
 							ctx.authentication = EncodedJWTAuth(
@@ -138,6 +137,10 @@ class BridgeAsyncSessionLogic(
 	}
 
 	override suspend fun getAllSearchKeysIfCurrentDataOwner(dataOwnerId: String): Set<String> {
+		throw BridgeException()
+	}
+
+	override suspend fun getCallerCardinalVersion(): SemanticVersion? {
 		throw BridgeException()
 	}
 

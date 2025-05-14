@@ -24,8 +24,7 @@ import org.taktik.icure.test.withAuthenticatedReactorContext
 class CodeLogicBridgeTest(
 	val bridgeConfig: BridgeConfig,
 	val codeMapper: CodeMapper,
-	@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String,
-	@Value("\${icure.auth.jwt.expirationMillis}") private val defaultExpirationTimeMillis: Long
+	@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String
 ) : BaseKmehrTest() {
 
 	private val jwtAuthPublicKey = JwtKeyUtils.decodePublicKeyFromString(jwtAuthPublicKeyAsString)
@@ -36,8 +35,7 @@ class CodeLogicBridgeTest(
 				bridgeConfig.iCureUrl,
 				KmehrTestApplication.masterHcp.login,
 				KmehrTestApplication.masterHcp.password,
-				jwtAuthPublicKey,
-				defaultExpirationTimeMillis
+				jwtAuthPublicKey
 			)
 
 			val codeBridge = CodeLogicBridge(

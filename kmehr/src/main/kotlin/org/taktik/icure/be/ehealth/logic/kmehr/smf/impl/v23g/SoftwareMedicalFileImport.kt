@@ -224,7 +224,7 @@ class SoftwareMedicalFileImport(
             if (saveToDatabase) {
                 try {
                     contactLogic.createContact(con)
-                } catch (e: UpdateConflictException) {
+                } catch (_: UpdateConflictException) {
                     contactLogic.createContact(con.copy(id = idGenerator.newGUID().toString())) // This happens when the Kmehr file is corrupted
                 } ?: throw IllegalStateException("Cannot save contact")
             } else {
@@ -337,7 +337,7 @@ class SoftwareMedicalFileImport(
             }
         val contactDate = extractTransactionDateTime(trn)
 
-        val simplifiedSubContacts = simplifySubContacts(serviceAndSubContacts.flatMap { it.second!! }).toSet()
+        val simplifiedSubContacts = simplifySubContacts(serviceAndSubContacts.flatMap { it.second }).toSet()
         if (simplifiedSubContacts.isNotEmpty()) {
             v.forms.addAll(
                 simplifiedSubContacts
@@ -523,7 +523,8 @@ class SoftwareMedicalFileImport(
                                 if (saveToDatabase) {
                                     documentLogic.createDocument(it, true)?.let { doc ->
                                         documentLogic.updateAttachments(
-                                            doc,
+                                            documentId = doc.id,
+                                            documentRev = doc.rev,
                                             mainAttachmentChange = DataAttachmentChange.CreateOrUpdate(
                                                 flowOf(DefaultDataBufferFactory.sharedInstance.wrap(lnk.value)),
                                                 lnk.value.size.toLong(),
@@ -547,7 +548,7 @@ class SoftwareMedicalFileImport(
         val contactId = transactionMfid?.let { kmehrIndex.transactionIds[it]?.first?.toString() } ?: idGenerator.newGUID().toString()
         val formId = kmehrIndex.formIdMask.xor(UUID.fromString(contactId)).toString()
         val subContacts = services.map { makeSubContact(contactId, formId, transactionMfid, it, kmehrIndex) }
-        val simplifiedSubContacts = simplifySubContacts(subContacts.flatMap { it!! }).toSet()
+        val simplifiedSubContacts = simplifySubContacts(subContacts.flatMap { it }).toSet()
         if (simplifiedSubContacts.isNotEmpty()) {
             v.forms.addAll(
                 simplifiedSubContacts
@@ -684,7 +685,7 @@ class SoftwareMedicalFileImport(
                         }
                     }
 
-                    Pair(svcs + service, makeSubContact(contactId, formId, mfId, service, kmehrIndex)?.let { sbctcs + it } ?: sbctcs)
+                    Pair(svcs + service, makeSubContact(contactId, formId, mfId, service, kmehrIndex).let { sbctcs + it })
                 }
             }
         }
@@ -970,7 +971,7 @@ class SoftwareMedicalFileImport(
                 service to makeSubContact(contactId, ittform.id, mfId, service, kmehrIndex)
             }
         }.filterNotNull()
-        return Triple(servicesAndSubContacts.map { it.first }, simplifySubContacts(servicesAndSubContacts.flatMap { it.second!! }), ittform)
+        return Triple(servicesAndSubContacts.map { it.first }, simplifySubContacts(servicesAndSubContacts.flatMap { it.second }), ittform)
     }
 
     /**
@@ -1227,7 +1228,7 @@ class SoftwareMedicalFileImport(
                                     Substanceproduct(
                                         intendedcds = it.intendedcd?.let { cd -> listOf(CodeStub.from(cd.s.value(), cd.value, cd.sv)) }
                                             ?: listOf(),
-                                        intendedname = it.intendedname?.toString() ?: "",
+                                        intendedname = it.intendedname ?: "",
                                     )
                                 }
                             },
@@ -1236,7 +1237,7 @@ class SoftwareMedicalFileImport(
                                     Medicinalproduct(
                                         intendedcds = it.intendedcds?.map { cd -> CodeStub.from(cd.s.value(), cd.value, cd.sv) }
                                             ?: listOf(),
-                                        intendedname = it.intendedname?.toString() ?: "",
+                                        intendedname = it.intendedname ?: "",
                                     )
                                 }
                             },
@@ -1260,7 +1261,7 @@ class SoftwareMedicalFileImport(
                                                 } else {
                                                     null
                                                 }
-                                            } catch (ex: Exception) {
+                                            } catch (_: Exception) {
                                                 null
                                             }
                                         }
@@ -1312,7 +1313,7 @@ class SoftwareMedicalFileImport(
                                             value = value.toDouble(),
                                             unit = unit,
                                         )
-                                    } catch (ignored: NumberFormatException) {
+                                    } catch (_: NumberFormatException) {
                                         null
                                     }
                                 }
@@ -1404,7 +1405,7 @@ class SoftwareMedicalFileImport(
                         v.hcps.add(it)
                         if (saveToDatabase) healthcarePartyLogic.createHealthcareParty(it)
                     }
-                } catch (e: MissingRequirementsException) {
+                } catch (_: MissingRequirementsException) {
                     null
                 }
     }

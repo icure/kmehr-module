@@ -24,8 +24,7 @@ import kotlin.random.Random
 class HealthElementLogicBridgeTest(
 	val bridgeConfig: BridgeConfig,
 	val heMapper: HealthElementMapper,
-	@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String,
-	@Value("\${icure.auth.jwt.expirationMillis}") private val defaultExpirationTimeMillis: Long
+	@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String
 ) : BaseKmehrTest() {
 
 	private val jwtAuthPublicKey = JwtKeyUtils.decodePublicKeyFromString(jwtAuthPublicKeyAsString)
@@ -36,8 +35,7 @@ class HealthElementLogicBridgeTest(
 				bridgeConfig.iCureUrl,
 				KmehrTestApplication.masterHcp.login,
 				KmehrTestApplication.masterHcp.password,
-				jwtAuthPublicKey,
-				defaultExpirationTimeMillis
+				jwtAuthPublicKey
 			)
 
 			val heBridge = HealthElementLogicBridge(

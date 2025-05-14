@@ -18,7 +18,6 @@ import org.taktik.icure.entities.Contact
 import org.taktik.icure.entities.Document
 import org.taktik.icure.entities.base.CodeStub
 import org.taktik.icure.security.jwt.JwtKeyUtils
-import org.taktik.icure.security.jwt.JwtUtils
 import org.taktik.icure.test.BaseKmehrTest
 import org.taktik.icure.test.KmehrTestApplication
 import org.taktik.icure.test.UserCredentials
@@ -36,8 +35,7 @@ class MedidocLogicTest(
 	private val bridgeConfig: BridgeConfig,
 	private val documentLogic: DocumentLogicBridge,
 	private val contactLogic: ContactLogicBridge,
-	@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String,
-	@Value("\${icure.auth.jwt.expirationMillis}") private val defaultExpirationTimeMillis: Long
+	@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String
 ) : BaseKmehrTest() {
 
 	private val jwtAuthPublicKey = JwtKeyUtils.decodePublicKeyFromString(jwtAuthPublicKeyAsString)
@@ -64,8 +62,7 @@ class MedidocLogicTest(
 		bridgeConfig.iCureUrl,
 		KmehrTestApplication.masterHcp.login,
 		KmehrTestApplication.masterHcp.password,
-		jwtAuthPublicKey,
-		defaultExpirationTimeMillis
+		jwtAuthPublicKey
 	) }
 
 	init {
@@ -82,8 +79,9 @@ class MedidocLogicTest(
 		).shouldNotBeNull()
 		val fakeAttachment = content.toByteArray(Charsets.UTF_8)
 		return documentLogic.updateAttachments(
-			document,
-			DataAttachmentChange.CreateOrUpdate(
+			documentId = document.id,
+			documentRev = document.rev,
+			mainAttachmentChange = DataAttachmentChange.CreateOrUpdate(
 				flowOf(ByteBuffer.wrap(fakeAttachment).toDataBuffer()),
 				fakeAttachment.size.toLong(),
 				listOf("public.plain-text"),

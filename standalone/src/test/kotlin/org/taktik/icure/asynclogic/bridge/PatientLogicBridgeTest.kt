@@ -29,8 +29,7 @@ class PatientLogicBridgeTest(
 	val bridgeConfig: BridgeConfig,
 	val patientMapper: PatientMapper,
 	val patientFilterMapper: PatientFilterMapper,
-	@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String,
-	@Value("\${icure.auth.jwt.expirationMillis}") private val defaultExpirationTimeMillis: Long
+	@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String
 ) : BaseKmehrTest() {
 
 	private val jwtAuthPublicKey = JwtKeyUtils.decodePublicKeyFromString(jwtAuthPublicKeyAsString)
@@ -41,8 +40,7 @@ class PatientLogicBridgeTest(
 				bridgeConfig.iCureUrl,
 				KmehrTestApplication.masterHcp.login,
 				KmehrTestApplication.masterHcp.password,
-				jwtAuthPublicKey,
-				defaultExpirationTimeMillis
+				jwtAuthPublicKey
 			)
 
 			val patientBridge = PatientLogicBridge(

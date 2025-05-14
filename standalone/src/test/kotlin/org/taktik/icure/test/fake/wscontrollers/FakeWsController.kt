@@ -23,6 +23,11 @@ class FakeWsController(
 
 	private val jwtAuthPublicKey = JwtKeyUtils.decodePublicKeyFromString(jwtAuthPublicKeyAsString)
 
+	private fun isJwtExpired(jwt: String): Boolean {
+		val expirationSeconds = JwtDecoder.decodeExpirationSeconds(jwt)
+		return expirationSeconds < (System.currentTimeMillis() / 1000) - 30
+	}
+
 	@WSRequestMapping("/echo")
 	@WSOperation(PlainTextOperation::class)
 	fun echo(operation: PlainTextOperation) = mono {
@@ -34,9 +39,9 @@ class FakeWsController(
 	@WSOperation(PlainTextOperation::class)
 	fun slowOp(operation: PlainTextOperation) = mono {
 		val jwt = sessionLogic.getCurrentJWT()
-		assert(jwt?.let { JwtDecoder.isNotExpired(jwt, jwtAuthPublicKey) } ?: false)
+		assert(jwt?.let { !isJwtExpired(jwt) } ?: false)
 		delay(10_000)
-		assert(jwt?.let { !JwtDecoder.isNotExpired(jwt, jwtAuthPublicKey) } ?: false)
+		assert(jwt?.let { !isJwtExpired(jwt) } ?: false)
 		val hcpId = sessionLogic.getCurrentHealthcarePartyId()
 		val currentHcp = hcpBridge.getHealthcareParties(listOf(hcpId)).first()
 		operation.textResponse(currentHcp.id)

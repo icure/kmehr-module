@@ -127,32 +127,33 @@ class DocumentLogicBridge(
 
 	@OptIn(InternalIcureApi::class)
 	override suspend fun updateAttachments(
-		currentDocument: Document,
+		documentId: String,
+		documentRev: String?,
 		mainAttachmentChange: DataAttachmentChange?,
-		secondaryAttachmentsChanges: Map<String, DataAttachmentChange>,
+		secondaryAttachmentsChanges: Map<String, DataAttachmentChange>
 	): Document? = getApi().let { api ->
-		if (currentDocument.rev == null) throw IllegalStateException("Cannot update attachments of a document with null rev")
+		if (documentRev == null) throw IllegalStateException("Cannot update attachments of a document with null rev")
 		when(mainAttachmentChange) {
 			is DataAttachmentChange.CreateOrUpdate -> api.setDocumentAttachment(
-				documentId = currentDocument.id,
-				rev = checkNotNull(currentDocument.rev) { "Rev cannot be null" },
+				documentId = documentId,
+				rev = checkNotNull(documentRev) { "Rev cannot be null" },
 				utis = mainAttachmentChange.utis,
 				payload = mainAttachmentChange.data.toByteArray(true),
 				lengthHeader = mainAttachmentChange.size,
 				encrypted = null
 			).successBody()
 			is DataAttachmentChange.Delete -> api.deleteAttachment(
-				documentId = currentDocument.id,
-				rev = checkNotNull(currentDocument.rev) { "Rev cannot be null" }
+				documentId = documentId,
+				rev = checkNotNull(documentRev) { "Rev cannot be null" }
 			).successBody()
-			else -> currentDocument.let(documentMapper::map)
+			else -> api.getDocument(documentId).successBody()
 		}.let { initialDocument ->
 			secondaryAttachmentsChanges.entries.fold(initialDocument) { doc, (key, update) ->
 				when(update) {
 					is DataAttachmentChange.CreateOrUpdate -> api.setSecondaryAttachment(
 						documentId = doc.id,
 						key = key,
-						rev = checkNotNull(currentDocument.rev) { "Rev cannot be null" },
+						rev = checkNotNull(documentRev) { "Rev cannot be null" },
 						utis = update.utis,
 						payload = update.data.toByteArray(true),
 						lengthHeader = update.size,
@@ -161,7 +162,7 @@ class DocumentLogicBridge(
 					is DataAttachmentChange.Delete -> api.deleteSecondaryAttachment(
 						documentId = doc.id,
 						key = key,
-						rev = checkNotNull(currentDocument.rev) { "Rev cannot be null" }
+						rev = checkNotNull(documentRev) { "Rev cannot be null" }
 					).successBody()
 				}
 			}

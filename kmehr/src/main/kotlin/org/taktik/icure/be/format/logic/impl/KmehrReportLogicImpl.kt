@@ -142,7 +142,8 @@ class KmehrReportLogicImpl(
                                         true,
                                     )?.let { createdDocument ->
                                         documentLogic.updateAttachments(
-                                            createdDocument,
+                                            documentId = createdDocument.id,
+                                            documentRev = createdDocument.rev,
                                             mainAttachmentChange = DataAttachmentChange.CreateOrUpdate(
                                                 flowOf(DefaultDataBufferFactory.sharedInstance.wrap(lnk.value)),
                                                 lnk.value.size.toLong(),
@@ -199,7 +200,7 @@ class KmehrReportLogicImpl(
     private suspend fun extractMessage(doc: Document, encKeys: List<String>, cachedAttachment: ByteArray?) =
         try {
             JAXBContext.newInstance(Kmehrmessage::class.java).createUnmarshaller().unmarshal(getBufferedReader(doc, encKeys, cachedAttachment)) as Kmehrmessage
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null
         }
 
