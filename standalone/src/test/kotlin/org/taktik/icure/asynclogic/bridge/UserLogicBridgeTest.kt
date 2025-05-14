@@ -77,7 +77,7 @@ class UserLogicBridgeTest(
 					User(
 						id = uuid(),
 						login = uuid(),
-						email = uuid(),
+						email = generateEmail(),
 						healthcarePartyId = uuid(),
 						passwordHash = uuid(),
 						authenticationTokens = mapOf("test" to AuthenticationToken("token", Instant.now()))
@@ -102,7 +102,7 @@ class UserLogicBridgeTest(
 						User(
 							id = uuid(),
 							login = uuid(),
-							email = uuid(),
+							email = generateEmail(),
 							healthcarePartyId = uuid(),
 							passwordHash = uuid(),
 							authenticationTokens = mapOf("test" to AuthenticationToken("token", Instant.now()))
