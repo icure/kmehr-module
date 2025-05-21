@@ -173,6 +173,15 @@ class PatientLogicBridge(
 		throw BridgeException()
 	}
 
+	override suspend fun mergePatients(
+		fromId: String,
+		expectedFromRev: String,
+		updatedInto: Patient,
+		omitEncryptionKeysOfFrom: Boolean
+	): Patient {
+		throw BridgeException()
+	}
+
 	override fun listOfMergesAfter(date: Long?): Flow<Patient> {
 		throw BridgeException()
 	}
@@ -226,10 +235,6 @@ class PatientLogicBridge(
 		searchString: String?,
 		sorting: Sorting<PatientLogic.Companion.PatientSearchField>
 	): Flow<PaginationElement> {
-		throw BridgeException()
-	}
-
-	override suspend fun mergePatients(fromId: String, expectedFromRev: String, updatedInto: Patient): Patient {
 		throw BridgeException()
 	}
 
