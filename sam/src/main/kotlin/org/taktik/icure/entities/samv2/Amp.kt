@@ -50,7 +50,7 @@ data class Amp(
 	fun hasValidAmpps(includeWithoutCommercializations: Boolean): Boolean {
 		val now = System.currentTimeMillis()
 		val twoYearsAgo = now - Duration.ofDays(365 * 2).toMillis()
-		return to != null && to < now && ampps.any {
+		return from != null && from < now && (to == null || to < now) && ampps.any {
 			it.isValid(now, twoYearsAgo, includeWithoutCommercializations)
 		}
 	}
