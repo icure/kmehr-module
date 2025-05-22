@@ -287,18 +287,22 @@ open class SamDaoConfig {
                 datastoreInstanceProvider
             )
         }
-    } ?: SamV2Updater(
-        drugsCouchDbDispatcher,
-        ampDAO,
-        vmpDAO,
-        vmpGroupDAO,
-        nmpDAO,
-        paragraphDAO,
-        pharmaceuticalFormDAO,
-        substanceDAO,
-        verseDAO,
-        SamUpdateDAOImpl(drugsCouchDbDispatcher, idGenerator, datastoreInstanceProvider, designDocumentProvider),
-        updatesBridge,
-        datastoreInstanceProvider
-    )
+    } ?: runBlocking {
+        SamV2Updater(
+            drugsCouchDbDispatcher,
+            ampDAO,
+            vmpDAO,
+            vmpGroupDAO,
+            nmpDAO,
+            paragraphDAO,
+            pharmaceuticalFormDAO,
+            substanceDAO,
+            verseDAO,
+            SamUpdateDAOImpl(drugsCouchDbDispatcher, idGenerator, datastoreInstanceProvider, designDocumentProvider).apply {
+                forceInitStandardDesignDocument(true)
+            },
+            updatesBridge,
+            datastoreInstanceProvider
+        )
+    }
 }

@@ -231,6 +231,7 @@ class SamV2Updater(
 					}
 					SamUpdate.BundleType.Signatures -> {
 						_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Applying Signatures updates from diff update ${samUpdate.version}"))
+						loadSignatures(samUpdate.id, UpdateType.Diff, resourceName)
 					}
 				}
 			}
