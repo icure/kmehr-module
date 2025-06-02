@@ -59,8 +59,7 @@ data class Amp(
 		val now = System.currentTimeMillis()
 		val twoYearsAgo = now - Duration.ofDays(365 * 2).toMillis()
 		return copy(
-			ampps = if (to != null && to < now) ampps.filter { it.isValid(now, twoYearsAgo, includeWithoutCommercializations) }.toSet()
-			else emptySet()
+			ampps = ampps.filter { it.isValid(now, twoYearsAgo, includeWithoutCommercializations) }.toSet()
 		)
 	}
 }
