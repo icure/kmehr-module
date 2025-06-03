@@ -33,8 +33,7 @@ import kotlin.reflect.jvm.isAccessible
 class MedicationSchemeExportTest(
 	private val bridgeConfig: BridgeConfig,
 	private val medicationSchemeExport: MedicationSchemeExport,
-	@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String,
-	@Value("\${icure.auth.jwt.expirationMillis}") private val defaultExpirationTimeMillis: Long
+	@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String
 ) : BaseKmehrTest() {
 
 	private val jwtAuthPublicKey = JwtKeyUtils.decodePublicKeyFromString(jwtAuthPublicKeyAsString)
@@ -52,8 +51,7 @@ class MedicationSchemeExportTest(
 			bridgeConfig.iCureUrl,
 			KmehrTestApplication.masterHcp.login,
 			KmehrTestApplication.masterHcp.password,
-			jwtAuthPublicKey,
-			defaultExpirationTimeMillis
+			jwtAuthPublicKey
 		)
 	}
 

@@ -25,8 +25,7 @@ import java.time.Instant
 class UserLogicBridgeTest(
 	private val bridgeConfig: BridgeConfig,
 	private val userMapper: UserMapper,
-	@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String,
-	@Value("\${icure.auth.jwt.expirationMillis}") private val defaultExpirationTimeMillis: Long
+	@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String
 ) : BaseKmehrTest() {
 
 	private val jwtAuthPublicKey = JwtKeyUtils.decodePublicKeyFromString(jwtAuthPublicKeyAsString)
@@ -36,8 +35,7 @@ class UserLogicBridgeTest(
 			bridgeConfig.iCureUrl,
 			KmehrTestApplication.masterHcp.login,
 			KmehrTestApplication.masterHcp.password,
-			jwtAuthPublicKey,
-			defaultExpirationTimeMillis
+			jwtAuthPublicKey
 		)
 	}
 
@@ -79,7 +77,7 @@ class UserLogicBridgeTest(
 					User(
 						id = uuid(),
 						login = uuid(),
-						email = uuid(),
+						email = generateEmail(),
 						healthcarePartyId = uuid(),
 						passwordHash = uuid(),
 						authenticationTokens = mapOf("test" to AuthenticationToken("token", Instant.now()))
@@ -104,7 +102,7 @@ class UserLogicBridgeTest(
 						User(
 							id = uuid(),
 							login = uuid(),
-							email = uuid(),
+							email = generateEmail(),
 							healthcarePartyId = uuid(),
 							passwordHash = uuid(),
 							authenticationTokens = mapOf("test" to AuthenticationToken("token", Instant.now()))

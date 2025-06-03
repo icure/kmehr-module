@@ -1,5 +1,8 @@
 package org.taktik.icure.config
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import io.icure.asyncjacksonhttpclient.net.web.WebClient
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -31,12 +34,84 @@ import org.taktik.icure.asyncdao.samv2.impl.VmpGroupDAOImpl
 import org.taktik.icure.asynclogic.datastore.DatastoreInstanceProvider
 import org.taktik.icure.asynclogic.samv2.UpdatesBridge
 import org.taktik.icure.asynclogic.samv2.impl.SamV2Updater
+import org.taktik.icure.dao.CouchDbDispatcherProvider
 import org.taktik.icure.properties.SAMCouchDbProperties
+import org.taktik.icure.security.CouchDbCredentialsProvider
 
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @Configuration
 @Profile("sam")
 open class SamDaoConfig {
+
+    @Bean
+    open fun drugCouchDbDispatcher(
+        httpClient: WebClient,
+        objectMapper: ObjectMapper,
+        credentialsProvider: CouchDbCredentialsProvider,
+        samCouchDbProperties: SAMCouchDbProperties,
+        couchDbDispatcherProvider: CouchDbDispatcherProvider,
+    ) = couchDbDispatcherProvider.getDispatcher(
+        httpClient,
+        objectMapper,
+        "icure",
+        "drugs${samCouchDbProperties.suffix}",
+        credentialsProvider,
+        3
+    )
+
+
+    //Only instantiate if there is a next version suffix
+    @ConditionalOnProperty(prefix = "icure.couchdb.sam", name = ["nextVersionSuffix"], matchIfMissing = false)
+    @Bean
+    open fun drugNextVersionCouchDbDispatcher(
+        httpClient: WebClient,
+        objectMapper: ObjectMapper,
+        credentialsProvider: CouchDbCredentialsProvider,
+        samCouchDbProperties: SAMCouchDbProperties,
+        couchDbDispatcherProvider: CouchDbDispatcherProvider,
+    ) = couchDbDispatcherProvider.getDispatcher(
+        httpClient,
+        objectMapper,
+        "icure",
+        "drugs${samCouchDbProperties.nextVersionSuffix}",
+        credentialsProvider,
+        3
+    )
+
+    @Bean
+    open fun chapIVCouchDbDispatcher(
+        httpClient: WebClient,
+        objectMapper: ObjectMapper,
+        credentialsProvider: CouchDbCredentialsProvider,
+        samCouchDbProperties: SAMCouchDbProperties,
+        couchDbDispatcherProvider: CouchDbDispatcherProvider,
+    ) = couchDbDispatcherProvider.getDispatcher(
+        httpClient,
+        objectMapper,
+        "icure",
+        "chapiv${samCouchDbProperties.suffix}",
+        credentialsProvider,
+        3
+    )
+
+    //Only instantiate if there is a next version suffix
+    @ConditionalOnProperty(prefix = "icure.couchdb.sam", name = ["nextVersionSuffix"], matchIfMissing = false)
+    @Bean
+    open fun chapIVNextVersionCouchDbDispatcher(
+        httpClient: WebClient,
+        objectMapper: ObjectMapper,
+        credentialsProvider: CouchDbCredentialsProvider,
+        samCouchDbProperties: SAMCouchDbProperties,
+        couchDbDispatcherProvider: CouchDbDispatcherProvider,
+    ) = couchDbDispatcherProvider.getDispatcher(
+        httpClient,
+        objectMapper,
+        "icure",
+        "chapiv${samCouchDbProperties.nextVersionSuffix}",
+        credentialsProvider,
+        3
+    )
 
     @Bean
     open fun ampDao(
@@ -212,18 +287,22 @@ open class SamDaoConfig {
                 datastoreInstanceProvider
             )
         }
-    } ?: SamV2Updater(
-        drugsCouchDbDispatcher,
-        ampDAO,
-        vmpDAO,
-        vmpGroupDAO,
-        nmpDAO,
-        paragraphDAO,
-        pharmaceuticalFormDAO,
-        substanceDAO,
-        verseDAO,
-        SamUpdateDAOImpl(drugsCouchDbDispatcher, idGenerator, datastoreInstanceProvider, designDocumentProvider),
-        updatesBridge,
-        datastoreInstanceProvider
-    )
+    } ?: runBlocking {
+        SamV2Updater(
+            drugsCouchDbDispatcher,
+            ampDAO,
+            vmpDAO,
+            vmpGroupDAO,
+            nmpDAO,
+            paragraphDAO,
+            pharmaceuticalFormDAO,
+            substanceDAO,
+            verseDAO,
+            SamUpdateDAOImpl(drugsCouchDbDispatcher, idGenerator, datastoreInstanceProvider, designDocumentProvider).apply {
+                forceInitStandardDesignDocument(true)
+            },
+            updatesBridge,
+            datastoreInstanceProvider
+        )
+    }
 }

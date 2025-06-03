@@ -32,8 +32,7 @@ import java.nio.charset.Charset
 class DocumentLogicBridgeTest(
 	val bridgeConfig: BridgeConfig,
 	val documentMapper: DocumentMapper,
-	@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String,
-	@Value("\${icure.auth.jwt.expirationMillis}") private val defaultExpirationTimeMillis: Long
+	@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String
 ) : BaseKmehrTest() {
 
 	private val jwtAuthPublicKey = JwtKeyUtils.decodePublicKeyFromString(jwtAuthPublicKeyAsString)
@@ -44,8 +43,7 @@ class DocumentLogicBridgeTest(
 				bridgeConfig.iCureUrl,
 				KmehrTestApplication.masterHcp.login,
 				KmehrTestApplication.masterHcp.password,
-				jwtAuthPublicKey,
-				defaultExpirationTimeMillis
+				jwtAuthPublicKey
 			)
 
 			val documentBridge = DocumentLogicBridge(
@@ -126,8 +124,9 @@ private fun StringSpec.documentLogicBridgeTest(
 			val content = "A1/${uuid()}\n${uuid()}"
 			val fakeAttachment = content.toByteArray(Charsets.UTF_8)
 			val documentWithAttachment = documentBridge.updateAttachments(
-				document,
-				DataAttachmentChange.CreateOrUpdate(
+				documentId = document.id,
+				documentRev = document.rev,
+				mainAttachmentChange = DataAttachmentChange.CreateOrUpdate(
 					flowOf(ByteBuffer.wrap(fakeAttachment).toDataBuffer()),
 					fakeAttachment.size.toLong(),
 					listOf("public.plain-text"),
@@ -157,7 +156,10 @@ private fun StringSpec.documentLogicBridgeTest(
 		withAuthenticatedReactorContext(credentials) {
 			val doc = Document(id = uuid())
 			shouldThrow<IllegalStateException> {
-				documentBridge.updateAttachments(doc, DataAttachmentChange.Delete)
+				documentBridge.updateAttachments(
+					documentId = doc.id,
+					documentRev = doc.rev,
+					mainAttachmentChange = DataAttachmentChange.Delete)
 			}
 		}
 	}

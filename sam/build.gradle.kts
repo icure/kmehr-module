@@ -14,23 +14,6 @@ val gitVersion: String? by project
 group = "org.taktik.icure"
 version = gitVersion ?: "0.0.1-SNAPSHOT"
 
-// publishing {
-//     publications {
-//         create<MavenPublication>("sam") {
-//             from(components["java"])
-//         }
-//     }
-// }
-//
-// tasks.withType<PublishToMavenLocal>().configureEach {
-//     val predicate = provider {
-//         publication == publishing.publications["sam"]
-//     }
-//     onlyIf("publishing to maven local") {
-//         predicate.get()
-//     }
-// }
-
 dependencies {
 
     val projectPrefix = when(rootProject.name) {

@@ -6,7 +6,7 @@ class BridgeException : IllegalStateException(getCallerDetails()) {
 		private fun getCallerDetails(): String {
 			val stackTrace = Thread.currentThread().stackTrace
 			val element = stackTrace.firstOrNull {
-				it.className.startsWith("org.taktik.icure.asynclogic.bridge")
+				it.className.startsWith("org.taktik.icure.asynclogic")
 			}
 			return if (element != null) {
 				"Bridge method not implemented: ${element.className}.${element.methodName}"

@@ -25,10 +25,9 @@ class SecurityConfig {
 	@Bean
 	fun authenticationManager(
 		@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String,
-		@Value("\${icure.auth.jwt.expirationMillis}") defaultExpirationTimeMillis: Long
 	): CustomAuthenticationManager {
 		val jwtAuthPublicKey = JwtKeyUtils.decodePublicKeyFromString(jwtAuthPublicKeyAsString)
-		return CustomAuthenticationManager(jwtAuthPublicKey, defaultExpirationTimeMillis)
+		return CustomAuthenticationManager(jwtAuthPublicKey)
 	}
 }
 

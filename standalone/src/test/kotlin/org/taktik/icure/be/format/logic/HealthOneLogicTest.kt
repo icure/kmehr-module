@@ -37,8 +37,7 @@ class HealthOneLogicTest(
 	private val bridgeConfig: BridgeConfig,
 	private val documentLogic: DocumentLogicBridge,
 	private val contactLogic: ContactLogicBridge,
-	@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String,
-	@Value("\${icure.auth.jwt.expirationMillis}") private val defaultExpirationTimeMillis: Long
+	@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String
 ) : BaseKmehrTest() {
 
 	private val jwtAuthPublicKey = JwtKeyUtils.decodePublicKeyFromString(jwtAuthPublicKeyAsString)
@@ -76,13 +75,14 @@ class HealthOneLogicTest(
 		}
 	}
 
-	val hcpCredentials: UserCredentials = runBlocking { createHealthcarePartyUser(
-		bridgeConfig.iCureUrl,
-		KmehrTestApplication.masterHcp.login,
-		KmehrTestApplication.masterHcp.password,
-		jwtAuthPublicKey,
-		defaultExpirationTimeMillis
-	) }
+	val hcpCredentials: UserCredentials = runBlocking {
+		createHealthcarePartyUser(
+			bridgeConfig.iCureUrl,
+			KmehrTestApplication.masterHcp.login,
+			KmehrTestApplication.masterHcp.password,
+			jwtAuthPublicKey
+		)
+	}
 
 	init {
 		healthOneLogicTest()
@@ -98,8 +98,9 @@ class HealthOneLogicTest(
 		).shouldNotBeNull()
 		val fakeAttachment = content.toByteArray(Charsets.UTF_8)
 		return documentLogic.updateAttachments(
-			document,
-			DataAttachmentChange.CreateOrUpdate(
+			documentId = document.id,
+			documentRev = document.rev,
+			mainAttachmentChange = DataAttachmentChange.CreateOrUpdate(
 				flowOf(ByteBuffer.wrap(fakeAttachment).toDataBuffer()),
 				fakeAttachment.size.toLong(),
 				listOf("public.plain-text"),

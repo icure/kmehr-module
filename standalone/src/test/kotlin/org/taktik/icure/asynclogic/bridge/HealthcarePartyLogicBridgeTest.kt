@@ -24,8 +24,7 @@ import org.taktik.icure.test.*
 class HealthcarePartyLogicBridgeTest(
 	val bridgeConfig: BridgeConfig,
 	val hcpMapper: HealthcarePartyMapper,
-	@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String,
-	@Value("\${icure.auth.jwt.expirationMillis}") private val defaultExpirationTimeMillis: Long
+	@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String
 ) : BaseKmehrTest() {
 
 	private val jwtAuthPublicKey = JwtKeyUtils.decodePublicKeyFromString(jwtAuthPublicKeyAsString)
@@ -36,8 +35,7 @@ class HealthcarePartyLogicBridgeTest(
 				bridgeConfig.iCureUrl,
 				KmehrTestApplication.masterHcp.login,
 				KmehrTestApplication.masterHcp.password,
-				jwtAuthPublicKey,
-				defaultExpirationTimeMillis
+				jwtAuthPublicKey
 			)
 
 			val hcpBridge = HealthcarePartyLogicBridge(

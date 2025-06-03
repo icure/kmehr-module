@@ -7,7 +7,6 @@ import io.netty.handler.timeout.ReadTimeoutHandler
 import io.netty.handler.timeout.WriteTimeoutHandler
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import org.apache.commons.logging.LogFactory
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Profile
@@ -15,8 +14,8 @@ import org.springframework.http.client.reactive.ReactorClientHttpConnector
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction
 import org.taktik.couchdb.springframework.webclient.SpringWebfluxWebClient
 import org.taktik.icure.asyncdao.SAMCouchDBDispatcher
-import org.taktik.icure.properties.SAMCouchDBCredentialsProvider
-import org.taktik.icure.properties.SAMCouchDbProperties
+import org.taktik.icure.dao.CouchDbDispatcherProvider
+import org.taktik.icure.security.CouchDbCredentialsProvider
 import reactor.core.publisher.Mono
 import reactor.netty.http.client.HttpClient
 import reactor.netty.resources.ConnectionProvider
@@ -25,10 +24,7 @@ import java.time.Duration
 @OptIn(ExperimentalCoroutinesApi::class)
 @Profile("sam")
 @Configuration
-class SAMCouchDBConfig(
-    private val credentialsProvider: SAMCouchDBCredentialsProvider,
-    private val samCouchDbProperties: SAMCouchDbProperties
-) {
+class SAMCouchDBConfig {
 
     private val log = LogFactory.getLog("org.taktik.icure.config.WebClient")
 
@@ -65,60 +61,22 @@ class SAMCouchDBConfig(
     }
 
     @Bean
-    fun drugCouchDbDispatcher(
-        httpClient: WebClient,
-        objectMapper: ObjectMapper
-    ) = SAMCouchDBDispatcher(
-        httpClient,
-        objectMapper,
-        "icure",
-        "drugs${samCouchDbProperties.suffix}",
-        credentialsProvider,
-        3
-    )
-
-
-    //Only instantiate if there is a next version suffix
-    @ConditionalOnProperty(prefix = "icure.couchdb.sam", name = ["nextVersionSuffix"], matchIfMissing = false)
-    @Bean
-    fun drugNextVersionCouchDbDispatcher(
-        httpClient: WebClient,
-        objectMapper: ObjectMapper
-    ) = SAMCouchDBDispatcher(
-        httpClient,
-        objectMapper,
-        "icure",
-        "drugs${samCouchDbProperties.nextVersionSuffix}",
-        credentialsProvider,
-        3
-    )
-
-    @Bean
-    fun chapIVCouchDbDispatcher(
-        httpClient: WebClient,
-        objectMapper: ObjectMapper
-    ) = SAMCouchDBDispatcher(
-        httpClient,
-        objectMapper,
-        "icure",
-        "chapiv${samCouchDbProperties.suffix}",
-        credentialsProvider,
-        3
-    )
-
-    //Only instantiate if there is a next version suffix
-    @ConditionalOnProperty(prefix = "icure.couchdb.sam", name = ["nextVersionSuffix"], matchIfMissing = false)
-    @Bean
-    fun chapIVNextVersionCouchDbDispatcher(
-        httpClient: WebClient,
-        objectMapper: ObjectMapper
-    ) = SAMCouchDBDispatcher(
-        httpClient,
-        objectMapper,
-        "icure",
-        "chapiv${samCouchDbProperties.nextVersionSuffix}",
-        credentialsProvider,
-        3
-    )
+    fun samCouchDbDispatcherProvider(): CouchDbDispatcherProvider  = object : CouchDbDispatcherProvider {
+        override fun getDispatcher(
+            httpClient: WebClient,
+            objectMapper: ObjectMapper,
+            prefix: String,
+            dbFamily: String,
+            couchDbCredentialsProvider: CouchDbCredentialsProvider,
+            createdReplicasIfNotExists: Int?
+        ) = SAMCouchDBDispatcher(
+            httpClient,
+            objectMapper,
+            prefix,
+            dbFamily,
+            couchDbCredentialsProvider,
+            createdReplicasIfNotExists
+        )
+    }
 
 }

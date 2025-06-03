@@ -29,7 +29,6 @@ import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.PropertySource
 import org.taktik.icure.asyncdao.InternalDAO
-import org.taktik.icure.asynclogic.bridge.mappers.UserMapper
 import org.taktik.icure.asynclogic.impl.BridgeAsyncSessionLogic
 import org.taktik.icure.config.BridgeConfig
 import org.taktik.icure.entities.UserType
@@ -84,10 +83,7 @@ class KmehrTestApplication {
 	fun performStartupTasks(
 		bridgeConfig: BridgeConfig,
 		objectMapper: ObjectMapper,
-		userMapper: UserMapper,
-		internalDaos: List<InternalDAO<*>>,
-		@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String,
-		@Value("\${icure.auth.jwt.expirationMillis}") defaultExpirationTimeMillis: Long
+		internalDaos: List<InternalDAO<*>>
 	) = ApplicationRunner {
 		runBlocking {
 			ICureTestSetup.startKrakenEnvironment(krakenCompose, emptyList(), composeDir)
@@ -161,9 +157,7 @@ class KmehrTestApplication {
 			fakeSessionLogic = BridgeAsyncSessionLogic(
 				bridgeConfig,
 				FakeBridgeCredentialsManager(bridgeConfig, masterHcp.login, masterHcp.password),
-				objectMapper,
-				jwtAuthPublicKeyAsString,
-				defaultExpirationTimeMillis
+				objectMapper
 			)
 		}
 	}

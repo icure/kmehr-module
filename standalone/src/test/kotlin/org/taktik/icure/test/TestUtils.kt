@@ -41,7 +41,7 @@ import org.taktik.icure.security.jwt.EncodedJWTAuth
 import org.taktik.icure.security.jwt.JwtDecoder
 import org.taktik.icure.security.jwt.JwtDetails
 import reactor.core.publisher.Mono
-import java.security.PublicKey
+import java.security.interfaces.RSAPublicKey
 import java.util.*
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.coroutineContext
@@ -90,8 +90,7 @@ suspend fun createHealthcarePartyUser(
 	iCureUrl: String,
 	username: String,
 	password: String,
-	jwtAuthPublicKey: PublicKey,
-	defaultExpirationTimeMillis: Long
+	jwtAuthPublicKey: RSAPublicKey
 ): UserCredentials {
 	val login = generateEmail()
 	val authProvider = getAuthProvider(iCureUrl, username, password)
@@ -127,12 +126,12 @@ suspend fun createHealthcarePartyUser(
 
 	val authJwt = getAuthJWT(iCureUrl, login, userPassword)
 
-	val claims = JwtDecoder.decodeAndGetClaims(
+	val claims = JwtDecoder.validateAndGetClaims(
 		jwt = authJwt,
-		ignoreExpiration = false,
-		publicKey = jwtAuthPublicKey
+		publicKey = jwtAuthPublicKey,
+		validationSkewSeconds = 0
 	).let { claims ->
-		JwtDecoder.jwtDetailsFromClaims(KmehrJWTDetails, claims, defaultExpirationTimeMillis)
+		JwtDecoder.jwtDetailsFromClaims(KmehrJWTDetails, claims)
 	}
 
 	return UserCredentials(
