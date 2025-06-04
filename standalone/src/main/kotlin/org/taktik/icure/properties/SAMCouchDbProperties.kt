@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component
 class StandaloneCouchDbProperties(
     override var url: String = "http://127.0.0.1:5984",
     override var altUrls: String = "",
+    override var preferredUrl: String? = null,
     override var username: String? = null,
     override var password: String? = null,
     override var maxConnections: Int? = null,
