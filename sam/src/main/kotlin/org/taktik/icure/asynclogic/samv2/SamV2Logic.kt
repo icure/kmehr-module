@@ -17,6 +17,8 @@ import org.taktik.icure.entities.samv2.Substance
 import org.taktik.icure.entities.samv2.Verse
 import org.taktik.icure.entities.samv2.Vmp
 import org.taktik.icure.entities.samv2.VmpGroup
+import org.taktik.icure.entities.samv2.embed.SamLanguage
+import org.taktik.icure.entities.samv2.embed.SamText
 import org.taktik.icure.pagination.PaginationElement
 
 interface SamV2Logic {
@@ -75,4 +77,5 @@ interface SamV2Logic {
 
 	fun getAmpsForParagraph(chapterName: String, paragraphName: String): Flow<Amp>
 	fun getVtmNamesForParagraph(chapterName: String, paragraphName: String, language: String): Flow<String>
+	fun listAmpNamesByDmppCode(dmppCode: String): Flow<SamText>
 }

@@ -50,6 +50,7 @@ import org.taktik.icure.services.external.rest.v2.dto.samv2.SubstanceDto
 import org.taktik.icure.services.external.rest.v2.dto.samv2.VerseDto
 import org.taktik.icure.services.external.rest.v2.dto.samv2.VmpDto
 import org.taktik.icure.services.external.rest.v2.dto.samv2.VmpGroupDto
+import org.taktik.icure.services.external.rest.v2.dto.samv2.embed.SamTextDto
 import org.taktik.icure.services.external.rest.v2.mapper.samv2.AmpV2Mapper
 import org.taktik.icure.services.external.rest.v2.mapper.samv2.NmpV2Mapper
 import org.taktik.icure.services.external.rest.v2.mapper.samv2.ParagraphV2Mapper
@@ -59,6 +60,7 @@ import org.taktik.icure.services.external.rest.v2.mapper.samv2.SubstanceV2Mapper
 import org.taktik.icure.services.external.rest.v2.mapper.samv2.VerseV2Mapper
 import org.taktik.icure.services.external.rest.v2.mapper.samv2.VmpGroupV2Mapper
 import org.taktik.icure.services.external.rest.v2.mapper.samv2.VmpV2Mapper
+import org.taktik.icure.services.external.rest.v2.mapper.samv2.embed.SamTextV2Mapper
 import org.taktik.icure.utils.injectReactorContext
 import org.taktik.icure.services.external.rest.v2.utils.paginatedList
 import reactor.core.publisher.Flux
@@ -81,6 +83,7 @@ class SamV2Controller(
 	private val vmpGroupV2Mapper: VmpGroupV2Mapper,
 	private val samVersionV2Mapper: SamVersionV2Mapper,
 	private val paragraphV2Mapper: ParagraphV2Mapper,
+	private val samTextV2Mapper: SamTextV2Mapper,
 	private val verseV2Mapper: VerseV2Mapper,
 	private val objectMapper: ObjectMapper,
 	private val samV2Updater: SamV2Updater?
@@ -382,11 +385,29 @@ class SamV2Controller(
 		}
 	}
 
-	@Operation(summary = "Finding AMPs by dmpp code", description = "Returns a list of amps matched with given input. If several types are provided, paginantion is not supported")
+	@Operation(
+		summary = "Finding AMPs by dmpp code",
+		description = "Returns a list of amps matched with given input. If several types are provided, pagination is not supported"
+	)
 	@GetMapping("/amp/byDmppCode/{dmppCode}")
 	fun findAmpsByDmppCode(
 		@Parameter(description = "dmppCode", required = true) @PathVariable dmppCode: String,
-	) = addProductIdsToAmps(samV2Logic.findAmpsByDmppCode(dmppCode).filterIsInstance<ViewRowWithDoc<String, String, Amp>>().map { ampV2Mapper.map(it.doc) }).injectReactorContext()
+	): Flux<AmpDto> = addProductIdsToAmps(
+		samV2Logic.findAmpsByDmppCode(dmppCode)
+			.filterIsInstance<ViewRowWithDoc<String, String, Amp>>()
+			.map { ampV2Mapper.map(it.doc) }
+	).injectReactorContext()
+
+	@Operation(
+		summary = "Finding AMP names by dmpp code",
+		description = "Returns a list of amp namesmatched with given input."
+	)
+	@GetMapping("/amp/byDmppCode/{dmppCode}")
+	fun findAmpNamesByDmppCode(
+		@Parameter(description = "dmppCode", required = true) @PathVariable dmppCode: String,
+	): Flux<SamTextDto> = samV2Logic.listAmpNamesByDmppCode(dmppCode)
+		.map(samTextV2Mapper::map)
+		.injectReactorContext()
 
 	@Operation(summary = "Finding AMPs by amp code", description = "Returns a list of amps matched with given input. Pagination is not supported")
 	@GetMapping("/amp/byAmpCode/{ampCode}")
@@ -569,7 +590,7 @@ class SamV2Controller(
 	}
 
 	private suspend fun addProductIdsToAmps(amps: Collection<AmpDto>): List<AmpDto> {
-		val dmpps = amps.flatMap { it.ampps.flatMap { it.dmpps } }
+		val dmpps = amps.flatMap { amp -> amp.ampps.flatMap { it.dmpps } }
 		val productIds = samV2Logic.listAmpProductIds(dmpps.map { "SAMID:${it.id}" }).toList()
 		return amps.map {
 			if (it.ampps.any { it.dmpps.isNotEmpty() }) {
