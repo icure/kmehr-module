@@ -8,7 +8,7 @@ import org.springframework.cache.caffeine.CaffeineCache
 import org.taktik.couchdb.Client
 import org.taktik.couchdb.ClientImpl
 import org.taktik.icure.asynccache.AsyncSafeCache
-import org.taktik.icure.asynclogic.datastore.IDatastoreInformation
+import org.taktik.icure.datastore.IDatastoreInformation
 import org.taktik.icure.asynclogic.datastore.impl.SAMDatastoreInformation
 import org.taktik.icure.security.CouchDbCredentialsProvider
 import java.util.concurrent.TimeUnit

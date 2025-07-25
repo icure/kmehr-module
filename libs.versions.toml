@@ -1,20 +1,45 @@
 [versions]
-ktor = "3.0.0"
+ktor = "3.2.1"
+kotest = "5.9.1"
+logback = "1.5.18"
+kotlinxSerialization = "1.9.0"
 
 [libraries]
 commonsCodec = { group = "commons-codec", name = "commons-codec", version = "1.15"}
 mustacheJava = { group = "com.github.spullara.mustache.java", name = "compiler", version = "0.9.10" }
-icureKotlinSDK = { group = "com.icure", name = "cardinal-sdk", version = "1.0.0-RC.4" }
+icureKotlinSDK = { group = "com.icure", name = "cardinal-sdk", version = "2.0.0-PREVIEW-11" }
 icureTestStack = { group = "io.icure", name = "icure-e2e-test-setup", version = "0.0.35-g37fe96791a" }
 credentialsRotation = { group = "com.icure", name = "credentials-rotation", version = "0.0.4-gcfc84d62bd" }
 jaxbApi = { group = "javax.xml.bind", name = "jaxb-api", version = "2.3.1" }
 jaxbRuntime = { group = "org.glassfish.jaxb", name = "jaxb-runtime", version = "2.3.8" }
 ktorClientCore = { group = "io.ktor", name = "ktor-client-core", version.ref = "ktor" }
+ktorClientOkHttp = { group = "io.ktor", name = "ktor-client-okhttp", version.ref = "ktor" }
 ktorClientCio = { group = "io.ktor", name = "ktor-client-cio", version.ref = "ktor" }
 ktorClientContentNegotiation = { group = "io.ktor", name = "ktor-client-content-negotiation", version.ref = "ktor" }
 ktorClientWebSocket = { group = "io.ktor", name = "ktor-client-websockets", version.ref = "ktor" }
 ktorSerialization = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktor" }
 cloudBooster = { group = "org.taktik.icure", name = "cloud-booster", version = "5.0.339-g74fe2f54ce" }
+kotestFrameworkApi = { group = "io.kotest", name = "kotest-framework-api", version.ref = "kotest" }
+kotestFrameworkEngine = { group = "io.kotest", name = "kotest-framework-engine", version.ref = "kotest" }
+ktorUtils = { group = "io.ktor", name = "ktor-utils", version.ref = "ktor" }
+logbackClassic = { group = "ch.qos.logback", name = "logback-classic", version.ref = "logback" }
+logbackAccess = { group = "ch.qos.logback", name = "logback-access", version.ref = "logback" }
+logbackCore = { group = "ch.qos.logback", name = "logback-core", version.ref = "logback" }
+micrometerObservation = { group = "io.micrometer", name = "micrometer-observation", version = "1.15.1" }
+slf4jApi = { group = "org.slf4j", name = "slf4j-api", version = "2.0.17" }
+kotlinDateTime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version = "0.6.2" }
+kryptom = { group = "com.icure.kryptom", name = "kryptom", version = "1.3.1" }
+okio = { group = "com.squareup.okio", name = "okio", version = "3.12.0" }
+kotlinStdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib-common", version = "2.2.0" }
+kotlinSerialization = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
+kotlinSerializationJvm = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json-jvm", version.ref = "kotlinxSerialization" }
+kotlinSerializationBom = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-bom", version.ref = "kotlinxSerialization" }
+kotlinSerializationCore = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-core", version.ref = "kotlinxSerialization" }
+kotlinSerializationCoreJvm = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-core-jvm", version.ref = "kotlinxSerialization" }
+kotlinSerializationProtobuf = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-protobuf", version.ref = "kotlinxSerialization" }
+kotlinSerializationProtobufJvm = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-protobuf-jvm", version.ref = "kotlinxSerialization" }
+kotlinSerializationIo = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json-io", version.ref = "kotlinxSerialization" }
+kotlinSerializationIoJvm = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json-io-jvm", version.ref = "kotlinxSerialization" }
 
 [bundles]
-ktorClientLibs = ["ktorClientCore", "ktorClientCio", "ktorClientContentNegotiation", "ktorClientWebSocket", "ktorSerialization"]
+ktorClientLibs = ["ktorClientCore", "ktorClientOkHttp", "ktorClientContentNegotiation", "ktorClientWebSocket", "ktorSerialization"]

@@ -1,5 +1,6 @@
 package org.taktik.icure.asynclogic.bridge
 
+import com.icure.cardinal.sdk.CardinalBaseApis
 import com.icure.cardinal.sdk.utils.RequestStatusException
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
@@ -13,21 +14,17 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.TestInstance
-import org.springframework.beans.factory.annotation.Value
 import org.taktik.icure.asynclogic.bridge.mappers.HealthcarePartyMapper
 import org.taktik.icure.config.BridgeConfig
 import org.taktik.icure.entities.HealthcareParty
-import org.taktik.icure.security.jwt.JwtKeyUtils
 import org.taktik.icure.test.*
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class HealthcarePartyLogicBridgeTest(
-	val bridgeConfig: BridgeConfig,
-	val hcpMapper: HealthcarePartyMapper,
-	@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String
+	private val sdk: CardinalBaseApis,
+	private val bridgeConfig: BridgeConfig,
+	private val hcpMapper: HealthcarePartyMapper,
 ) : BaseKmehrTest() {
-
-	private val jwtAuthPublicKey = JwtKeyUtils.decodePublicKeyFromString(jwtAuthPublicKeyAsString)
 
 	init {
 		runBlocking {
@@ -35,14 +32,9 @@ class HealthcarePartyLogicBridgeTest(
 				bridgeConfig.iCureUrl,
 				KmehrTestApplication.masterHcp.login,
 				KmehrTestApplication.masterHcp.password,
-				jwtAuthPublicKey
 			)
 
-			val hcpBridge = HealthcarePartyLogicBridge(
-				KmehrTestApplication.fakeSessionLogic,
-				bridgeConfig,
-				hcpMapper
-			)
+			val hcpBridge = HealthcarePartyLogicBridge(sdk = sdk, healthcarePartyMapper = hcpMapper)
 
 			healthcarePartyLogicBridgeTest(hcp, hcpBridge)
 		}
@@ -79,11 +71,9 @@ private fun StringSpec.healthcarePartyLogicBridgeTest(
 		}
 	}
 
-	"Retrieving a non existent hcp will return a 404 Client exception" {
+	"Retrieving a non existent hcp will return null" {
 		withAuthenticatedReactorContext(credentials) {
-			shouldThrow<RequestStatusException> { hcpBridge.getHealthcareParty(uuid()) }.also {
-				it.statusCode shouldBe 404
-			}
+			hcpBridge.getHealthcareParty(uuid()) shouldBe null
 		}
 	}
 

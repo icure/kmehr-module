@@ -1,10 +1,9 @@
 package org.taktik.icure.asynclogic.bridge
 
-import com.icure.cardinal.sdk.api.raw.impl.RawCodeApiImpl
-import com.icure.cardinal.sdk.model.ListOfIds
+import com.icure.cardinal.sdk.CardinalBaseApis
+import com.icure.cardinal.sdk.api.raw.RawCodeApi
 import com.icure.cardinal.sdk.model.filter.code.CodeIdsByTypeCodeVersionIntervalFilter
 import com.icure.utils.InternalIcureApi
-import com.icure.cardinal.sdk.utils.Serialization
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.emitAll
@@ -12,35 +11,22 @@ import kotlinx.coroutines.flow.flow
 import org.springframework.stereotype.Service
 import org.taktik.couchdb.ViewQueryResultEvent
 import org.taktik.icure.asynclogic.CodeLogic
-import org.taktik.icure.asynclogic.bridge.auth.KmehrAuthProvider
 import org.taktik.icure.asynclogic.bridge.mappers.CodeMapper
-import org.taktik.icure.asynclogic.impl.BridgeAsyncSessionLogic
-import org.taktik.icure.config.BridgeConfig
 import org.taktik.icure.db.PaginationOffset
 import org.taktik.icure.domain.filter.chain.FilterChain
 import org.taktik.icure.entities.base.Code
 import org.taktik.icure.entities.base.CodeStub
-import org.taktik.icure.errors.UnauthorizedException
 import org.taktik.icure.exceptions.BridgeException
 import org.taktik.icure.pagination.PaginationElement
 import java.io.InputStream
 
+@OptIn(InternalIcureApi::class)
 @Service
 class CodeLogicBridge(
-	private val asyncSessionLogic: BridgeAsyncSessionLogic,
-	private val bridgeConfig: BridgeConfig,
+	private val sdk: CardinalBaseApis,
+	private val rawCodeApi: RawCodeApi,
 	private val codeMapper: CodeMapper,
 ) : GenericLogicBridge<Code>(), CodeLogic {
-
-	@OptIn(InternalIcureApi::class)
-	private suspend fun getApi() = asyncSessionLogic.getCurrentJWT()?.let { token ->
-		RawCodeApiImpl(
-			apiUrl = bridgeConfig.iCureUrl,
-			authProvider = KmehrAuthProvider(token),
-			httpClient = bridgeHttpClient,
-			json = Serialization.json
-		)
-	} ?: throw UnauthorizedException("You must be logged in to perform this operation")
 
 	override suspend fun create(batch: List<Code>): List<Code>? {
 		throw BridgeException()
@@ -50,11 +36,9 @@ class CodeLogicBridge(
 		throw BridgeException()
 	}
 
-	@OptIn(InternalIcureApi::class)
 	override suspend fun create(code: Code): Code? =
-		getApi().createCode(codeMapper.map(code)).successBody().let(codeMapper::map)
+		sdk.code.createCode(codeMapper.map(code)).let(codeMapper::map)
 
-	@OptIn(InternalIcureApi::class)
 	override fun findCodesBy(type: String?, code: String?, version: String?): Flow<Code> = flow {
 		val filter = CodeIdsByTypeCodeVersionIntervalFilter(
 			startType = type,
@@ -64,11 +48,9 @@ class CodeLogicBridge(
 			endCode = code,
 			endVersion = version
 		)
-		val api = getApi()
-		val codeIds = api.matchCodesBy(filter).successBody()
+		val codeIds = rawCodeApi.matchCodesBy(filter).successBody()
 		emitAll(
-			api.getCodes(ListOfIds(codeIds))
-				.successBody()
+			sdk.code.getCodes(codeIds)
 				.map(codeMapper::map)
 				.asFlow()
 		)
@@ -135,25 +117,23 @@ class CodeLogicBridge(
 		throw BridgeException()
 	}
 
-	@OptIn(InternalIcureApi::class)
 	override suspend fun isValid(type: String?, code: String?, version: String?): Boolean =
 		if(type != null && code != null)
-			getApi().isCodeValid(type, code, version).successBody().response
+			sdk.code.isCodeValid(type, code, version).response
 		else false
 
 	override suspend fun isValid(code: Code, ofType: String?): Boolean {
 		throw BridgeException()
 	}
 
-	override suspend fun isValid(code: CodeStub, ofType: String?): Boolean = isValid(code.type, code.code, code.version)
+	override suspend fun isValid(code: CodeStub, ofType: String?): Boolean =
+		isValid(code.type, code.code, code.version)
 
-	@OptIn(InternalIcureApi::class)
 	override suspend fun getCodeByLabel(region: String?, label: String, type: String, languages: List<String>): Code? {
 		if(region == null) {
 			throw IllegalArgumentException("Region cannot be null")
 		}
-		return getApi().getCodeByRegionLanguageTypeLabel(region, label, type, languages.joinToString(","))
-			.successBody()
+		return sdk.code.getCodeByRegionLanguageTypeLabel(region, label, type, languages.joinToString(","))
 			?.let(codeMapper::map)
 	}
 

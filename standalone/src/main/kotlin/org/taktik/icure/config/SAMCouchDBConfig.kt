@@ -37,7 +37,7 @@ class SAMCouchDBConfig {
     }
 
     @Bean
-    fun httpClient(connectionProvider: ConnectionProvider) = SpringWebfluxWebClient(
+    fun httpClient(connectionProvider: ConnectionProvider): SpringWebfluxWebClient = SpringWebfluxWebClient(
         ReactorClientHttpConnector(
             HttpClient
                 .create(connectionProvider)

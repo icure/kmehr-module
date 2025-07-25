@@ -1,6 +1,9 @@
 package org.taktik.icure.asynclogic.bridge
 
+import com.icure.cardinal.sdk.CardinalBaseApis
+import com.icure.cardinal.sdk.api.raw.RawDocumentApi
 import com.icure.cardinal.sdk.utils.RequestStatusException
+import com.icure.utils.InternalIcureApi
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.collections.shouldBeEmpty
@@ -12,12 +15,10 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.TestInstance
-import org.springframework.beans.factory.annotation.Value
 import org.taktik.icure.asynclogic.bridge.mappers.DocumentMapper
 import org.taktik.icure.asynclogic.objectstorage.DataAttachmentChange
 import org.taktik.icure.config.BridgeConfig
 import org.taktik.icure.entities.Document
-import org.taktik.icure.security.jwt.JwtKeyUtils
 import org.taktik.icure.test.BaseKmehrTest
 import org.taktik.icure.test.KmehrTestApplication
 import org.taktik.icure.test.UserCredentials
@@ -28,14 +29,14 @@ import org.taktik.icure.utils.toDataBuffer
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
 
+@OptIn(InternalIcureApi::class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class DocumentLogicBridgeTest(
+	val sdk: CardinalBaseApis,
+	val rawDocumentApi: RawDocumentApi,
 	val bridgeConfig: BridgeConfig,
 	val documentMapper: DocumentMapper,
-	@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String
 ) : BaseKmehrTest() {
-
-	private val jwtAuthPublicKey = JwtKeyUtils.decodePublicKeyFromString(jwtAuthPublicKeyAsString)
 
 	init {
 		runBlocking {
@@ -43,13 +44,12 @@ class DocumentLogicBridgeTest(
 				bridgeConfig.iCureUrl,
 				KmehrTestApplication.masterHcp.login,
 				KmehrTestApplication.masterHcp.password,
-				jwtAuthPublicKey
 			)
 
 			val documentBridge = DocumentLogicBridge(
-				KmehrTestApplication.fakeSessionLogic,
-				bridgeConfig,
-				documentMapper
+				sdk = sdk,
+				rawDocumentApi = rawDocumentApi,
+				documentMapper = documentMapper
 			)
 
 			documentLogicBridgeTest(hcp, documentBridge)
@@ -90,11 +90,9 @@ private fun StringSpec.documentLogicBridgeTest(
 		}
 	}
 
-	"Trying to get a Document that does not exist will result in a 404" {
+	"Trying to get a Document that does not exist will return null" {
 		withAuthenticatedReactorContext(credentials) {
-			shouldThrow<RequestStatusException> { documentBridge.getDocument(uuid()) }.also {
-				it.statusCode shouldBe 404
-			}
+			documentBridge.getDocument(uuid()) shouldBe null
 		}
 	}
 

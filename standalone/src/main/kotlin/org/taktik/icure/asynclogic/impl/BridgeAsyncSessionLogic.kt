@@ -5,15 +5,12 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.icure.cardinal.sdk.model.LoginCredentials
 import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
-import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import org.slf4j.LoggerFactory
 import org.springframework.security.core.Authentication
@@ -42,20 +39,15 @@ import java.io.Serializable
 class BridgeAsyncSessionLogic(
 	private val bridgeConfig: BridgeConfig,
 	private val credentialsManager: BridgeCredentialsManager,
-	private val objectMapper: ObjectMapper
+	private val objectMapper: ObjectMapper,
+	private val httpClient: HttpClient,
 ) : AsyncSessionLogic, SessionInformationProvider {
 
 	private val log = LoggerFactory.getLogger(this.javaClass)
 
 	companion object {
-		private suspend fun getCurrentAuthentication() =
+		suspend fun getCurrentAuthentication() =
 			loadSecurityContext()?.map { it.authentication as EncodedJWTAuth }?.awaitFirstOrNull()
-	}
-
-	private val httpClient = HttpClient(CIO) {
-		install(ContentNegotiation) {
-			json()
-		}
 	}
 
 	override suspend fun getAuthentication(): Authentication {

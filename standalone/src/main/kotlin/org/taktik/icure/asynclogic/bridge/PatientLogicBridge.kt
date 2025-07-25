@@ -1,10 +1,8 @@
 package org.taktik.icure.asynclogic.bridge
 
-import com.icure.cardinal.sdk.api.raw.impl.RawPatientApiImpl
-import com.icure.cardinal.sdk.crypto.impl.NoAccessControlKeysHeadersProvider
-import com.icure.cardinal.sdk.model.ListOfIds
+import com.icure.cardinal.sdk.CardinalBaseApis
+import com.icure.cardinal.sdk.api.raw.RawPatientApi
 import com.icure.utils.InternalIcureApi
-import com.icure.cardinal.sdk.utils.Serialization
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.emitAll
@@ -13,11 +11,8 @@ import org.springframework.stereotype.Service
 import org.taktik.couchdb.ViewQueryResultEvent
 import org.taktik.couchdb.entity.ComplexKey
 import org.taktik.icure.asynclogic.PatientLogic
-import org.taktik.icure.asynclogic.bridge.auth.KmehrAuthProvider
 import org.taktik.icure.asynclogic.bridge.mappers.PatientFilterMapper
 import org.taktik.icure.asynclogic.bridge.mappers.PatientMapper
-import org.taktik.icure.asynclogic.impl.BridgeAsyncSessionLogic
-import org.taktik.icure.config.BridgeConfig
 import org.taktik.icure.db.PaginationOffset
 import org.taktik.icure.db.Sorting
 import org.taktik.icure.domain.filter.AbstractFilter
@@ -26,29 +21,18 @@ import org.taktik.icure.entities.Patient
 import org.taktik.icure.entities.embed.Delegation
 import org.taktik.icure.entities.requests.BulkShareOrUpdateMetadataParams
 import org.taktik.icure.entities.requests.EntityBulkShareResult
-import org.taktik.icure.errors.UnauthorizedException
 import org.taktik.icure.exceptions.BridgeException
 import org.taktik.icure.pagination.PaginationElement
 import java.time.Instant
 
+@OptIn(InternalIcureApi::class)
 @Service
 class PatientLogicBridge(
-	private val asyncSessionLogic: BridgeAsyncSessionLogic,
-	private val bridgeConfig: BridgeConfig,
+	private val sdk: CardinalBaseApis,
+	private val rawPatientApi: RawPatientApi,
 	private val patientMapper: PatientMapper,
 	private val patientFilterMapper: PatientFilterMapper
 ) : GenericLogicBridge<Patient>(), PatientLogic {
-
-	@OptIn(InternalIcureApi::class)
-	private suspend fun getApi() = asyncSessionLogic.getCurrentJWT()?.let { token ->
-		RawPatientApiImpl(
-			apiUrl = bridgeConfig.iCureUrl,
-			authProvider = KmehrAuthProvider(token),
-			httpClient = bridgeHttpClient,
-			json = Serialization.json,
-			accessControlKeysHeadersProvider = NoAccessControlKeysHeadersProvider
-		)
-	} ?: throw UnauthorizedException("You must be logged in to perform this operation")
 
 	override suspend fun addDelegations(patientId: String, delegations: Collection<Delegation>): Patient? {
 		throw BridgeException()
@@ -62,14 +46,15 @@ class PatientLogicBridge(
 		throw BridgeException()
 	}
 
-	@OptIn(InternalIcureApi::class)
 	override suspend fun createPatient(patient: Patient): Patient? =
-		getApi().createPatient(patientMapper.map(patient)).successBody().let { patientMapper.map(it) }
+		rawPatientApi.createPatient(patientMapper.map(patient))
+			.successBody()
+			.let(patientMapper::map)
 
-	@OptIn(InternalIcureApi::class)
 	override fun createPatients(patients: List<Patient>): Flow<Patient> = flow {
 		emitAll(
-			getApi().createPatients(patients.map(patientMapper::map)).successBody().let { result ->
+			rawPatientApi.createPatientsFull(patients.map(patientMapper::map))
+				.successBody().let { result ->
 				getPatients(result.map { it.id })
 			}
 		)
@@ -155,15 +140,12 @@ class PatientLogicBridge(
 		throw BridgeException()
 	}
 
-	@OptIn(InternalIcureApi::class)
 	override suspend fun getPatient(patientId: String): Patient? =
-		getApi().getPatient(patientId).successBody().let { patientMapper.map(it) }
+		sdk.patient.getPatient(patientId)?.let(patientMapper::map)
 
-	@OptIn(InternalIcureApi::class)
 	override fun getPatients(patientIds: Collection<String>): Flow<Patient> = flow {
-		emitAll(getApi()
-			.getPatients(ListOfIds(ids = patientIds.toList()))
-			.successBody()
+		emitAll(sdk.patient
+			.getPatients(patientIds.toList())
 			.map(patientMapper::map)
 			.asFlow()
 		)
@@ -255,10 +237,9 @@ class PatientLogicBridge(
 		throw BridgeException()
 	}
 
-	@OptIn(InternalIcureApi::class)
 	override fun matchEntitiesBy(filter: AbstractFilter<*>): Flow<String> = flow {
 		patientFilterMapper.mapOrNull(filter)?.also {
-			emitAll(getApi().matchPatientsBy(it).successBody().asFlow())
+			emitAll(rawPatientApi.matchPatientsBy(it).successBody().asFlow())
 		} ?: throw IllegalArgumentException("Unsupported filter ${filter::class.simpleName}")
 	}
 

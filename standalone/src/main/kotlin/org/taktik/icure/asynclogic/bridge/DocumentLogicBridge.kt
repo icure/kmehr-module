@@ -1,9 +1,8 @@
 package org.taktik.icure.asynclogic.bridge
 
-import com.icure.cardinal.sdk.api.raw.impl.RawDocumentApiImpl
-import com.icure.cardinal.sdk.crypto.impl.NoAccessControlKeysHeadersProvider
+import com.icure.cardinal.sdk.CardinalBaseApis
+import com.icure.cardinal.sdk.api.raw.RawDocumentApi
 import com.icure.utils.InternalIcureApi
-import com.icure.cardinal.sdk.utils.Serialization
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
@@ -11,48 +10,33 @@ import org.springframework.core.io.buffer.DataBuffer
 import org.springframework.core.io.buffer.DefaultDataBufferFactory
 import org.springframework.stereotype.Service
 import org.taktik.icure.asynclogic.DocumentLogic
-import org.taktik.icure.asynclogic.bridge.auth.KmehrAuthProvider
 import org.taktik.icure.asynclogic.bridge.mappers.DocumentMapper
-import org.taktik.icure.asynclogic.impl.BridgeAsyncSessionLogic
 import org.taktik.icure.asynclogic.objectstorage.DataAttachmentChange
-import org.taktik.icure.config.BridgeConfig
 import org.taktik.icure.domain.BatchUpdateDocumentInfo
 import org.taktik.icure.entities.Document
 import org.taktik.icure.entities.requests.BulkShareOrUpdateMetadataParams
 import org.taktik.icure.entities.requests.EntityBulkShareResult
-import org.taktik.icure.errors.UnauthorizedException
 import org.taktik.icure.exceptions.BridgeException
+import org.taktik.icure.exceptions.NotFoundRequestException
 import org.taktik.icure.utils.toByteArray
 import java.nio.ByteBuffer
 
+@OptIn(InternalIcureApi::class)
 @Service
 class DocumentLogicBridge(
-	val asyncSessionLogic: BridgeAsyncSessionLogic,
-	val bridgeConfig: BridgeConfig,
+	private val sdk: CardinalBaseApis,
+	private val rawDocumentApi: RawDocumentApi,
 	private val documentMapper: DocumentMapper
 ) : GenericLogicBridge<Document>(), DocumentLogic {
-
-	@OptIn(InternalIcureApi::class)
-	private suspend fun getApi() = asyncSessionLogic.getCurrentJWT()?.let { token ->
-		RawDocumentApiImpl(
-			apiUrl = bridgeConfig.iCureUrl,
-			authProvider = KmehrAuthProvider(token),
-			httpClient = bridgeHttpClient,
-			json = Serialization.json,
-			accessControlKeysHeadersProvider = NoAccessControlKeysHeadersProvider
-		)
-	} ?: throw UnauthorizedException("You must be logged in to perform this operation")
 
 	override fun bulkShareOrUpdateMetadata(requests: BulkShareOrUpdateMetadataParams): Flow<EntityBulkShareResult<Document>> {
 		throw BridgeException()
 	}
 
-	@OptIn(InternalIcureApi::class)
 	override suspend fun createDocument(document: Document, strict: Boolean): Document? =
-		getApi().createDocument(
-			documentMapper.map(document),
-			strict
-		).successBody().let(documentMapper::map)
+		rawDocumentApi.createDocument(documentMapper.map(document))
+			.successBody()
+			.let(documentMapper::map)
 
 	override fun createOrModifyDocuments(documents: List<BatchUpdateDocumentInfo>, strict: Boolean): Flow<Document> {
 		throw BridgeException()
@@ -62,9 +46,8 @@ class DocumentLogicBridge(
 		throw BridgeException()
 	}
 
-	@OptIn(InternalIcureApi::class)
 	override suspend fun getDocument(documentId: String): Document? =
-		getApi().getDocument(documentId).successBody().let(documentMapper::map)
+		sdk.document.getDocument(documentId)?.let(documentMapper::map)
 
 	override fun getDocuments(documentIds: Collection<String>): Flow<Document> {
 		throw BridgeException()
@@ -74,12 +57,11 @@ class DocumentLogicBridge(
 		throw BridgeException()
 	}
 
-	@OptIn(InternalIcureApi::class)
 	override suspend fun getMainAttachment(documentId: String): Flow<DataBuffer> =
-		getApi().let { api ->
+		sdk.document.let { api ->
 			val document = getDocument(documentId)
 			if(document?.attachmentId != null || document?.objectStoreReference != null) {
-				val attachment = api.getMainAttachment(documentId, null).successBody()
+				val attachment = api.getRawMainAttachment(documentId)
 				val bufferFactory = DefaultDataBufferFactory()
 				val buffer = bufferFactory.allocateBuffer(attachment.size)
 				buffer.write(attachment)
@@ -125,45 +107,42 @@ class DocumentLogicBridge(
 		throw BridgeException()
 	}
 
-	@OptIn(InternalIcureApi::class)
 	override suspend fun updateAttachments(
 		documentId: String,
 		documentRev: String?,
 		mainAttachmentChange: DataAttachmentChange?,
 		secondaryAttachmentsChanges: Map<String, DataAttachmentChange>
-	): Document? = getApi().let { api ->
+	): Document? = sdk.document.let { api ->
 		if (documentRev == null) throw IllegalStateException("Cannot update attachments of a document with null rev")
 		when(mainAttachmentChange) {
-			is DataAttachmentChange.CreateOrUpdate -> api.setDocumentAttachment(
+			is DataAttachmentChange.CreateOrUpdate -> api.setRawMainAttachment(
 				documentId = documentId,
 				rev = checkNotNull(documentRev) { "Rev cannot be null" },
 				utis = mainAttachmentChange.utis,
-				payload = mainAttachmentChange.data.toByteArray(true),
-				lengthHeader = mainAttachmentChange.size,
-				encrypted = null
-			).successBody()
-			is DataAttachmentChange.Delete -> api.deleteAttachment(
-				documentId = documentId,
+				attachment = mainAttachmentChange.data.toByteArray(true),
+				encrypted = false
+			)
+			is DataAttachmentChange.Delete -> api.deleteMainAttachment(
+				entityId = documentId,
 				rev = checkNotNull(documentRev) { "Rev cannot be null" }
-			).successBody()
-			else -> api.getDocument(documentId).successBody()
+			)
+			else -> api.getDocument(documentId) ?: throw NotFoundRequestException("Document $documentId not found")
 		}.let { initialDocument ->
 			secondaryAttachmentsChanges.entries.fold(initialDocument) { doc, (key, update) ->
 				when(update) {
-					is DataAttachmentChange.CreateOrUpdate -> api.setSecondaryAttachment(
+					is DataAttachmentChange.CreateOrUpdate -> api.setRawSecondaryAttachment(
 						documentId = doc.id,
 						key = key,
 						rev = checkNotNull(documentRev) { "Rev cannot be null" },
 						utis = update.utis,
-						payload = update.data.toByteArray(true),
-						lengthHeader = update.size,
-						encrypted = null
-					).successBody()
+						attachment = update.data.toByteArray(true),
+						encrypted = false
+					)
 					is DataAttachmentChange.Delete -> api.deleteSecondaryAttachment(
 						documentId = doc.id,
 						key = key,
 						rev = checkNotNull(documentRev) { "Rev cannot be null" }
-					).successBody()
+					)
 				}
 			}
 		}.let(documentMapper::map)

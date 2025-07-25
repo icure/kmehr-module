@@ -402,7 +402,7 @@ class SamV2Controller(
 		summary = "Finding AMP names by dmpp code",
 		description = "Returns a list of amp namesmatched with given input."
 	)
-	@GetMapping("/amp/byDmppCode/{dmppCode}")
+	@GetMapping("/amp/name/byDmppCode/{dmppCode}")
 	fun findAmpNamesByDmppCode(
 		@Parameter(description = "dmppCode", required = true) @PathVariable dmppCode: String,
 	): Flux<SamTextDto> = samV2Logic.listAmpNamesByDmppCode(dmppCode)

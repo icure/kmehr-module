@@ -17,7 +17,6 @@ import org.taktik.icure.entities.samv2.Substance
 import org.taktik.icure.entities.samv2.Verse
 import org.taktik.icure.entities.samv2.Vmp
 import org.taktik.icure.entities.samv2.VmpGroup
-import org.taktik.icure.entities.samv2.embed.SamLanguage
 import org.taktik.icure.entities.samv2.embed.SamText
 import org.taktik.icure.pagination.PaginationElement
 

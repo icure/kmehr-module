@@ -1,6 +1,8 @@
 package org.taktik.icure.test.fake.controllers
 
+import com.icure.cardinal.sdk.api.raw.RawApiConfig
 import com.icure.cardinal.sdk.api.raw.impl.RawUserApiImpl
+import com.icure.cardinal.sdk.options.RequestRetryConfiguration
 import com.icure.utils.InternalIcureApi
 import com.icure.cardinal.sdk.utils.Serialization
 import kotlinx.coroutines.reactive.awaitFirstOrNull
@@ -12,11 +14,11 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ResponseStatusException
-import org.taktik.icure.asynclogic.bridge.auth.KmehrAuthProvider
 import org.taktik.icure.config.BridgeConfig
 import org.taktik.icure.entities.base.Code
 import org.taktik.icure.security.jwt.EncodedJWTAuth
 import org.taktik.icure.security.loadSecurityContext
+import org.taktik.icure.test.KmehrAuthProvider
 import org.taktik.icure.test.testHttpClient
 
 @RestController
@@ -33,8 +35,13 @@ class FakeController(
         val userApi = RawUserApiImpl(
             apiUrl = bridgeConfig.iCureUrl,
             authProvider = KmehrAuthProvider(currentToken),
-            httpClient = testHttpClient,
-            json = Serialization.json
+            rawApiConfig = RawApiConfig(
+                httpClient = testHttpClient,
+                json = Serialization.json,
+                additionalHeaders = emptyMap(),
+                requestTimeout = null,
+                retryConfiguration = RequestRetryConfiguration(),
+            )
         )
         userApi.getCurrentUser().successBody()
     }

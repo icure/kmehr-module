@@ -1,5 +1,6 @@
 package org.taktik.icure.test
 
+import com.icure.cardinal.sdk.api.raw.RawApiConfig
 import com.icure.kryptom.crypto.defaultCryptoService
 import com.icure.cardinal.sdk.api.raw.RawMessageGatewayApi
 import com.icure.cardinal.sdk.api.raw.impl.RawAnonymousAuthApiImpl
@@ -18,12 +19,13 @@ import com.icure.cardinal.sdk.model.security.Permission
 import com.icure.cardinal.sdk.model.security.PermissionType
 import com.icure.cardinal.sdk.options.AuthenticationMethod
 import com.icure.cardinal.sdk.options.BasicSdkOptions
+import com.icure.cardinal.sdk.options.RequestRetryConfiguration
 import com.icure.cardinal.sdk.options.getAuthProvider
 import com.icure.utils.InternalIcureApi
 import com.icure.cardinal.sdk.utils.Serialization
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.ktor.client.*
-import io.ktor.client.engine.cio.*
+import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.CoroutineScope
@@ -40,8 +42,8 @@ import org.taktik.icure.security.KmehrJWTDetails
 import org.taktik.icure.security.jwt.EncodedJWTAuth
 import org.taktik.icure.security.jwt.JwtDecoder
 import org.taktik.icure.security.jwt.JwtDetails
+import org.taktik.icure.test.KmehrTestApplication.Companion.jwtAuthPublicKey
 import reactor.core.publisher.Mono
-import java.security.interfaces.RSAPublicKey
 import java.util.*
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.coroutineContext
@@ -51,7 +53,7 @@ fun uuid() = UUID.randomUUID().toString()
 fun ssin() = "${Random.nextInt(10,99)}.${Random.nextInt(10,12)}.${Random.nextInt(10,28)}-${Random.nextInt(100,999)}.${Random.nextInt(10,99)}"
 fun generateEmail() = "${uuid().subSequence(0, 6)}@icure.test"
 
-val testHttpClient = HttpClient(CIO) {
+val testHttpClient = HttpClient(OkHttp) {
 	install(ContentNegotiation) {
 		json(json = Serialization.json)
 	}
@@ -65,7 +67,16 @@ fun getAuthProvider(iCureUrl: String, username: String, password: String) =
 	authProviders[Pair(username, password)] ?: AuthenticationMethod.UsingCredentials(
 		UsernamePassword(username, password)
 	).getAuthProvider(
-		authApi = RawAnonymousAuthApiImpl(iCureUrl, testHttpClient, json = Serialization.json),
+		authApi = RawAnonymousAuthApiImpl(
+			apiUrl = iCureUrl,
+			rawApiConfig = RawApiConfig(
+				httpClient = testHttpClient,
+				json = Serialization.json,
+				additionalHeaders = emptyMap(),
+				requestTimeout = null,
+				retryConfiguration = RequestRetryConfiguration(),
+			)
+		),
 		cryptoService = defaultCryptoService,
 		applicationId = null,
 		options = BasicSdkOptions(),
@@ -90,7 +101,6 @@ suspend fun createHealthcarePartyUser(
 	iCureUrl: String,
 	username: String,
 	password: String,
-	jwtAuthPublicKey: RSAPublicKey
 ): UserCredentials {
 	val login = generateEmail()
 	val authProvider = getAuthProvider(iCureUrl, username, password)
@@ -98,8 +108,13 @@ suspend fun createHealthcarePartyUser(
 	val hcp = RawHealthcarePartyApiImpl(
 		apiUrl = iCureUrl,
 		authProvider = authProvider,
-		httpClient = testHttpClient,
-		json = Serialization.json
+		rawApiConfig = RawApiConfig(
+			httpClient = testHttpClient,
+			json = Serialization.json,
+			additionalHeaders = emptyMap(),
+			requestTimeout = null,
+			retryConfiguration = RequestRetryConfiguration(),
+		)
 	).createHealthcareParty(
 		HealthcareParty(
 			id = uuid(),
@@ -112,8 +127,13 @@ suspend fun createHealthcarePartyUser(
 	val user = RawUserApiImpl(
 		apiUrl = iCureUrl,
 		authProvider = authProvider,
-		httpClient = testHttpClient,
-		json = Serialization.json
+		rawApiConfig = RawApiConfig(
+			httpClient = testHttpClient,
+			json = Serialization.json,
+			additionalHeaders = emptyMap(),
+			requestTimeout = null,
+			retryConfiguration = RequestRetryConfiguration(),
+		)
 	).createUser(
 		User(
 			id = uuid(),
@@ -152,9 +172,14 @@ suspend fun createPatientUser(iCureUrl: String, username: String, password: Stri
 	val patient = RawPatientApiImpl(
 		apiUrl = iCureUrl,
 		authProvider = authProvider,
-		httpClient = testHttpClient,
-		json = Serialization.json,
-		accessControlKeysHeadersProvider = NoAccessControlKeysHeadersProvider
+		accessControlKeysHeadersProvider = NoAccessControlKeysHeadersProvider,
+		rawApiConfig = RawApiConfig(
+			httpClient = testHttpClient,
+			json = Serialization.json,
+			additionalHeaders = emptyMap(),
+			requestTimeout = null,
+			retryConfiguration = RequestRetryConfiguration(),
+		)
 	).createPatient(
 		EncryptedPatient(
 			id = uuid(),
@@ -167,8 +192,13 @@ suspend fun createPatientUser(iCureUrl: String, username: String, password: Stri
 	val user = RawUserApiImpl(
 		apiUrl = iCureUrl,
 		authProvider = authProvider,
-		httpClient = testHttpClient,
-		json = Serialization.json
+		rawApiConfig = RawApiConfig(
+			httpClient = testHttpClient,
+			json = Serialization.json,
+			additionalHeaders = emptyMap(),
+			requestTimeout = null,
+			retryConfiguration = RequestRetryConfiguration(),
+		)
 	).createUser(
 		User(
 			id = uuid(),
@@ -199,8 +229,13 @@ suspend fun createAdminUser(iCureUrl: String, username: String, password: String
 	val user = RawUserApiImpl(
 		apiUrl = iCureUrl,
 		authProvider = authProvider,
-		httpClient = testHttpClient,
-		json = Serialization.json
+		rawApiConfig = RawApiConfig(
+			httpClient = testHttpClient,
+			json = Serialization.json,
+			additionalHeaders = emptyMap(),
+			requestTimeout = null,
+			retryConfiguration = RequestRetryConfiguration(),
+		)
 	).createUser(
 		User(
 			id = uuid(),
@@ -213,8 +248,13 @@ suspend fun createAdminUser(iCureUrl: String, username: String, password: String
 	RawPermissionApiImpl(
 		apiUrl = iCureUrl,
 		authProvider = authProvider,
-		httpClient = testHttpClient,
-		json = Serialization.json
+		rawApiConfig = RawApiConfig(
+			httpClient = testHttpClient,
+			json = Serialization.json,
+			additionalHeaders = emptyMap(),
+			requestTimeout = null,
+			retryConfiguration = RequestRetryConfiguration(),
+		)
 	).modifyUserPermissions(
 		"${user.groupId}:${user.id}",
 		Permission(

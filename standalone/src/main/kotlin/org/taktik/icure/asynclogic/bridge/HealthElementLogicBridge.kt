@@ -1,11 +1,9 @@
 package org.taktik.icure.asynclogic.bridge
 
-import com.icure.cardinal.sdk.api.raw.impl.RawHealthElementApiImpl
-import com.icure.cardinal.sdk.crypto.impl.NoAccessControlKeysHeadersProvider
-import com.icure.cardinal.sdk.model.ListOfIds
-import com.icure.cardinal.sdk.model.filter.healthelement.HealthElementByDataOwnerPatientOpeningDate
+import com.icure.cardinal.sdk.CardinalBaseApis
+import com.icure.cardinal.sdk.api.raw.RawHealthElementApi
+import com.icure.cardinal.sdk.filters.HealthElementFilters
 import com.icure.utils.InternalIcureApi
-import com.icure.cardinal.sdk.utils.Serialization
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.emitAll
@@ -13,40 +11,25 @@ import kotlinx.coroutines.flow.flow
 import org.springframework.stereotype.Service
 import org.taktik.couchdb.ViewQueryResultEvent
 import org.taktik.icure.asynclogic.HealthElementLogic
-import org.taktik.icure.asynclogic.bridge.auth.KmehrAuthProvider
 import org.taktik.icure.asynclogic.bridge.mappers.HealthElementMapper
-import org.taktik.icure.asynclogic.impl.BridgeAsyncSessionLogic
-import org.taktik.icure.config.BridgeConfig
 import org.taktik.icure.db.PaginationOffset
 import org.taktik.icure.domain.filter.chain.FilterChain
 import org.taktik.icure.entities.HealthElement
 import org.taktik.icure.entities.embed.Delegation
 import org.taktik.icure.entities.requests.BulkShareOrUpdateMetadataParams
 import org.taktik.icure.entities.requests.EntityBulkShareResult
-import org.taktik.icure.errors.UnauthorizedException
 import org.taktik.icure.exceptions.BridgeException
 
+@OptIn(InternalIcureApi::class)
 @Service
 class HealthElementLogicBridge(
-	private val asyncSessionLogic: BridgeAsyncSessionLogic,
-	private val bridgeConfig: BridgeConfig,
+	private val sdk: CardinalBaseApis,
+	private val rawHealthElementApi: RawHealthElementApi,
 	private val healthElementMapper: HealthElementMapper
 ) : GenericLogicBridge<HealthElement>(), HealthElementLogic {
 
-	@OptIn(InternalIcureApi::class)
-	private suspend fun getApi() = asyncSessionLogic.getCurrentJWT()?.let { token ->
-		RawHealthElementApiImpl(
-			apiUrl = bridgeConfig.iCureUrl,
-			authProvider = KmehrAuthProvider(token),
-			httpClient = bridgeHttpClient,
-			json = Serialization.json,
-			accessControlKeysHeadersProvider = NoAccessControlKeysHeadersProvider
-		)
-	} ?: throw UnauthorizedException("You must be logged in to perform this operation")
-
-	@OptIn(InternalIcureApi::class)
 	override fun createEntities(entities: Collection<HealthElement>): Flow<HealthElement> = flow {
-		emitAll(getApi()
+		emitAll(rawHealthElementApi
 			.createHealthElements(entities.map(healthElementMapper::map))
 			.successBody()
 			.map(healthElementMapper::map)
@@ -82,21 +65,18 @@ class HealthElementLogicBridge(
 	}
 
 	@Deprecated("This method cannot include results with secure delegations, use listHealthElementIdsByDataOwnerPatientOpeningDate instead")
-	@OptIn(InternalIcureApi::class)
 	override fun listHealthElementsByHcPartyAndSecretPatientKeys(
 		hcPartyId: String,
 		secretPatientKeys: List<String>
 	): Flow<HealthElement> = flow {
-		val api = getApi()
-		val filter = HealthElementByDataOwnerPatientOpeningDate(
-			healthcarePartyId = hcPartyId,
-			patientSecretForeignKeys = secretPatientKeys.toSet()
+		val filter = HealthElementFilters.byPatientSecretIdsOpeningDateForDataOwner(
+			dataOwnerId = hcPartyId,
+			secretIds = secretPatientKeys
 		)
-		val healthElementIds = api.matchHealthElementsBy(filter).successBody()
+		val healthElementIds = sdk.healthElement.matchHealthElementsBy(filter)
 		if (healthElementIds.isNotEmpty()) {
-			emitAll(api
-				.getHealthElements(ListOfIds(ids = healthElementIds))
-				.successBody()
+			emitAll(sdk.healthElement
+				.getHealthElements(healthElementIds)
 				.map(healthElementMapper::map)
 				.asFlow()
 			)
@@ -113,18 +93,18 @@ class HealthElementLogicBridge(
 		throw BridgeException()
 	}
 
-	@OptIn(InternalIcureApi::class)
+	@Deprecated("This method is inefficient for high volumes of keys, use listHealthElementIdsByDataOwnerPatientOpeningDate instead")
 	override suspend fun listLatestHealthElementsByHcPartyAndSecretPatientKeys(
 		hcPartyId: String,
 		secretPatientKeys: List<String>
-	): List<HealthElement> = getApi().let { api ->
-		val filter = HealthElementByDataOwnerPatientOpeningDate(
-			healthcarePartyId = hcPartyId,
-			patientSecretForeignKeys = secretPatientKeys.toSet()
+	): List<HealthElement> = sdk.healthElement.let { api ->
+		val filter = HealthElementFilters.byPatientSecretIdsOpeningDateForDataOwner(
+			dataOwnerId = hcPartyId,
+			secretIds = secretPatientKeys
 		)
-		val healthElementIds = api.matchHealthElementsBy(filter).successBody()
+		val healthElementIds = api.matchHealthElementsBy(filter)
 		if (healthElementIds.isNotEmpty()) {
-			api.getHealthElements(ListOfIds(ids = healthElementIds)).successBody().groupBy {
+			api.getHealthElements(healthElementIds).groupBy {
 				it.healthElementId
 			}.values.mapNotNull { value ->
 				value.maxByOrNull { it.modified ?: it.created ?: 0L }

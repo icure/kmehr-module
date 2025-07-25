@@ -10,6 +10,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.TestInstance
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.context.ContextConfiguration
 import org.taktik.couchdb.Client
 import org.taktik.couchdb.ClientImpl
 import org.taktik.couchdb.dao.DesignDocumentProvider
@@ -17,11 +18,12 @@ import org.taktik.couchdb.get
 import org.taktik.couchdb.id.IDGenerator
 import org.taktik.icure.asyncdao.CouchDbDispatcher
 import org.taktik.icure.asyncdao.samv2.impl.AmpDAOImpl
-import org.taktik.icure.asynclogic.datastore.DatastoreInstanceProvider
-import org.taktik.icure.asynclogic.datastore.IDatastoreInformation
+import org.taktik.icure.datastore.DatastoreInstanceProvider
+import org.taktik.icure.datastore.IDatastoreInformation
 import org.taktik.icure.entities.samv2.Amp
 import org.taktik.icure.services.external.rest.v1.mapper.samv2.AmpMapper
 import org.taktik.icure.services.external.rest.v2.mapper.samv2.AmpV2Mapper
+import org.taktik.icure.test.EnvironmentBootstrapper
 import org.taktik.icure.test.KmehrTestApplication
 import org.taktik.icure.test.fake.components.TestAmpDAO
 import java.net.URI
@@ -37,6 +39,7 @@ import java.net.URI
 	],
 	webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
 )
+@ContextConfiguration(initializers = [EnvironmentBootstrapper::class])
 @ActiveProfiles(profiles = ["sam"])
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class AmpMappingTest(
@@ -77,7 +80,7 @@ class AmpMappingTest(
 					client.get<Amp>("some-id")
 				}
 				true
-			} catch (e: Exception) {
+			} catch (_: Exception) {
 				false
 			}
 			if (credentialsAreValid) {

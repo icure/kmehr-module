@@ -1,6 +1,9 @@
 package org.taktik.icure.asynclogic.bridge
 
+import com.icure.cardinal.sdk.CardinalBaseApis
+import com.icure.cardinal.sdk.api.raw.RawApiConfig
 import com.icure.cardinal.sdk.api.raw.impl.RawUserApiImpl
+import com.icure.cardinal.sdk.options.RequestRetryConfiguration
 import com.icure.utils.InternalIcureApi
 import com.icure.cardinal.sdk.utils.Serialization
 import io.kotest.assertions.throwables.shouldThrow
@@ -11,41 +14,32 @@ import kotlinx.coroutines.flow.count
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.TestInstance
-import org.springframework.beans.factory.annotation.Value
 import org.taktik.icure.asynclogic.bridge.mappers.UserMapper
 import org.taktik.icure.config.BridgeConfig
 import org.taktik.icure.entities.User
 import org.taktik.icure.entities.security.AuthenticationToken
 import org.taktik.icure.exceptions.BridgeException
-import org.taktik.icure.security.jwt.JwtKeyUtils
 import org.taktik.icure.test.*
 import java.time.Instant
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class UserLogicBridgeTest(
+	private val sdk: CardinalBaseApis,
 	private val bridgeConfig: BridgeConfig,
 	private val userMapper: UserMapper,
-	@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String
 ) : BaseKmehrTest() {
-
-	private val jwtAuthPublicKey = JwtKeyUtils.decodePublicKeyFromString(jwtAuthPublicKeyAsString)
 
 	private val hcp = runBlocking {
 		createHealthcarePartyUser(
 			bridgeConfig.iCureUrl,
 			KmehrTestApplication.masterHcp.login,
 			KmehrTestApplication.masterHcp.password,
-			jwtAuthPublicKey
 		)
 	}
 
 	init {
 		runBlocking {
-			val userBridge = UserLogicBridge(
-				KmehrTestApplication.fakeSessionLogic,
-				bridgeConfig,
-				userMapper
-			)
+			val userBridge = UserLogicBridge(sdk = sdk, userMapper = userMapper)
 
 			userLogicBridgeTest(userBridge, hcp)
 		}
@@ -55,8 +49,13 @@ class UserLogicBridgeTest(
 	private val userApi = RawUserApiImpl(
 		apiUrl = bridgeConfig.iCureUrl,
 		authProvider = getAuthProvider(bridgeConfig.iCureUrl, hcp.userId, hcp.password),
-		httpClient = testHttpClient,
-		json = Serialization.json
+		rawApiConfig = RawApiConfig(
+			httpClient = testHttpClient,
+			json = Serialization.json,
+			additionalHeaders = emptyMap(),
+			requestTimeout = null,
+			retryConfiguration = RequestRetryConfiguration(),
+		)
 	)
 
 	@OptIn(InternalIcureApi::class)

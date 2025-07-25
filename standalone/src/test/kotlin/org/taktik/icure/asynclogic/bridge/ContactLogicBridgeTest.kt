@@ -1,5 +1,8 @@
 package org.taktik.icure.asynclogic.bridge
 
+import com.icure.cardinal.sdk.CardinalBaseApis
+import com.icure.cardinal.sdk.api.raw.RawContactApi
+import com.icure.utils.InternalIcureApi
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.nulls.shouldNotBeNull
@@ -10,7 +13,6 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.TestInstance
-import org.springframework.beans.factory.annotation.Value
 import org.taktik.icure.asynclogic.bridge.mappers.ContactFilterMapper
 import org.taktik.icure.asynclogic.bridge.mappers.ContactMapper
 import org.taktik.icure.asynclogic.bridge.mappers.ServiceFilterMapper
@@ -20,7 +22,6 @@ import org.taktik.icure.domain.filter.impl.service.ServiceByHcPartyTagCodeDateFi
 import org.taktik.icure.entities.Contact
 import org.taktik.icure.entities.base.CodeStub
 import org.taktik.icure.entities.embed.Service
-import org.taktik.icure.security.jwt.JwtKeyUtils
 import org.taktik.icure.test.BaseKmehrTest
 import org.taktik.icure.test.KmehrTestApplication
 import org.taktik.icure.test.UserCredentials
@@ -28,17 +29,17 @@ import org.taktik.icure.test.createHealthcarePartyUser
 import org.taktik.icure.test.uuid
 import org.taktik.icure.test.withAuthenticatedReactorContext
 
+@OptIn(InternalIcureApi::class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ContactLogicBridgeTest(
+	val sdk: CardinalBaseApis,
+	val rawContactApi: RawContactApi,
 	val bridgeConfig: BridgeConfig,
 	val serviceMapper: ServiceMapper,
 	val contactMapper: ContactMapper,
 	val serviceFilterMapper: ServiceFilterMapper,
 	val contactFilterMapper: ContactFilterMapper,
-	@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String
 ) : BaseKmehrTest() {
-
-	private val jwtAuthPublicKey = JwtKeyUtils.decodePublicKeyFromString(jwtAuthPublicKeyAsString)
 
 	init {
 		runBlocking {
@@ -46,16 +47,15 @@ class ContactLogicBridgeTest(
 				bridgeConfig.iCureUrl,
 				KmehrTestApplication.masterHcp.login,
 				KmehrTestApplication.masterHcp.password,
-				jwtAuthPublicKey
 			)
 
 			val contactBridge = ContactLogicBridge(
-				KmehrTestApplication.fakeSessionLogic,
-				bridgeConfig,
-				contactMapper,
-				serviceMapper,
-				contactFilterMapper,
-				serviceFilterMapper
+				sdk = sdk,
+				rawContactApi = rawContactApi,
+				contactMapper = contactMapper,
+				serviceMapper = serviceMapper,
+				contactFilterMapper = contactFilterMapper,
+				serviceFilterMapper = serviceFilterMapper
 			)
 
 			contactLogicBridgeTest(hcp, contactBridge)

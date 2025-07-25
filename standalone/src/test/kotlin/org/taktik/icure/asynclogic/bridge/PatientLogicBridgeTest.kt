@@ -1,6 +1,9 @@
 package org.taktik.icure.asynclogic.bridge
 
+import com.icure.cardinal.sdk.CardinalBaseApis
+import com.icure.cardinal.sdk.api.raw.RawPatientApi
 import com.icure.cardinal.sdk.utils.RequestStatusException
+import com.icure.utils.InternalIcureApi
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.collections.shouldContain
@@ -12,7 +15,6 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.TestInstance
-import org.springframework.beans.factory.annotation.Value
 import org.taktik.icure.asynclogic.bridge.mappers.PatientFilterMapper
 import org.taktik.icure.asynclogic.bridge.mappers.PatientMapper
 import org.taktik.icure.config.BridgeConfig
@@ -20,19 +22,18 @@ import org.taktik.icure.domain.filter.impl.patient.PatientByHcPartyAndSsinFilter
 import org.taktik.icure.domain.filter.impl.patient.PatientByHcPartyDateOfBirthFilter
 import org.taktik.icure.domain.filter.impl.patient.PatientByHcPartyNameFilter
 import org.taktik.icure.entities.Patient
-import org.taktik.icure.security.jwt.JwtKeyUtils
 import org.taktik.icure.test.*
 import kotlin.random.Random
 
+@OptIn(InternalIcureApi::class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class PatientLogicBridgeTest(
-	val bridgeConfig: BridgeConfig,
-	val patientMapper: PatientMapper,
-	val patientFilterMapper: PatientFilterMapper,
-	@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String
+	private val sdk: CardinalBaseApis,
+	private val rawPatientApi: RawPatientApi,
+	private val bridgeConfig: BridgeConfig,
+	private val patientMapper: PatientMapper,
+	private val patientFilterMapper: PatientFilterMapper,
 ) : BaseKmehrTest() {
-
-	private val jwtAuthPublicKey = JwtKeyUtils.decodePublicKeyFromString(jwtAuthPublicKeyAsString)
 
 	init {
 		runBlocking {
@@ -40,12 +41,11 @@ class PatientLogicBridgeTest(
 				bridgeConfig.iCureUrl,
 				KmehrTestApplication.masterHcp.login,
 				KmehrTestApplication.masterHcp.password,
-				jwtAuthPublicKey
 			)
 
 			val patientBridge = PatientLogicBridge(
-				KmehrTestApplication.fakeSessionLogic,
-				bridgeConfig,
+				sdk = sdk,
+				rawPatientApi = rawPatientApi,
 				patientMapper,
 				patientFilterMapper
 			)
@@ -56,7 +56,7 @@ class PatientLogicBridgeTest(
 
 }
 
-private suspend fun StringSpec.patientLogicBridgeTest(
+private fun StringSpec.patientLogicBridgeTest(
 	credentials: UserCredentials,
 	patientBridge: PatientLogicBridge
 ) {
@@ -95,11 +95,9 @@ private suspend fun StringSpec.patientLogicBridgeTest(
 		}
 	}
 
-	"Trying to retrieve a non-existing Patient will result in a 404 Client exception" {
+	"Trying to retrieve a non-existing Patient will return null" {
 		withAuthenticatedReactorContext(credentials) {
-			shouldThrow<RequestStatusException> { patientBridge.getPatient(uuid()) }.also {
-				it.statusCode shouldBe 404
-			}
+			patientBridge.getPatient(uuid()) shouldBe null
 		}
 	}
 
