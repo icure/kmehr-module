@@ -1,6 +1,7 @@
 package org.taktik.icure.test
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.icure.cardinal.sdk.api.raw.RawApiConfig
 import com.icure.cardinal.sdk.api.raw.impl.RawGroupApiImpl
 import com.icure.cardinal.sdk.api.raw.impl.RawHealthcarePartyApiImpl
 import com.icure.cardinal.sdk.api.raw.impl.RawPermissionApiImpl
@@ -11,12 +12,12 @@ import com.icure.cardinal.sdk.model.User
 import com.icure.cardinal.sdk.model.security.AlwaysPermissionItem
 import com.icure.cardinal.sdk.model.security.Permission
 import com.icure.cardinal.sdk.model.security.PermissionType
+import com.icure.cardinal.sdk.options.RequestRetryConfiguration
 import com.icure.utils.InternalIcureApi
 import com.icure.cardinal.sdk.utils.Serialization
-import com.icure.test.setup.ICureTestSetup
-import io.ktor.client.*
+import io.ktor.client.plugins.expectSuccess
 import io.ktor.client.request.*
-import io.ktor.http.*
+import io.ktor.client.statement.bodyAsText
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
@@ -28,12 +29,13 @@ import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.PropertySource
+import org.springframework.test.context.ContextConfiguration
 import org.taktik.icure.asyncdao.InternalDAO
 import org.taktik.icure.asynclogic.impl.BridgeAsyncSessionLogic
 import org.taktik.icure.config.BridgeConfig
-import org.taktik.icure.entities.UserType
+import org.taktik.icure.security.jwt.JwtKeyUtils
 import org.taktik.icure.test.fake.components.FakeBridgeCredentialsManager
-import java.io.File
+import java.security.interfaces.RSAPublicKey
 
 @SpringBootApplication(
 	scanBasePackages = [
@@ -62,6 +64,7 @@ import java.io.File
 		"org.taktik.icure.test.fake.wscontrollers"
 	]
 )
+@ContextConfiguration(initializers = [EnvironmentBootstrapper::class])
 @PropertySource("classpath:kmehr-test.properties")
 @TestConfiguration
 class KmehrTestApplication {
@@ -70,13 +73,11 @@ class KmehrTestApplication {
 		lateinit var groupId: String
 		lateinit var masterHcp: UserCredentials
 		lateinit var fakeSessionLogic: BridgeAsyncSessionLogic
+		lateinit var jwtAuthPublicKey: RSAPublicKey
 	}
 
 	@Value("\${icure.backend.url}")
 	val baseICurePath = ""
-
-	private val composeDir = "src/test/resources/docker"
-	private val krakenCompose = System.getenv("KRAKEN_COMPOSE") ?: "file://$composeDir/docker-compose-cloud.yaml"
 
 	@OptIn(InternalIcureApi::class)
 	@Bean
@@ -86,31 +87,48 @@ class KmehrTestApplication {
 		internalDaos: List<InternalDAO<*>>
 	) = ApplicationRunner {
 		runBlocking {
-			ICureTestSetup.startKrakenEnvironment(krakenCompose, emptyList(), composeDir)
-			ICureTestSetup.bootstrapCloud("xx", "xx", uuid(), "john", couchDbUser = "icure", couchDbPassword = "icure", rootUserRoles = defaultRoles) //pragma: allowlist secret
-			loadRolesInConfig()
 			val authProvider = getAuthProvider(baseICurePath, "john", "LetMeIn")
 			val groupApi = RawGroupApiImpl(
 				apiUrl = baseICurePath,
 				authProvider = authProvider,
-				httpClient = testHttpClient,
-				json = Serialization.json
+				rawApiConfig = RawApiConfig(
+					httpClient = testHttpClient,
+					json = Serialization.json,
+					additionalHeaders = emptyMap(),
+					requestTimeout = null,
+					retryConfiguration = RequestRetryConfiguration(),
+				)
 			)
 			val userApi = RawUserApiImpl(
 				apiUrl = baseICurePath,
 				authProvider = authProvider,
-				httpClient = testHttpClient,
-				json = Serialization.json
+				rawApiConfig = RawApiConfig(
+					httpClient = testHttpClient,
+					json = Serialization.json,
+					additionalHeaders = emptyMap(),
+					requestTimeout = null,
+					retryConfiguration = RequestRetryConfiguration(),
+				)
 			)
 			val hcpApi = RawHealthcarePartyApiImpl(
 				apiUrl = baseICurePath,
 				authProvider = authProvider,
-				httpClient = testHttpClient,
-				json = Serialization.json
+				rawApiConfig = RawApiConfig(
+					httpClient = testHttpClient,
+					json = Serialization.json,
+					additionalHeaders = emptyMap(),
+					requestTimeout = null,
+					retryConfiguration = RequestRetryConfiguration(),
+				)
 			)
 
+			val jwtAuthPublicKeyAsString = testHttpClient.get("$baseICurePath/rest/v2/auth/publicKey/authJwt") {
+				expectSuccess = true
+			}.bodyAsText()
+			jwtAuthPublicKey = JwtKeyUtils.decodePublicKeyFromString(jwtAuthPublicKeyAsString)
+
 			val testGroupId = groupApi.listGroups().successBody().firstOrNull{ it.id.startsWith("e2e-test") }?.id
-				?: "e2e-test-${uuid().subSequence(0,6)}".also {
+				?: "e2e-test-${uuid()}".also {
 					groupApi.createGroup(
 						id = it,
 						name = "test",
@@ -155,9 +173,10 @@ class KmehrTestApplication {
 			groupId = testGroupId
 			masterHcp = UserCredentials(createdUser.id, userLogin, userPwd, createdHcp.id)
 			fakeSessionLogic = BridgeAsyncSessionLogic(
-				bridgeConfig,
-				FakeBridgeCredentialsManager(bridgeConfig, masterHcp.login, masterHcp.password),
-				objectMapper
+				bridgeConfig = bridgeConfig,
+				credentialsManager = FakeBridgeCredentialsManager(bridgeConfig, masterHcp.login, masterHcp.password),
+				objectMapper = objectMapper,
+				httpClient = testHttpClient,
 			)
 		}
 	}
@@ -168,8 +187,13 @@ class KmehrTestApplication {
 		RawUserApiImpl(
 			apiUrl = baseICurePath,
 			authProvider = authProvider,
-			httpClient = testHttpClient,
-			json = Serialization.json
+			rawApiConfig = RawApiConfig(
+				httpClient = testHttpClient,
+				json = Serialization.json,
+				additionalHeaders = emptyMap(),
+				requestTimeout = null,
+				retryConfiguration = RequestRetryConfiguration(),
+			)
 		).getCurrentUser().successBody()
 	}.retry(5) {
 		delay(2_000)
@@ -182,8 +206,13 @@ class KmehrTestApplication {
 		RawPermissionApiImpl(
 			apiUrl = baseICurePath,
 			authProvider = authProvider,
-			httpClient = testHttpClient,
-			json = Serialization.json
+			rawApiConfig = RawApiConfig(
+				httpClient = testHttpClient,
+				json = Serialization.json,
+				additionalHeaders = emptyMap(),
+				requestTimeout = null,
+				retryConfiguration = RequestRetryConfiguration(),
+			)
 		).modifyUserPermissions(
 			"$groupId:$userId",
 			Permission(
@@ -198,21 +227,4 @@ class KmehrTestApplication {
 		delay(2_000)
 		true
 	}.collect()
-
-	private suspend fun loadRolesInConfig() {
-		val payload = File("src/test/resources/roles.json").readText()
-		val client = HttpClient()
-		client.post("http://localhost:15984/icure-__-config/_bulk_docs") {
-			basicAuth("icure", "icure")
-			contentType(ContentType.Application.Json)
-			setBody(payload)
-		}
-	}
-
-	private val defaultRoles = mapOf(
-		UserType.PATIENT.name to listOf("BASIC_USER", "BASIC_DATA_OWNER"),
-		UserType.HCP.name to listOf("BASIC_USER", "BASIC_DATA_OWNER", "PATIENT_USER_MANAGER", "LEGACY_HCP"),
-		UserType.DEVICE.name to listOf("BASIC_USER", "BASIC_DATA_OWNER"),
-		UserType.USER.name to listOf("BASIC_USER")
-	)
 }

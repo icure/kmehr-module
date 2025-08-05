@@ -18,10 +18,7 @@ import org.taktik.icure.services.external.http.websocket.annotation.WSRequestMap
 class FakeWsController(
 	private val hcpBridge: HealthcarePartyLogicBridge,
 	private val sessionLogic: BridgeAsyncSessionLogic,
-	@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String
 ) : WsController {
-
-	private val jwtAuthPublicKey = JwtKeyUtils.decodePublicKeyFromString(jwtAuthPublicKeyAsString)
 
 	private fun isJwtExpired(jwt: String): Boolean {
 		val expirationSeconds = JwtDecoder.decodeExpirationSeconds(jwt)

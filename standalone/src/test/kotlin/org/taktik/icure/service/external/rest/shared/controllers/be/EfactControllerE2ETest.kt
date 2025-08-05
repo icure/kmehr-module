@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import com.icure.cardinal.sdk.api.raw.RawApiConfig
 import com.icure.cardinal.sdk.api.raw.impl.RawEntityReferenceApiImpl
 import com.icure.cardinal.sdk.api.raw.impl.RawHealthcarePartyApiImpl
 import com.icure.cardinal.sdk.api.raw.impl.RawInsuranceApiImpl
@@ -23,6 +24,7 @@ import com.icure.cardinal.sdk.model.embed.EncryptedInvoicingCode
 import com.icure.cardinal.sdk.model.security.AlwaysPermissionItem
 import com.icure.cardinal.sdk.model.security.Permission
 import com.icure.cardinal.sdk.model.security.PermissionType
+import com.icure.cardinal.sdk.options.RequestRetryConfiguration
 import com.icure.utils.InternalIcureApi
 import com.icure.cardinal.sdk.utils.Serialization
 import io.kotest.core.spec.style.StringSpec
@@ -31,17 +33,15 @@ import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.TestInstance
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.web.server.LocalServerPort
-import org.taktik.icure.asynclogic.bridge.auth.KmehrAuthProvider
 import org.taktik.icure.config.BridgeConfig
-import org.taktik.icure.security.jwt.JwtKeyUtils
 import org.taktik.icure.service.external.rest.shared.controllers.be.EfactControllerE2ETest.Companion.createHcpWithBankInfo
 import org.taktik.icure.service.external.rest.shared.controllers.be.EfactControllerE2ETest.Companion.createInsurance
 import org.taktik.icure.service.external.rest.shared.controllers.be.EfactControllerE2ETest.Companion.generateInvoices
 import org.taktik.icure.service.external.rest.shared.controllers.be.EfactControllerE2ETest.Companion.objectMapper
 import org.taktik.icure.services.external.rest.v1.dto.be.efact.MessageWithBatch
 import org.taktik.icure.test.BaseKmehrTest
+import org.taktik.icure.test.KmehrAuthProvider
 import org.taktik.icure.test.KmehrTestApplication
 import org.taktik.icure.test.TestHttpClient
 import org.taktik.icure.test.UserCredentials
@@ -51,7 +51,6 @@ import org.taktik.icure.test.getAuthProvider
 import org.taktik.icure.test.ssin
 import org.taktik.icure.test.testHttpClient
 import org.taktik.icure.test.uuid
-import java.security.interfaces.RSAPublicKey
 import kotlin.random.Random
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -59,10 +58,7 @@ class EfactControllerE2ETest(
 	@LocalServerPort val port: Int,
 	val httpClient: TestHttpClient,
 	val bridgeConfig: BridgeConfig,
-	@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String,
 ) : BaseKmehrTest() {
-
-	private val jwtAuthPublicKey = JwtKeyUtils.decodePublicKeyFromString(jwtAuthPublicKeyAsString)
 
 	companion object {
 
@@ -74,9 +70,14 @@ class EfactControllerE2ETest(
 			RawInvoiceApiImpl(
 				apiUrl = iCureUrl,
 				authProvider = KmehrAuthProvider(jwt),
-				httpClient = testHttpClient,
-				json = Serialization.json,
-				accessControlKeysHeadersProvider = NoAccessControlKeysHeadersProvider
+				accessControlKeysHeadersProvider = NoAccessControlKeysHeadersProvider,
+				rawApiConfig = RawApiConfig(
+					httpClient = testHttpClient,
+					json = Serialization.json,
+					additionalHeaders = emptyMap(),
+					requestTimeout = null,
+					retryConfiguration = RequestRetryConfiguration(),
+				)
 			).createInvoices(
 				(0 .. 2).fold(emptyList()) { acc, it ->
 					acc + EncryptedInvoice(
@@ -98,8 +99,13 @@ class EfactControllerE2ETest(
 		suspend fun createInsurance(iCureUrl: String) = RawInsuranceApiImpl(
 			apiUrl = iCureUrl,
 			authProvider = getAuthProvider(iCureUrl, KmehrTestApplication.masterHcp.login, KmehrTestApplication.masterHcp.password),
-			httpClient = testHttpClient,
-			json = Serialization.json
+			rawApiConfig = RawApiConfig(
+				httpClient = testHttpClient,
+				json = Serialization.json,
+				additionalHeaders = emptyMap(),
+				requestTimeout = null,
+				retryConfiguration = RequestRetryConfiguration(),
+			)
 		).createInsurance(
 			Insurance(
 				id = uuid(),
@@ -113,20 +119,23 @@ class EfactControllerE2ETest(
 			iCureUrl: String,
 			hasCbe: Boolean = false,
 			hasNihii: Boolean = false,
-			insuranceCode: String? = null,
-			jwtAuthPublicKey: RSAPublicKey,
+			insuranceCode: String? = null
 		): UserCredentials {
 			val hcp = createHealthcarePartyUser(
 				iCureUrl,
 				KmehrTestApplication.masterHcp.login,
-				KmehrTestApplication.masterHcp.password,
-				jwtAuthPublicKey
+				KmehrTestApplication.masterHcp.password
 			)
 			RawHealthcarePartyApiImpl(
 				apiUrl = iCureUrl,
 				authProvider = getAuthProvider(iCureUrl, KmehrTestApplication.masterHcp.login, KmehrTestApplication.masterHcp.password),
-				httpClient = testHttpClient,
-				json = Serialization.json
+				rawApiConfig = RawApiConfig(
+					httpClient = testHttpClient,
+					json = Serialization.json,
+					additionalHeaders = emptyMap(),
+					requestTimeout = null,
+					retryConfiguration = RequestRetryConfiguration(),
+				)
 			).let { api ->
 				val oldHcp = api.getHealthcareParty(hcp.dataOwnerId!!).successBody()
 				api.modifyHealthcareParty(
@@ -150,8 +159,13 @@ class EfactControllerE2ETest(
 			RawPermissionApiImpl(
 				apiUrl = iCureUrl,
 				authProvider = getAuthProvider(iCureUrl, KmehrTestApplication.masterHcp.login, KmehrTestApplication.masterHcp.password),
-				httpClient = testHttpClient,
-				json = Serialization.json
+				rawApiConfig = RawApiConfig(
+					httpClient = testHttpClient,
+					json = Serialization.json,
+					additionalHeaders = emptyMap(),
+					requestTimeout = null,
+					retryConfiguration = RequestRetryConfiguration(),
+				)
 			).modifyUserPermissions(
 				"${KmehrTestApplication.groupId}:${hcp.userId}",
 				Permission(
@@ -172,7 +186,6 @@ class EfactControllerE2ETest(
 				httpClient = httpClient,
 				iCureUrl = bridgeConfig.iCureUrl,
 				khmerUrl = "http://127.0.0.1:$port",
-				jwtAuthPublicKey = jwtAuthPublicKey,
 			)
 		}
 	}
@@ -182,8 +195,7 @@ class EfactControllerE2ETest(
 private fun StringSpec.eFactControllerTest(
 	httpClient: TestHttpClient,
 	iCureUrl: String,
-	khmerUrl: String,
-	jwtAuthPublicKey: RSAPublicKey
+	khmerUrl: String
 ) {
 
 	fun createMapOfIdsPayload(map: Map<String, List<String>>, apiVersion: String) =
@@ -201,7 +213,6 @@ private fun StringSpec.eFactControllerTest(
 		val insurance = createInsurance(iCureUrl)
 		val hcpCredentials = createHcpWithBankInfo(
 			iCureUrl = iCureUrl,
-			jwtAuthPublicKey = jwtAuthPublicKey,
 			hasCbe = true,
 			hasNihii = true,
 			insuranceCode = insurance.code
@@ -210,21 +221,36 @@ private fun StringSpec.eFactControllerTest(
 		val hcpApi = RawHealthcarePartyApiImpl(
 			apiUrl = iCureUrl,
 			authProvider = KmehrAuthProvider(hcpCredentials.authJWT.shouldNotBeNull()),
-			httpClient = testHttpClient,
-			json = Serialization.json
+			rawApiConfig = RawApiConfig(
+				httpClient = testHttpClient,
+				json = Serialization.json,
+				additionalHeaders = emptyMap(),
+				requestTimeout = null,
+				retryConfiguration = RequestRetryConfiguration(),
+			)
 		)
 		val entityRefApi = RawEntityReferenceApiImpl(
 			apiUrl = iCureUrl,
 			authProvider = KmehrAuthProvider(hcpCredentials.authJWT.shouldNotBeNull()),
-			httpClient = testHttpClient,
-			json = Serialization.json
+			rawApiConfig = RawApiConfig(
+				httpClient = testHttpClient,
+				json = Serialization.json,
+				additionalHeaders = emptyMap(),
+				requestTimeout = null,
+				retryConfiguration = RequestRetryConfiguration(),
+			)
 		)
 		val patientApi = RawPatientApiImpl(
 			apiUrl = iCureUrl,
 			authProvider = KmehrAuthProvider(hcpCredentials.authJWT.shouldNotBeNull()),
-			httpClient = testHttpClient,
-			json = Serialization.json,
-			accessControlKeysHeadersProvider = NoAccessControlKeysHeadersProvider
+			accessControlKeysHeadersProvider = NoAccessControlKeysHeadersProvider,
+			rawApiConfig = RawApiConfig(
+				httpClient = testHttpClient,
+				json = Serialization.json,
+				additionalHeaders = emptyMap(),
+				requestTimeout = null,
+				retryConfiguration = RequestRetryConfiguration(),
+			)
 		)
 
 		val hcp = hcpApi.getHealthcareParty(hcpCredentials.dataOwnerId.shouldNotBeNull()).successBody()
@@ -303,7 +329,6 @@ private fun StringSpec.eFactControllerTest(
 	"Creating a message with batch without a valid Insurance will receive in a 404" {
 		val hcpCredentials = createHcpWithBankInfo(
 			iCureUrl = iCureUrl,
-			jwtAuthPublicKey = jwtAuthPublicKey,
 			hasCbe = true,
 			hasNihii = true
 		)
@@ -321,7 +346,6 @@ private fun StringSpec.eFactControllerTest(
 		val insurance = createInsurance(iCureUrl)
 		val hcpCredentials = createHcpWithBankInfo(
 			iCureUrl = iCureUrl,
-			jwtAuthPublicKey = jwtAuthPublicKey,
 			hasCbe = true,
 			hasNihii = true
 		)
@@ -339,7 +363,6 @@ private fun StringSpec.eFactControllerTest(
 		val insurance = createInsurance(iCureUrl)
 		val hcpCredentials = createHcpWithBankInfo(
 			iCureUrl = iCureUrl,
-			jwtAuthPublicKey = jwtAuthPublicKey,
 			hasCbe = false,
 			hasNihii = true,
 			insuranceCode = insurance.code
@@ -348,21 +371,36 @@ private fun StringSpec.eFactControllerTest(
 		val hcpApi = RawHealthcarePartyApiImpl(
 			apiUrl = iCureUrl,
 			authProvider = KmehrAuthProvider(hcpCredentials.authJWT.shouldNotBeNull()),
-			httpClient = testHttpClient,
-			json = Serialization.json
+			rawApiConfig = RawApiConfig(
+				httpClient = testHttpClient,
+				json = Serialization.json,
+				additionalHeaders = emptyMap(),
+				requestTimeout = null,
+				retryConfiguration = RequestRetryConfiguration(),
+			)
 		)
 		val entityRefApi = RawEntityReferenceApiImpl(
 			apiUrl = iCureUrl,
 			authProvider = KmehrAuthProvider(hcpCredentials.authJWT.shouldNotBeNull()),
-			httpClient = testHttpClient,
-			json = Serialization.json
+			rawApiConfig = RawApiConfig(
+				httpClient = testHttpClient,
+				json = Serialization.json,
+				additionalHeaders = emptyMap(),
+				requestTimeout = null,
+				retryConfiguration = RequestRetryConfiguration(),
+			)
 		)
 		val patientApi = RawPatientApiImpl(
 			apiUrl = iCureUrl,
 			authProvider = KmehrAuthProvider(hcpCredentials.authJWT.shouldNotBeNull()),
-			httpClient = testHttpClient,
-			json = Serialization.json,
-			accessControlKeysHeadersProvider = NoAccessControlKeysHeadersProvider
+			accessControlKeysHeadersProvider = NoAccessControlKeysHeadersProvider,
+			rawApiConfig = RawApiConfig(
+				httpClient = testHttpClient,
+				json = Serialization.json,
+				additionalHeaders = emptyMap(),
+				requestTimeout = null,
+				retryConfiguration = RequestRetryConfiguration(),
+			)
 		)
 
 		val hcp = hcpApi.getHealthcareParty(hcpCredentials.dataOwnerId.shouldNotBeNull()).successBody()
@@ -396,7 +434,6 @@ private fun StringSpec.eFactControllerTest(
 		val insurance = createInsurance(iCureUrl)
 		val hcpCredentials = createHcpWithBankInfo(
 			iCureUrl = iCureUrl,
-			jwtAuthPublicKey = jwtAuthPublicKey,
 			hasCbe = true,
 			hasNihii = false,
 			insuranceCode = insurance.code
@@ -405,21 +442,36 @@ private fun StringSpec.eFactControllerTest(
 		val hcpApi = RawHealthcarePartyApiImpl(
 			apiUrl = iCureUrl,
 			authProvider = KmehrAuthProvider(hcpCredentials.authJWT.shouldNotBeNull()),
-			httpClient = testHttpClient,
-			json = Serialization.json
+			rawApiConfig = RawApiConfig(
+				httpClient = testHttpClient,
+				json = Serialization.json,
+				additionalHeaders = emptyMap(),
+				requestTimeout = null,
+				retryConfiguration = RequestRetryConfiguration(),
+			)
 		)
 		val entityRefApi = RawEntityReferenceApiImpl(
 			apiUrl = iCureUrl,
 			authProvider = KmehrAuthProvider(hcpCredentials.authJWT.shouldNotBeNull()),
-			httpClient = testHttpClient,
-			json = Serialization.json
+			rawApiConfig = RawApiConfig(
+				httpClient = testHttpClient,
+				json = Serialization.json,
+				additionalHeaders = emptyMap(),
+				requestTimeout = null,
+				retryConfiguration = RequestRetryConfiguration(),
+			)
 		)
 		val patientApi = RawPatientApiImpl(
 			apiUrl = iCureUrl,
 			authProvider = KmehrAuthProvider(hcpCredentials.authJWT.shouldNotBeNull()),
-			httpClient = testHttpClient,
-			json = Serialization.json,
-			accessControlKeysHeadersProvider = NoAccessControlKeysHeadersProvider
+			accessControlKeysHeadersProvider = NoAccessControlKeysHeadersProvider,
+			rawApiConfig = RawApiConfig(
+				httpClient = testHttpClient,
+				json = Serialization.json,
+				additionalHeaders = emptyMap(),
+				requestTimeout = null,
+				retryConfiguration = RequestRetryConfiguration(),
+			)
 		)
 
 		val hcp = hcpApi.getHealthcareParty(hcpCredentials.dataOwnerId.shouldNotBeNull()).successBody()
@@ -453,7 +505,6 @@ private fun StringSpec.eFactControllerTest(
 		val insurance = createInsurance(iCureUrl)
 		val hcpCredentials = createHcpWithBankInfo(
 			iCureUrl = iCureUrl,
-			jwtAuthPublicKey = jwtAuthPublicKey,
 			hasCbe = true,
 			hasNihii = true
 		)
@@ -461,21 +512,36 @@ private fun StringSpec.eFactControllerTest(
 		val hcpApi = RawHealthcarePartyApiImpl(
 			apiUrl = iCureUrl,
 			authProvider = KmehrAuthProvider(hcpCredentials.authJWT.shouldNotBeNull()),
-			httpClient = testHttpClient,
-			json = Serialization.json
+			rawApiConfig = RawApiConfig(
+				httpClient = testHttpClient,
+				json = Serialization.json,
+				additionalHeaders = emptyMap(),
+				requestTimeout = null,
+				retryConfiguration = RequestRetryConfiguration(),
+			)
 		)
 		val entityRefApi = RawEntityReferenceApiImpl(
 			apiUrl = iCureUrl,
 			authProvider = KmehrAuthProvider(hcpCredentials.authJWT.shouldNotBeNull()),
-			httpClient = testHttpClient,
-			json = Serialization.json
+			rawApiConfig = RawApiConfig(
+				httpClient = testHttpClient,
+				json = Serialization.json,
+				additionalHeaders = emptyMap(),
+				requestTimeout = null,
+				retryConfiguration = RequestRetryConfiguration(),
+			)
 		)
 		val patientApi = RawPatientApiImpl(
 			apiUrl = iCureUrl,
 			authProvider = KmehrAuthProvider(hcpCredentials.authJWT.shouldNotBeNull()),
-			httpClient = testHttpClient,
-			json = Serialization.json,
-			accessControlKeysHeadersProvider = NoAccessControlKeysHeadersProvider
+			accessControlKeysHeadersProvider = NoAccessControlKeysHeadersProvider,
+			rawApiConfig = RawApiConfig(
+				httpClient = testHttpClient,
+				json = Serialization.json,
+				additionalHeaders = emptyMap(),
+				requestTimeout = null,
+				retryConfiguration = RequestRetryConfiguration(),
+			)
 		)
 
 		val hcp = hcpApi.getHealthcareParty(hcpCredentials.dataOwnerId.shouldNotBeNull()).successBody()

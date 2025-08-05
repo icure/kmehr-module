@@ -31,13 +31,12 @@ import org.taktik.icure.asyncdao.samv2.impl.SubstanceDAOImpl
 import org.taktik.icure.asyncdao.samv2.impl.VerseDAOImpl
 import org.taktik.icure.asyncdao.samv2.impl.VmpDAOImpl
 import org.taktik.icure.asyncdao.samv2.impl.VmpGroupDAOImpl
-import org.taktik.icure.asynclogic.datastore.DatastoreInstanceProvider
+import org.taktik.icure.datastore.DatastoreInstanceProvider
 import org.taktik.icure.asynclogic.samv2.UpdatesBridge
 import org.taktik.icure.asynclogic.samv2.impl.SamV2Updater
 import org.taktik.icure.dao.CouchDbDispatcherProvider
 import org.taktik.icure.properties.SAMCouchDbProperties
 import org.taktik.icure.security.CouchDbCredentialsProvider
-
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @Configuration

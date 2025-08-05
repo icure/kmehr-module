@@ -417,17 +417,17 @@ open class KmehrExport(
     }
 
     protected fun documentMediaType(d: Document) =
-        (listOf(d.mainUti) + d.otherUtis).map {
-            UTI.get(it)?.mimeTypes?.firstOrNull()?.let {
-                try {
-                    CDMEDIATYPEvalues.fromValue(it)
-                } catch (ignored: IllegalArgumentException) {
-                    null
-                }
-            }
-        }.filterNotNull().firstOrNull()
+	    (listOf(d.mainUti) + d.otherUtis).firstNotNullOfOrNull {
+		    UTI.get(it)?.mimeTypes?.firstOrNull()?.let {
+			    try {
+				    CDMEDIATYPEvalues.fromValue(it)
+			    } catch (ignored: IllegalArgumentException) {
+				    null
+			    }
+		    }
+	    }
 
-    fun fillMedicationItem(svc: Service, item: ItemType, lang: String) {
+	fun fillMedicationItem(svc: Service, item: ItemType, lang: String) {
         addServiceCodesAndTags(svc, item, true, listOf("CD-ATC"), null, listOf("CD-TRANSACTION", "CD-TRANSACTION-TYPE"))
 
         val c = svc.content[lang]?.let { if (it.medicationValue?.let { it.medicinalProduct ?: it.substanceProduct ?: it.compoundPrescription } != null) it else null }

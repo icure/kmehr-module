@@ -1,5 +1,8 @@
 package org.taktik.icure.asynclogic.bridge
 
+import com.icure.cardinal.sdk.CardinalBaseApis
+import com.icure.cardinal.sdk.api.raw.RawHealthElementApi
+import com.icure.utils.InternalIcureApi
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.nulls.shouldNotBeNull
@@ -11,23 +14,21 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.TestInstance
-import org.springframework.beans.factory.annotation.Value
 import org.taktik.icure.asynclogic.bridge.mappers.HealthElementMapper
 import org.taktik.icure.config.BridgeConfig
 import org.taktik.icure.entities.HealthElement
 import org.taktik.icure.entities.embed.Delegation
-import org.taktik.icure.security.jwt.JwtKeyUtils
 import org.taktik.icure.test.*
 import kotlin.random.Random
 
+@OptIn(InternalIcureApi::class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class HealthElementLogicBridgeTest(
-	val bridgeConfig: BridgeConfig,
-	val heMapper: HealthElementMapper,
-	@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String
+	private val sdk: CardinalBaseApis,
+	private val rawHealthElementApi: RawHealthElementApi,
+	private val bridgeConfig: BridgeConfig,
+	private val heMapper: HealthElementMapper,
 ) : BaseKmehrTest() {
-
-	private val jwtAuthPublicKey = JwtKeyUtils.decodePublicKeyFromString(jwtAuthPublicKeyAsString)
 
 	init {
 		runBlocking {
@@ -35,13 +36,12 @@ class HealthElementLogicBridgeTest(
 				bridgeConfig.iCureUrl,
 				KmehrTestApplication.masterHcp.login,
 				KmehrTestApplication.masterHcp.password,
-				jwtAuthPublicKey
 			)
 
 			val heBridge = HealthElementLogicBridge(
-				KmehrTestApplication.fakeSessionLogic,
-				bridgeConfig,
-				heMapper
+				sdk = sdk,
+				rawHealthElementApi = rawHealthElementApi,
+				healthElementMapper = heMapper
 			)
 
 			healthcarePartyLogicBridgeTest(hcp, heBridge)

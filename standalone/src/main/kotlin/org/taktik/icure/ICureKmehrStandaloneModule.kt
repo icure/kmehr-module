@@ -71,33 +71,6 @@ open class ICureEhrStandaloneModule {
         log.info("Standalone sam module is started")
     }
 
-//    @Component
-//    @Profile("cmd")
-//    class Commander(val applicationContext: ConfigurableApplicationContext) : CommandLineRunner {
-//        private val log = LoggerFactory.getLogger(this.javaClass)
-//        @ExperimentalCoroutinesApi
-//        override fun run(vararg args: String) {
-//            if (args.firstOrNull() != "cmd") {
-//                throw IllegalStateException("first argument should be profile cmd")
-//            }
-//            val tailArgs = args.drop(1)
-//            log.info("icure commander started. Executing ${tailArgs.firstOrNull()}")
-//
-//            when (tailArgs.firstOrNull()) {
-//                "samv2" -> Samv2v5Import().parse(tailArgs.drop(1))
-//                "samv2check" -> Samv2v5Validate().parse(tailArgs.drop(1))
-//                "inami" -> InamiImport().parse(tailArgs.drop(1))
-//            }
-//            applicationContext.close()
-//
-//            runBlocking {
-//                //Give time for the application to close
-//                delay(30000)
-//                exitProcess(0)
-//            }
-//        }
-//    }
-
 }
 
 fun main(args: Array<String>) {

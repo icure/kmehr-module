@@ -1,5 +1,6 @@
 package org.taktik.icure.asynclogic.bridge
 
+import com.icure.cardinal.sdk.CardinalBaseApis
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
@@ -7,13 +8,12 @@ import kotlinx.coroutines.flow.count
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.TestInstance
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.security.access.AccessDeniedException
 import org.taktik.icure.asynclogic.bridge.mappers.FormTemplateMapper
 import org.taktik.icure.config.BridgeConfig
+import org.taktik.icure.config.CardinalSdkConfig
 import org.taktik.icure.entities.FormTemplate
 import org.taktik.icure.entities.base.CodeStub
-import org.taktik.icure.security.jwt.JwtKeyUtils
 import org.taktik.icure.test.BaseKmehrTest
 import org.taktik.icure.test.KmehrTestApplication
 import org.taktik.icure.test.UserCredentials
@@ -23,12 +23,11 @@ import org.taktik.icure.test.withAuthenticatedReactorContext
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class FormTemplateLogicBridgeTest(
-	val bridgeConfig: BridgeConfig,
-	val formTemplateMapper: FormTemplateMapper,
-	@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String
+	private val sdk: CardinalBaseApis,
+	private val formTemplateLegacyApi: CardinalSdkConfig.FormTemplateLegacyApi,
+	private val bridgeConfig: BridgeConfig,
+	private val formTemplateMapper: FormTemplateMapper,
 ) : BaseKmehrTest() {
-
-	private val jwtAuthPublicKey = JwtKeyUtils.decodePublicKeyFromString(jwtAuthPublicKeyAsString)
 
 	init {
 		runBlocking {
@@ -36,14 +35,14 @@ class FormTemplateLogicBridgeTest(
 				bridgeConfig.iCureUrl,
 				KmehrTestApplication.masterHcp.login,
 				KmehrTestApplication.masterHcp.password,
-				jwtAuthPublicKey
 			)
 
 
 			val formTemplateLogic = FormTemplateLogicBridge(
-				KmehrTestApplication.fakeSessionLogic,
-				bridgeConfig,
-				formTemplateMapper
+				sdk = sdk,
+				legacyFormTemplateApi = formTemplateLegacyApi,
+				asyncSessionLogic = KmehrTestApplication.fakeSessionLogic,
+				formTemplateMapper = formTemplateMapper,
 			)
 
 			formTemplateLogicBridgeTest(hcp, formTemplateLogic)

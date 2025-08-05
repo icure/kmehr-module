@@ -6,7 +6,7 @@ import com.icure.cardinal.sdk.model.LoginCredentials
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import io.ktor.client.*
-import io.ktor.client.engine.cio.*
+import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.websocket.*
 import io.ktor.client.request.*
@@ -30,7 +30,7 @@ class WebsocketAuthTest(
 	private val objectMapper: ObjectMapper
 ) : BaseKmehrTest() {
 
-	val client = HttpClient(CIO) {
+	val client = HttpClient(OkHttp) {
 		install(WebSockets)
 		install(ContentNegotiation) {
 			json()

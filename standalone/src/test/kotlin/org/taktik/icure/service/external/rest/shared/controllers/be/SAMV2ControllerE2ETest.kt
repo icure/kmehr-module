@@ -18,10 +18,10 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.TestInstance
 import org.springframework.beans.factory.annotation.Qualifier
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.context.ContextConfiguration
 import org.taktik.couchdb.create
 import org.taktik.icure.asyncdao.CouchDbDispatcher
 import org.taktik.icure.asyncdao.results.BulkSaveResult
@@ -44,13 +44,13 @@ import org.taktik.icure.entities.samv2.stub.VmpGroupStub
 import org.taktik.icure.entities.samv2.stub.VmpStub
 import org.taktik.icure.properties.CouchDbProperties
 import org.taktik.icure.security.jwt.JwtDecoder
-import org.taktik.icure.security.jwt.JwtKeyUtils
 import org.taktik.icure.services.external.rest.v1.dto.ListOfIdsDto
 import org.taktik.icure.services.external.rest.v1.dto.PaginatedList
 import org.taktik.icure.services.external.rest.v1.dto.samv2.AmpDto
 import org.taktik.icure.services.external.rest.v1.dto.samv2.NmpDto
 import org.taktik.icure.services.external.rest.v1.dto.samv2.VmpDto
 import org.taktik.icure.services.external.rest.v1.dto.samv2.VmpGroupDto
+import org.taktik.icure.test.EnvironmentBootstrapper
 import org.taktik.icure.test.KmehrTestApplication
 import org.taktik.icure.test.TestHttpClient
 import org.taktik.icure.test.UserCredentials
@@ -74,6 +74,7 @@ enum class CredentialsType { HCP, PATIENT }
 	],
 	webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
 )
+@ContextConfiguration(initializers = [EnvironmentBootstrapper::class])
 @ActiveProfiles(profiles = ["sam"])
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class SAMV2ControllerE2ETest(
@@ -87,10 +88,7 @@ class SAMV2ControllerE2ETest(
 	val objectMapper: ObjectMapper,
 	@Qualifier("drugCouchDbDispatcher") val couchDbDispatcher: CouchDbDispatcher,
 	val couchDbProperties: CouchDbProperties,
-	@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String
 ) : StringSpec() {
-
-	private val jwtAuthPublicKey = JwtKeyUtils.decodePublicKeyFromString(jwtAuthPublicKeyAsString)
 
 	private fun InputStream.toFlow() = flow {
 		do {
@@ -122,8 +120,7 @@ class SAMV2ControllerE2ETest(
 				CredentialsType.HCP -> createHealthcarePartyUser(
 					bridgeConfig.iCureUrl,
 					KmehrTestApplication.masterHcp.login,
-					KmehrTestApplication.masterHcp.password,
-					jwtAuthPublicKey = jwtAuthPublicKey
+					KmehrTestApplication.masterHcp.password
 				)
 				CredentialsType.PATIENT -> createPatientUser(
 					bridgeConfig.iCureUrl,

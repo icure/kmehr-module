@@ -1,6 +1,10 @@
 package org.taktik.icure.config
 
-import org.springframework.beans.factory.annotation.Value
+import io.ktor.client.HttpClient
+import io.ktor.client.plugins.expectSuccess
+import io.ktor.client.request.get
+import io.ktor.client.statement.bodyAsText
+import kotlinx.coroutines.runBlocking
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpMethod
@@ -24,8 +28,14 @@ class SecurityConfig {
 
 	@Bean
 	fun authenticationManager(
-		@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String,
+		bridgeConfig: BridgeConfig,
+		httpClient: HttpClient
 	): CustomAuthenticationManager {
+		val jwtAuthPublicKeyAsString = runBlocking {
+			httpClient.get("${bridgeConfig.iCureUrl}/rest/v2/auth/publicKey/authJwt") {
+				expectSuccess = true
+			}.bodyAsText()
+		}
 		val jwtAuthPublicKey = JwtKeyUtils.decodePublicKeyFromString(jwtAuthPublicKeyAsString)
 		return CustomAuthenticationManager(jwtAuthPublicKey)
 	}

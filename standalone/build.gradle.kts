@@ -2,8 +2,6 @@ import com.github.jk1.license.render.CsvReportRenderer
 import com.github.jk1.license.render.ReportRenderer
 import java.text.SimpleDateFormat
 import java.util.*
-
-@Suppress("DSL_SCOPE_VIOLATION") // TODO: Remove once KTIJ-19369 is fixed (https://youtrack.jetbrains.com/issue/KTIJ-19369)
 plugins {
     id("com.icure.kotlin-application-conventions")
     kotlin("plugin.serialization")
@@ -54,10 +52,6 @@ tasks.withType<org.springframework.boot.gradle.tasks.run.BootRun> {
 }
 
 configurations {
-    all {
-        exclude(group = "org.slf4j", module = "slf4j-log4j12")
-        exclude(group = "log4j", module = "log4j")
-    }
     listOf(apiElements, runtimeElements).forEach {
         it.get().outgoing.artifacts.removeIf {
             it.buildDependencies.getDependencies(null).any { it is Jar }
@@ -116,6 +110,13 @@ dependencies {
     implementation(kmehrLibs.jaxbRuntime)
 
     implementation(coreLibs.taktikBoot)
+
+    implementation(kmehrLibs.kotlinSerialization)
+    implementation(kmehrLibs.kotlinSerializationJvm)
+    implementation(kmehrLibs.kotlinSerializationCore)
+    implementation(kmehrLibs.kotlinSerializationCoreJvm)
+    implementation(kmehrLibs.kotlinSerializationBom)
+    implementation(kmehrLibs.kotlinSerializationProtobuf)
 
     implementation(kmehrLibs.credentialsRotation)
     implementation(coreLibs.websocketCommons)

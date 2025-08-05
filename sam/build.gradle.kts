@@ -1,11 +1,9 @@
-@Suppress("DSL_SCOPE_VIOLATION") // TODO: Remove once KTIJ-19369 is fixed (https://youtrack.jetbrains.com/issue/KTIJ-19369)
 plugins {
     id("com.icure.kotlin-library-conventions")
 
     alias(coreLibs.plugins.ksp)
     alias(coreLibs.plugins.mavenRepository)
     alias(coreLibs.plugins.gitVersion) apply(true)
-
     `maven-publish`
 }
 
@@ -36,10 +34,16 @@ dependencies {
 
     implementation(coreLibs.kotlinxCollectionsImmutableJvm)
 
+    implementation(kmehrLibs.kotlinSerialization)
+    implementation(kmehrLibs.kotlinSerializationJvm)
+    implementation(kmehrLibs.kotlinSerializationCore)
+    implementation(kmehrLibs.kotlinSerializationCoreJvm)
+    implementation(kmehrLibs.kotlinSerializationBom)
+    implementation(kmehrLibs.kotlinSerializationProtobuf)
+
     implementation(coreLibs.springBootWebflux)
     implementation(coreLibs.springBootSecurity)
 
-    implementation(coreLibs.mapstruct)
     implementation(coreLibs.kmapKsp)
 
     ksp(group = "io.icure", name = "kmap", version = coreLibs.versions.kmap.orNull)

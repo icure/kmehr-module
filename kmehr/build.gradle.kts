@@ -1,4 +1,3 @@
-@Suppress("DSL_SCOPE_VIOLATION") // TODO: Remove once KTIJ-19369 is fixed (https://youtrack.jetbrains.com/issue/KTIJ-19369)
 plugins {
     id("com.icure.kotlin-library-conventions")
 
@@ -14,23 +13,6 @@ val gitVersion: String? by project
 group = "org.taktik.icure"
 version = gitVersion ?: "0.0.1-SNAPSHOT"
 
-// publishing {
-//     publications {
-//         create<MavenPublication>("kmehr") {
-//             from(components["java"])
-//         }
-//     }
-// }
-//
-// tasks.withType<PublishToMavenLocal>().configureEach {
-//     val predicate = provider {
-//         publication == publishing.publications["kmehr"]
-//     }
-//     onlyIf("publishing to maven local") {
-//         predicate.get()
-//     }
-// }
-
 dependencies {
     ksp(group = "io.icure", name = "kmap", version = coreLibs.versions.kmap.orNull)
 
@@ -44,10 +26,8 @@ dependencies {
     implementation(files("../libs/ehvalidator-service-core-2.1.1.jar"))
 
     implementation(coreLibs.bundles.krouchLibs)
-
     implementation(coreLibs.springdocKotlin)
     implementation(coreLibs.springdocWebflux)
-
     implementation(coreLibs.kotlinxCoroutinesCore)
     implementation(coreLibs.kotlinxCoroutinesReactive)
     implementation(coreLibs.kotlinxCoroutinesReactor)
@@ -60,6 +40,13 @@ dependencies {
     implementation(kmehrLibs.jaxbApi)
     implementation(kmehrLibs.jaxbRuntime)
 
+    implementation(kmehrLibs.kotlinSerialization)
+    implementation(kmehrLibs.kotlinSerializationJvm)
+    implementation(kmehrLibs.kotlinSerializationCore)
+    implementation(kmehrLibs.kotlinSerializationCoreJvm)
+    implementation(kmehrLibs.kotlinSerializationBom)
+    implementation(kmehrLibs.kotlinSerializationProtobuf)
+
     implementation(coreLibs.commonsIO)
 
     implementation(kmehrLibs.mustacheJava)
@@ -70,7 +57,6 @@ dependencies {
 
     implementation(coreLibs.guava)
 
-    implementation(coreLibs.mapstruct)
     implementation(coreLibs.kmapKsp)
 
     implementation(coreLibs.websocketCommons)

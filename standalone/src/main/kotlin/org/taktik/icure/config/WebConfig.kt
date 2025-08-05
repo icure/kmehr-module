@@ -4,6 +4,12 @@ import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinFeature
 import com.fasterxml.jackson.module.kotlin.KotlinModule
+import com.icure.cardinal.sdk.utils.Serialization
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.okhttp.OkHttp
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.serialization.kotlinx.json.json
+import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.codec.ServerCodecConfigurer
 import org.springframework.http.codec.json.Jackson2JsonDecoder
@@ -49,6 +55,13 @@ class WebConfig : WebFluxConfigurer {
 			.allowedOriginPatterns("*")
 			.allowedMethods("*")
 			.allowedHeaders("*")
+	}
+
+	@Bean
+	fun ktorHttpClient(): HttpClient = HttpClient(OkHttp) {
+		install(ContentNegotiation) {
+			json(json = Serialization.json)
+		}
 	}
 
 }

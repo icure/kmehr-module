@@ -11,13 +11,11 @@ import org.taktik.couchdb.ViewQueryResultEvent
 import org.taktik.couchdb.ViewRowWithDoc
 import org.taktik.couchdb.entity.ComplexKey
 import org.taktik.icure.asyncdao.samv2.*
-import org.taktik.icure.asynclogic.datastore.DatastoreInstanceProvider
+import org.taktik.icure.datastore.DatastoreInstanceProvider
 import org.taktik.icure.asynclogic.samv2.SamV2Logic
 import org.taktik.icure.db.PaginationOffset
 import org.taktik.icure.db.sanitize
 import org.taktik.icure.entities.samv2.*
-import org.taktik.icure.entities.samv2.embed.AmpStatus
-import org.taktik.icure.entities.samv2.embed.Ampp
 import org.taktik.icure.entities.samv2.embed.SamText
 import org.taktik.icure.pagination.PaginationElement
 import org.taktik.icure.pagination.limitIncludingKey
@@ -25,7 +23,6 @@ import org.taktik.icure.pagination.toPaginatedFlow
 import org.taktik.icure.utils.aggregateResultsAsFlow
 import org.taktik.icure.utils.bufferedChunks
 import org.taktik.icure.utils.distinct
-import java.time.Duration
 import java.util.*
 
 @Service
@@ -289,6 +286,20 @@ class SamV2LogicImpl(
 	override fun listAmpsByDmppCodes(dmppCodes: List<String>): Flow<Amp> = flow {
 		val datastore = datastoreInstanceProvider.getInstanceAndGroup()
 		emitAll(ampDAO.listAmpsByDmppCodes(datastore, dmppCodes))
+	}
+
+	override fun listAmpNamesByDmppCode(dmppCode: String): Flow<SamText> = flow {
+		val datastore = datastoreInstanceProvider.getInstanceAndGroup()
+		emitAll(
+			ampDAO.listAmpsByDmppCodes(
+				datastoreInformation = datastore,
+				dmppCodes = listOf(dmppCode)
+			).filter {
+				it.hasValidAmpps(includeWithoutCommercializations = false)
+			}.mapNotNull {
+				it.name
+			}
+		)
 	}
 
 	override fun listAmpsByGroupIds(groupIds: List<String>): Flow<Amp> = flow {

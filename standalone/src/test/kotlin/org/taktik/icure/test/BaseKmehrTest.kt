@@ -3,6 +3,7 @@ package org.taktik.icure.test
 import io.kotest.core.spec.style.StringSpec
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.context.ContextConfiguration
 
 @Suppress("SpringBootApplicationProperties")
 @SpringBootTest(
@@ -14,5 +15,6 @@ import org.springframework.test.context.ActiveProfiles
     ],
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
 )
+@ContextConfiguration(initializers = [EnvironmentBootstrapper::class])
 @ActiveProfiles(profiles = ["kmehr"])
 abstract class BaseKmehrTest : StringSpec()

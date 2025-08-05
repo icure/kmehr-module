@@ -1,45 +1,28 @@
 package org.taktik.icure.asynclogic.bridge
 
-import com.icure.cardinal.sdk.api.raw.impl.RawFormApiImpl
-import com.icure.cardinal.sdk.api.raw.successBodyOrNull404
-import com.icure.cardinal.sdk.crypto.impl.NoAccessControlKeysHeadersProvider
+import com.icure.cardinal.sdk.api.raw.RawFormApi
 import com.icure.utils.InternalIcureApi
-import com.icure.cardinal.sdk.utils.Serialization
 import kotlinx.coroutines.flow.Flow
 import org.springframework.stereotype.Service
 import org.taktik.icure.asynclogic.FormLogic
-import org.taktik.icure.asynclogic.bridge.auth.KmehrAuthProvider
 import org.taktik.icure.asynclogic.bridge.mappers.FormMapper
-import org.taktik.icure.asynclogic.impl.BridgeAsyncSessionLogic
-import org.taktik.icure.config.BridgeConfig
 import org.taktik.icure.entities.Form
 import org.taktik.icure.entities.embed.Delegation
 import org.taktik.icure.entities.requests.BulkShareOrUpdateMetadataParams
 import org.taktik.icure.entities.requests.EntityBulkShareResult
-import org.taktik.icure.errors.UnauthorizedException
 import org.taktik.icure.exceptions.BridgeException
 
+@OptIn(InternalIcureApi::class)
 @Service
 class FormLogicBridge(
-    private val asyncSessionLogic: BridgeAsyncSessionLogic,
-    private val bridgeConfig: BridgeConfig,
+    private val rawFormApi: RawFormApi,
     private val formMapper: FormMapper
 ) : GenericLogicBridge<Form>(), FormLogic {
 
-    @OptIn(InternalIcureApi::class)
-    private suspend fun getApi() = asyncSessionLogic.getCurrentJWT()?.let { token ->
-        RawFormApiImpl(
-            apiUrl = bridgeConfig.iCureUrl,
-            authProvider = KmehrAuthProvider(token),
-            httpClient = bridgeHttpClient,
-            json = Serialization.json,
-            accessControlKeysHeadersProvider = NoAccessControlKeysHeadersProvider
-        )
-    } ?: throw UnauthorizedException("You must be logged in to perform this operation")
-
-    @OptIn(InternalIcureApi::class)
     override suspend fun createForm(form: Form): Form? =
-        getApi().createForm(form.let(formMapper::map)).successBodyOrNull404()?.let(formMapper::map)
+        rawFormApi.createForm(form.let(formMapper::map))
+            .successBody()
+            .let(formMapper::map)
 
     override suspend fun addDelegation(formId: String, delegation: Delegation): Form? {
         throw BridgeException()

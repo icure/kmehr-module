@@ -1,5 +1,6 @@
 package org.taktik.icure.exceptions
 
+import com.icure.utils.InternalIcureApi
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
@@ -7,6 +8,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.flow.toList
 import org.taktik.icure.asynclogic.bridge.CodeLogicBridge
 
+@OptIn(InternalIcureApi::class)
 class BridgeExceptionTest: StringSpec({
 
 	"Should write the unimplemented method in the message" {

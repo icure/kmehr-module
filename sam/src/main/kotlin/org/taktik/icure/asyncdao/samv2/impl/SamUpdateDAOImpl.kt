@@ -13,7 +13,7 @@ import org.taktik.couchdb.queryViewIncludeDocs
 import org.taktik.icure.asyncdao.CouchDbDispatcher
 import org.taktik.icure.asyncdao.impl.InternalDAOImpl
 import org.taktik.icure.asyncdao.samv2.SamUpdateDAO
-import org.taktik.icure.asynclogic.datastore.DatastoreInstanceProvider
+import org.taktik.icure.datastore.DatastoreInstanceProvider
 import org.taktik.icure.entities.samv2.updates.SamUpdate
 
 @View(name = "all", map = "function(doc) { if (doc.java_type == 'org.taktik.icure.entities.samv2.updates.SamUpdate') emit( null, doc._id )}", reduce = "function(keys, values, rereduce) { return values.reduce((maxValue, currentValue) => currentValue > maxValue ? currentValue : maxValue); }")

@@ -10,7 +10,6 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.TestInstance
-import org.springframework.beans.factory.annotation.Value
 import org.taktik.icure.asynclogic.bridge.ContactLogicBridge
 import org.taktik.icure.asynclogic.bridge.DocumentLogicBridge
 import org.taktik.icure.asynclogic.objectstorage.DataAttachmentChange
@@ -19,7 +18,6 @@ import org.taktik.icure.config.BridgeConfig
 import org.taktik.icure.entities.Contact
 import org.taktik.icure.entities.Document
 import org.taktik.icure.entities.base.CodeStub
-import org.taktik.icure.security.jwt.JwtKeyUtils
 import org.taktik.icure.test.BaseKmehrTest
 import org.taktik.icure.test.KmehrTestApplication
 import org.taktik.icure.test.UserCredentials
@@ -37,10 +35,7 @@ class HealthOneLogicTest(
 	private val bridgeConfig: BridgeConfig,
 	private val documentLogic: DocumentLogicBridge,
 	private val contactLogic: ContactLogicBridge,
-	@Value("\${jwt.auth.pub.key}") jwtAuthPublicKeyAsString: String
 ) : BaseKmehrTest() {
-
-	private val jwtAuthPublicKey = JwtKeyUtils.decodePublicKeyFromString(jwtAuthPublicKeyAsString)
 
 	companion object {
 
@@ -79,8 +74,7 @@ class HealthOneLogicTest(
 		createHealthcarePartyUser(
 			bridgeConfig.iCureUrl,
 			KmehrTestApplication.masterHcp.login,
-			KmehrTestApplication.masterHcp.password,
-			jwtAuthPublicKey
+			KmehrTestApplication.masterHcp.password
 		)
 	}
 
