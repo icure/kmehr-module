@@ -25,6 +25,7 @@ class SAMCouchDBCredentialsProvider(
         private val log = LoggerFactory.getLogger(SAMCouchDBCredentialsProvider::class.java)
     }
 
+	@Volatile
     private var currentCredentials = UsernamePassword(
         checkNotNull(properties.username) { "CouchDB username must not be null" },
         checkNotNull(properties.password) { "CouchDB password must not be null" }
