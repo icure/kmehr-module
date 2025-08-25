@@ -25,13 +25,14 @@ class SAMCouchDBCredentialsProvider(
         private val log = LoggerFactory.getLogger(SAMCouchDBCredentialsProvider::class.java)
     }
 
+	@Volatile
     private var currentCredentials = UsernamePassword(
         checkNotNull(properties.username) { "CouchDB username must not be null" },
         checkNotNull(properties.password) { "CouchDB password must not be null" }
     ).also {
         runBlocking {
-            val initialCredentialsOk = checkCredentialsSameOnAllClusters(it)?.also {
-                log.error("Invalid initial credentials: $it")
+            val initialCredentialsOk = checkCredentialsSameOnAllClusters(it)?.also { status ->
+                log.error("Invalid initial credentials: $status")
             } == null
             if(!initialCredentialsOk) {
                 throw IllegalStateException("Credentials stored in kubernetes are not valid")
@@ -79,9 +80,9 @@ class SAMCouchDBCredentialsProvider(
      */
     private suspend fun checkCredentialsSameOnAllNodes(credentials: UsernamePassword, clusterUrl: String): Boolean {
         val configurationClient = CouchDbConfigurationClientImpl(
-            clusterUrl,
-            checkNotNull(properties.username) { "CouchDB username must not be null" },
-            checkNotNull(properties.password) { "CouchDB password must not be null" }
+            url = clusterUrl,
+	        username = credentials.username,
+	        password = credentials.password
         )
         val members = configurationClient.getNodes()
         val adminsOfNodes = members.asFlow().map { configurationClient.getAdmins(it) }.toList()
