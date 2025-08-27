@@ -32,7 +32,7 @@ import org.taktik.icure.asyncdao.samv2.SubstanceDAO
 import org.taktik.icure.asyncdao.samv2.VerseDAO
 import org.taktik.icure.asyncdao.samv2.VmpDAO
 import org.taktik.icure.asyncdao.samv2.VmpGroupDAO
-import org.taktik.icure.datastore.DatastoreInstanceProvider
+import org.taktik.icure.asynclogic.datastore.DatastoreInstanceProvider
 import org.taktik.icure.asynclogic.samv2.UpdatesBridge
 import org.taktik.icure.db.PaginationOffset
 import org.taktik.icure.entities.base.StoredDocument

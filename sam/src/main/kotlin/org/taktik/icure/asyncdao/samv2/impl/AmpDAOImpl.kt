@@ -24,8 +24,8 @@ import org.taktik.couchdb.queryViewIncludeDocs
 import org.taktik.icure.asyncdao.CouchDbDispatcher
 import org.taktik.icure.asyncdao.impl.InternalDAOImpl
 import org.taktik.icure.asyncdao.samv2.AmpDAO
-import org.taktik.icure.datastore.DatastoreInstanceProvider
-import org.taktik.icure.datastore.IDatastoreInformation
+import org.taktik.icure.asynclogic.datastore.DatastoreInstanceProvider
+import org.taktik.icure.asynclogic.datastore.IDatastoreInformation
 import org.taktik.icure.db.PaginationOffset
 import org.taktik.icure.db.sanitizeString
 import org.taktik.icure.entities.samv2.Amp

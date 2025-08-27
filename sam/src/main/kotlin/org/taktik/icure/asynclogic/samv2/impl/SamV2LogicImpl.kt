@@ -11,7 +11,7 @@ import org.taktik.couchdb.ViewQueryResultEvent
 import org.taktik.couchdb.ViewRowWithDoc
 import org.taktik.couchdb.entity.ComplexKey
 import org.taktik.icure.asyncdao.samv2.*
-import org.taktik.icure.datastore.DatastoreInstanceProvider
+import org.taktik.icure.asynclogic.datastore.DatastoreInstanceProvider
 import org.taktik.icure.asynclogic.samv2.SamV2Logic
 import org.taktik.icure.db.PaginationOffset
 import org.taktik.icure.db.sanitize
