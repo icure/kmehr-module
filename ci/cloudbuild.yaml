@@ -29,7 +29,7 @@ steps:
 
   -   name: 'gcr.io/cloud-builders/git'
       entrypoint: 'bash'
-      args: [ '-c', 'git fetch --unshallow --tags && git checkout main && git submodule init && git submodule update' ]
+      args: [ '-c', 'git fetch --unshallow --tags && git checkout ${BRANCH_NAME} && git submodule init && git submodule update' ]
       volumes:
         - name: 'ssh'
           path: /root/.ssh

@@ -26,57 +26,57 @@ import java.time.Duration
 @Configuration
 class SAMCouchDBConfig {
 
-    private val log = LogFactory.getLog("org.taktik.icure.config.WebClient")
+	private val log = LogFactory.getLog("org.taktik.icure.config.WebClient")
 
-    @Bean
-    fun connectionProvider(): ConnectionProvider {
-        return ConnectionProvider.builder("LARGE_POOL")
-            .maxConnections(50000)
-            .maxIdleTime(Duration.ofSeconds(120))
-            .pendingAcquireMaxCount(-1).build()
-    }
+	@Bean
+	fun connectionProvider(): ConnectionProvider {
+		return ConnectionProvider.builder("LARGE_POOL")
+			.maxConnections(50000)
+			.maxIdleTime(Duration.ofSeconds(120))
+			.pendingAcquireMaxCount(-1).build()
+	}
 
-    @Bean
-    fun httpClient(connectionProvider: ConnectionProvider): SpringWebfluxWebClient = SpringWebfluxWebClient(
-        ReactorClientHttpConnector(
-            HttpClient
-                .create(connectionProvider)
-                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 3000)
-                .doOnConnected { connection ->
-                    connection
-                        .addHandlerLast(ReadTimeoutHandler(30))
-                        .addHandlerLast(WriteTimeoutHandler(30))
-                }
-                .compress(true)
-        )
-    ) { xff ->
-        xff.add(
-            ExchangeFilterFunction.ofRequestProcessor { req ->
-                if (log.isDebugEnabled) {
-                    log.debug("-> ${req.method().name()} ${req.url()}")
-                }
-                Mono.just(req)
-            }
-        )
-    }
+	@Bean
+	fun httpClient(connectionProvider: ConnectionProvider): SpringWebfluxWebClient = SpringWebfluxWebClient(
+		ReactorClientHttpConnector(
+			HttpClient
+				.create(connectionProvider)
+				.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 3000)
+				.doOnConnected { connection ->
+					connection
+						.addHandlerLast(ReadTimeoutHandler(30))
+						.addHandlerLast(WriteTimeoutHandler(30))
+				}
+				.compress(true)
+		)
+	) { xff ->
+		xff.add(
+			ExchangeFilterFunction.ofRequestProcessor { req ->
+				if (log.isDebugEnabled) {
+					log.debug("-> ${req.method().name()} ${req.url()}")
+				}
+				Mono.just(req)
+			}
+		)
+	}
 
-    @Bean
-    fun samCouchDbDispatcherProvider(): CouchDbDispatcherProvider  = object : CouchDbDispatcherProvider {
-        override fun getDispatcher(
-            httpClient: WebClient,
-            objectMapper: ObjectMapper,
-            prefix: String,
-            dbFamily: String,
-            couchDbCredentialsProvider: CouchDbCredentialsProvider,
-            createdReplicasIfNotExists: Int?
-        ) = SAMCouchDBDispatcher(
-            httpClient,
-            objectMapper,
-            prefix,
-            dbFamily,
-            couchDbCredentialsProvider,
-            createdReplicasIfNotExists
-        )
-    }
+	@Bean
+	fun samCouchDbDispatcherProvider(): CouchDbDispatcherProvider  = object : CouchDbDispatcherProvider {
+		override fun getDispatcher(
+			httpClient: WebClient,
+			objectMapper: ObjectMapper,
+			prefix: String,
+			dbFamily: String,
+			couchDbCredentialsProvider: CouchDbCredentialsProvider,
+			createdReplicasIfNotExists: Int,
+		) = SAMCouchDBDispatcher(
+			httpClient,
+			objectMapper,
+			prefix,
+			dbFamily,
+			couchDbCredentialsProvider,
+			createdReplicasIfNotExists
+		)
+	}
 
 }
