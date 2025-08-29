@@ -23,5 +23,5 @@ java {
 }
 
 dependencies {
-	implementation(coreLibs.kotlinxSerializationPlugin)
+	implementation(group = "org.jetbrains.kotlin.plugin.serialization", name = "org.jetbrains.kotlin.plugin.serialization.gradle.plugin", version = "2.2.0")
 }

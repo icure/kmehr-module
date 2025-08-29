@@ -70,8 +70,10 @@ tasks.withType<JavaCompile>().configureEach {
 }
 
 tasks.withType<JavaCompile> {
-    options.isFork = true
-    options.fork("memoryMaximumSize" to "16192m")
+	options.isFork = true
+	options.forkOptions.apply {
+		memoryMaximumSize = "16192m"
+	}
 }
 
 dependencies {
