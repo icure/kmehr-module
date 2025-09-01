@@ -36,6 +36,7 @@ import org.taktik.icure.config.BridgeConfig
 import org.taktik.icure.security.jwt.JwtKeyUtils
 import org.taktik.icure.test.fake.components.FakeBridgeCredentialsManager
 import java.security.interfaces.RSAPublicKey
+import kotlin.time.ExperimentalTime
 
 @SpringBootApplication(
 	scanBasePackages = [
@@ -79,7 +80,7 @@ class KmehrTestApplication {
 	@Value("\${icure.backend.url}")
 	val baseICurePath = ""
 
-	@OptIn(InternalIcureApi::class)
+	@OptIn(InternalIcureApi::class, ExperimentalTime::class)
 	@Bean
 	fun performStartupTasks(
 		bridgeConfig: BridgeConfig,
