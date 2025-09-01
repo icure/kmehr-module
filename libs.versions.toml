@@ -7,7 +7,7 @@ kotlinxSerialization = "1.9.0"
 [libraries]
 commonsCodec = { group = "commons-codec", name = "commons-codec", version = "1.15"}
 mustacheJava = { group = "com.github.spullara.mustache.java", name = "compiler", version = "0.9.10" }
-icureKotlinSDK = { group = "com.icure", name = "cardinal-sdk", version = "2.0.0-PREVIEW-11" }
+icureKotlinSDK = { group = "com.icure", name = "cardinal-sdk", version = "2.0.0-PREVIEW-14" }
 icureTestStack = { group = "io.icure", name = "icure-e2e-test-setup", version = "0.0.35-g37fe96791a" }
 credentialsRotation = { group = "com.icure", name = "credentials-rotation", version = "0.0.4-gcfc84d62bd" }
 jaxbApi = { group = "javax.xml.bind", name = "jaxb-api", version = "2.3.1" }

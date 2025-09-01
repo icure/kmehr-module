@@ -48,6 +48,7 @@ import java.util.*
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.coroutineContext
 import kotlin.random.Random
+import kotlin.time.ExperimentalTime
 
 fun uuid() = UUID.randomUUID().toString()
 fun ssin() = "${Random.nextInt(10,99)}.${Random.nextInt(10,12)}.${Random.nextInt(10,28)}-${Random.nextInt(100,999)}.${Random.nextInt(10,99)}"
@@ -96,7 +97,7 @@ data class UserCredentials(
 	val jwtClaims: JwtDetails? = null
 )
 
-@OptIn(InternalIcureApi::class)
+@OptIn(InternalIcureApi::class, ExperimentalTime::class)
 suspend fun createHealthcarePartyUser(
 	iCureUrl: String,
 	username: String,
@@ -164,7 +165,7 @@ suspend fun createHealthcarePartyUser(
 	)
 }
 
-@OptIn(InternalIcureApi::class)
+@OptIn(InternalIcureApi::class, ExperimentalTime::class)
 suspend fun createPatientUser(iCureUrl: String, username: String, password: String): UserCredentials {
 	val login = generateEmail()
 	val authProvider = getAuthProvider(iCureUrl, username, password)
@@ -220,7 +221,7 @@ suspend fun createPatientUser(iCureUrl: String, username: String, password: Stri
 	)
 }
 
-@OptIn(InternalIcureApi::class)
+@OptIn(InternalIcureApi::class, ExperimentalTime::class)
 suspend fun createAdminUser(iCureUrl: String, username: String, password: String): UserCredentials {
 	val login = generateEmail()
 	val authProvider = getAuthProvider(iCureUrl, username, password)

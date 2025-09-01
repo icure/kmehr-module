@@ -21,6 +21,7 @@ import org.taktik.icure.entities.security.AuthenticationToken
 import org.taktik.icure.exceptions.BridgeException
 import org.taktik.icure.test.*
 import java.time.Instant
+import kotlin.time.ExperimentalTime
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class UserLogicBridgeTest(
@@ -58,7 +59,7 @@ class UserLogicBridgeTest(
 		)
 	)
 
-	@OptIn(InternalIcureApi::class)
+	@OptIn(InternalIcureApi::class, ExperimentalTime::class)
 	private suspend fun createUser(user: User) = userApi.createUser(userMapper.map(user)).successBody().let {
 		userMapper.map(it.copy(
 			authenticationTokens = it.authenticationTokens.mapValues { (_, token) -> token.copy(token = "*") }
