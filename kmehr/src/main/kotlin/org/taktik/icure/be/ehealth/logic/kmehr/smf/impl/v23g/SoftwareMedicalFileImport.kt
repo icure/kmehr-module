@@ -98,7 +98,7 @@ import java.io.ByteArrayInputStream
 import java.io.Serializable
 import java.nio.ByteBuffer
 import java.time.temporal.ChronoUnit
-import java.util.*
+import java.util.UUID
 import javax.xml.bind.JAXBContext
 import javax.xml.bind.JAXBElement
 
@@ -122,11 +122,21 @@ class SoftwareMedicalFileImport(
 ) {
 
     private val defaultMapping: Map<String, List<ImportMapping>> = ObjectMapper().let { om ->
-        val txt = this.javaClass.classLoader.getResourceAsStream("org/taktik/icure/be/ehealth/logic/kmehr/smf/impl/smf.labels.json")
-            ?.readBytes()?.toString(Charsets.UTF_8) ?: "{}"
+        val txt =
+            this.javaClass.classLoader.getResourceAsStream("org/taktik/icure/be/ehealth/logic/kmehr/smf/impl/smf.labels.json")
+                ?.readBytes()?.toString(Charsets.UTF_8) ?: "{}"
         om.readValue(txt)
     }
-    private val heItemTypes: List<String> = listOf("healthcareelement", "adr", "allergy", "socialrisk", "risk", "professionalrisk", "familyrisk", "healthissue")
+    private val heItemTypes: List<String> = listOf(
+        "healthcareelement",
+        "adr",
+        "allergy",
+        "socialrisk",
+        "risk",
+        "professionalrisk",
+        "familyrisk",
+        "healthissue"
+    )
 
     /**
      * Converts a SMF (Software Medical File) XML message to a set of Contacts, SubContacts, Services, HealthElements,
@@ -172,7 +182,17 @@ class SoftwareMedicalFileImport(
                 res.patient = patient
                 res.ctcs = folder.transactions
                     .filter { !kmehrIndex.isChildTransaction(it) }
-                    .mapNotNull { trn -> parseTransaction(trn, author, res, language, myMappings, saveToDatabase, kmehrIndex) }
+                    .mapNotNull { trn ->
+                        parseTransaction(
+                            trn,
+                            author,
+                            res,
+                            language,
+                            myMappings,
+                            saveToDatabase,
+                            kmehrIndex
+                        )
+                    }
                     .toMutableList()
                 res.forms.forEach {
                     if (saveToDatabase) {
@@ -182,11 +202,12 @@ class SoftwareMedicalFileImport(
 
                 res.patient = res.patient?.let {
                     it.copy(
-                        patientHealthCareParties = it.patientHealthCareParties + res.hcps.distinctBy { hcp -> hcp.id }.map { hcp ->
-                            PatientHealthCareParty(
-                                healthcarePartyId = hcp.id,
-                            )
-                        }
+                        patientHealthCareParties = it.patientHealthCareParties + res.hcps.distinctBy { hcp -> hcp.id }
+                            .map { hcp ->
+                                PatientHealthCareParty(
+                                    healthcarePartyId = hcp.id,
+                                )
+                            }
                     )
                 }
             }
@@ -216,16 +237,47 @@ class SoftwareMedicalFileImport(
     ): Contact =
         when (trn.cds.find { it.s == CDTRANSACTIONschemes.CD_TRANSACTION }?.value) {
             "contactreport" -> parseContactReport(trn, author, res, language, myMappings, saveToDatabase, kmehrIndex)
-            "clinicalsummary" -> parseClinicalSummary(trn, author, res, language, myMappings, saveToDatabase, kmehrIndex)
-            "labresult", "result", "note", "prescription", "report" -> parseDocumentInTransaction(trn, author, res, language, myMappings, saveToDatabase, kmehrIndex)
-            "pharmaceuticalprescription" -> parsePharmaceuticalPrescription(trn, author, res, language, myMappings, saveToDatabase, kmehrIndex)
+            "clinicalsummary" -> parseClinicalSummary(
+                trn,
+                author,
+                res,
+                language,
+                myMappings,
+                saveToDatabase,
+                kmehrIndex
+            )
+
+            "labresult", "result", "note", "prescription", "report" -> parseDocumentInTransaction(
+                trn,
+                author,
+                res,
+                language,
+                myMappings,
+                saveToDatabase,
+                kmehrIndex
+            )
+
+            "pharmaceuticalprescription" -> parsePharmaceuticalPrescription(
+                trn,
+                author,
+                res,
+                language,
+                myMappings,
+                saveToDatabase,
+                kmehrIndex
+            )
+
             else -> parseGenericTransaction(trn, author, res, language, myMappings, saveToDatabase, kmehrIndex)
         }.let { con ->
             if (saveToDatabase) {
                 try {
                     contactLogic.createContact(con)
                 } catch (_: UpdateConflictException) {
-                    contactLogic.createContact(con.copy(id = idGenerator.newGUID().toString())) // This happens when the Kmehr file is corrupted
+                    contactLogic.createContact(
+                        con.copy(
+                            id = idGenerator.newGUID().toString()
+                        )
+                    ) // This happens when the Kmehr file is corrupted
                 } ?: throw IllegalStateException("Cannot save contact")
             } else {
                 con
@@ -254,7 +306,7 @@ class SoftwareMedicalFileImport(
         val fakeResult = ImportResult()
 
         return kmehrMessage.folders.fold(emptyList()) { acc, folder ->
-           acc + checkIfPatientExists(folder.patient, author, fakeResult, dest)
+            acc + checkIfPatientExists(folder.patient, author, fakeResult, dest)
         }
     }
 
@@ -325,14 +377,17 @@ class SoftwareMedicalFileImport(
         val transactionMfid = getTransactionMFID(trn)
         val trnAuthorHcpId = extractTransactionAuthor(trn, saveToDatabase, author, v)
 
-        val contactId = transactionMfid?.let { kmehrIndex.transactionIds[it]?.first?.toString() } ?: idGenerator.newGUID().toString()
+        val contactId =
+            transactionMfid?.let { kmehrIndex.transactionIds[it]?.first?.toString() } ?: idGenerator.newGUID()
+                .toString()
         val formId = kmehrIndex.formIdMask.xor(UUID.fromString(contactId)).toString()
 
         val serviceAndSubContacts = trn
             .findItems { it: ItemType -> it.cds.any { it.s == CDITEMschemes.CD_ITEM && it.value == "medication" } }
             .map { item ->
                 val mfId = getItemMFID(item)
-                val service = parseGenericItem("treatment", "Prescription", item, author, trnAuthorHcpId, language, kmehrIndex)
+                val service =
+                    parseGenericItem("treatment", "Prescription", item, author, trnAuthorHcpId, language, kmehrIndex)
                 service to makeSubContact(contactId, formId, mfId, service, kmehrIndex)
             }
         val contactDate = extractTransactionDateTime(trn)
@@ -348,9 +403,13 @@ class SoftwareMedicalFileImport(
                         Form(
                             id = newFormId,
                             parent = kmehrIndex.transactionChildOf[transactionMfid]
-                                    ?.firstOrNull()
-                                    ?.let { kmehrIndex.transactionIds[it]?.first?.let { cid -> kmehrIndex.formIdMask.xor(cid).toString() } }
-                                    ?.takeIf { newFormId == formId },
+                                ?.firstOrNull()
+                                ?.let {
+                                    kmehrIndex.transactionIds[it]?.first?.let { cid ->
+                                        kmehrIndex.formIdMask.xor(cid).toString()
+                                    }
+                                }
+                                ?.takeIf { newFormId == formId },
                             contactId = contactId,
                             author = author.id,
                             responsible = trnAuthorHcpId,
@@ -371,8 +430,17 @@ class SoftwareMedicalFileImport(
                             ?.flatMap { id ->
                                 kmehrIndex.transactionIds[id]?.second
                                     ?.let { transactionType ->
-                                        parseTransaction(transactionType, author, v, language, mappings, saveToDatabase, kmehrIndex).services
-                                    } ?: setOf() }?.toSet()
+                                        parseTransaction(
+                                            transactionType,
+                                            author,
+                                            v,
+                                            language,
+                                            mappings,
+                                            saveToDatabase,
+                                            kmehrIndex
+                                        ).services
+                                    } ?: setOf()
+                            }?.toSet()
                     } ?: setOf()),
             subContacts = simplifiedSubContacts,
             openingDate = contactDate,
@@ -389,11 +457,17 @@ class SoftwareMedicalFileImport(
      * @param v the ImportResult in progress.
      * @return the HCP id.
      */
-    private suspend fun extractTransactionAuthor(trn: TransactionType, saveToDatabase: Boolean, author: User, v: ImportResult) =
+    private suspend fun extractTransactionAuthor(
+        trn: TransactionType,
+        saveToDatabase: Boolean,
+        author: User,
+        v: ImportResult
+    ) =
         trn.author?.hcparties?.filter { it.cds.any { cds -> cds.s == CDHCPARTYschemes.CD_HCPARTY } }
             ?.firstNotNullOfOrNull {
                 createOrProcessHcp(it, saveToDatabase, v)
-            }?.id ?: author.healthcarePartyId ?: throw IllegalArgumentException("The author's healthcarePartyId must be set")
+            }?.id ?: author.healthcarePartyId
+        ?: throw IllegalArgumentException("The author's healthcarePartyId must be set")
 
     /**
      * Extracts the item representing the date and time of the transaction and converts it into a fuzzy date.
@@ -403,7 +477,8 @@ class SoftwareMedicalFileImport(
     private fun extractTransactionDateTime(trn: TransactionType) =
         trn.findItem { it.cds.any { cds -> cds.s == CDITEMschemes.CD_ITEM && cds.value == "encounterdatetime" } }
             ?.let {
-                it.contents?.find { c -> c.date != null }?.let { c -> Utils.makeFuzzyLongFromDateAndTime(c.date, c.time) }
+                it.contents?.find { c -> c.date != null }
+                    ?.let { c -> Utils.makeFuzzyLongFromDateAndTime(c.date, c.time) }
             } ?: trn.date?.let { Utils.makeFuzzyLongFromDateAndTime(it, trn.time) }
 
     /**
@@ -416,37 +491,48 @@ class SoftwareMedicalFileImport(
      * @param kmehrIndex the KmehrMessageIndex.
      * @return a List of SubContacts or null.
      */
-    private fun makeSubContact(contactId: String, formId: String?, mfId: String?, service: Service, kmehrIndex: KmehrMessageIndex): List<SubContact> {
+    private fun makeSubContact(
+        contactId: String,
+        formId: String?,
+        mfId: String?,
+        service: Service,
+        kmehrIndex: KmehrMessageIndex
+    ): List<SubContact> {
         val relatedItemIds = kmehrIndex.serviceFor[mfId]
-                ?.mapNotNull { mf -> kmehrIndex.itemIds[mf]?.let { (mf to it) } }
+            ?.mapNotNull { mf -> kmehrIndex.itemIds[mf]?.let { (mf to it) } }
         return when {
             !relatedItemIds.isNullOrEmpty() -> relatedItemIds.map { (heOrHcaMfid, heOrHcaPair) ->
                 val item = heOrHcaPair.second
                 if (item.cds.find { it.s == CDITEMschemes.CD_ITEM }?.value == "healthcareapproach") {
-                    val heId = kmehrIndex.approachFor[heOrHcaMfid]?.firstNotNullOfOrNull { kmehrIndex.itemIds[it] }?.first
+                    val heId =
+                        kmehrIndex.approachFor[heOrHcaMfid]?.firstNotNullOfOrNull { kmehrIndex.itemIds[it] }?.first
                     SubContact(
-                            id = UUID.nameUUIDFromBytes(("$contactId|$heId|${heOrHcaPair.first}|null").toByteArray()).toString(),
-                            formId = formId,
-                            healthElementId = heId?.toString(),
-                            planOfActionId = heOrHcaPair.first.toString(),
-                            services = listOf(ServiceLink(serviceId = service.id)),
+                        id = UUID.nameUUIDFromBytes(("$contactId|$heId|${heOrHcaPair.first}|null").toByteArray())
+                            .toString(),
+                        formId = formId,
+                        healthElementId = heId?.toString(),
+                        planOfActionId = heOrHcaPair.first.toString(),
+                        services = listOf(ServiceLink(serviceId = service.id)),
                     )
                 } else {
                     SubContact(
-                            id = UUID.nameUUIDFromBytes(("$contactId|null|${heOrHcaPair.first}|null").toByteArray()).toString(),
-                            formId = formId,
-                            healthElementId = heOrHcaPair.first.toString(),
-                            services = listOf(ServiceLink(serviceId = service.id)),
+                        id = UUID.nameUUIDFromBytes(("$contactId|null|${heOrHcaPair.first}|null").toByteArray())
+                            .toString(),
+                        formId = formId,
+                        healthElementId = heOrHcaPair.first.toString(),
+                        services = listOf(ServiceLink(serviceId = service.id)),
                     )
                 }
             }
+
             !formId.isNullOrBlank() -> listOf(
-                    SubContact(
-                            id = UUID.nameUUIDFromBytes(("$contactId|null|null|$formId").toByteArray()).toString(),
-                            formId = formId,
-                            services = listOf(ServiceLink(serviceId = service.id)),
-                    ),
+                SubContact(
+                    id = UUID.nameUUIDFromBytes(("$contactId|null|null|$formId").toByteArray()).toString(),
+                    formId = formId,
+                    services = listOf(ServiceLink(serviceId = service.id)),
+                ),
             )
+
             else -> listOf()
         }
     }
@@ -480,7 +566,8 @@ class SoftwareMedicalFileImport(
             ?.filterIsInstance(LnkType::class.java)
             ?.filter { it.type == CDLNKvalues.MULTIMEDIA && it.url == null }
             ?.map { lnk ->
-                val docName = trn.cds.firstOrNull { it.s == CDTRANSACTIONschemes.CD_TRANSACTION }?.dn ?: trnTypeCd ?: "unnamed_document"
+                val docName = trn.cds.firstOrNull { it.s == CDTRANSACTIONschemes.CD_TRANSACTION }?.dn ?: trnTypeCd
+                ?: "unnamed_document"
                 val svcRecordDateTime = trn.recorddatetime?.toGregorianCalendar()?.toInstant()?.toEpochMilli()
 
                 val serviceId = idGenerator.newGUID().toString()
@@ -503,8 +590,15 @@ class SoftwareMedicalFileImport(
                     valueDate = valueDate,
                     openingDate = valueDate,
                     qualifiedLinks = transactionMfid
-                        ?.let { id -> kmehrIndex.itemIds[id]?.first?.toString()
-                            ?.let { mapOf(LinkQualification.relatedService to mapOf(UUID.randomUUID().toString() to it)) }
+                        ?.let { id ->
+                            kmehrIndex.itemIds[id]?.first?.toString()
+                                ?.let {
+                                    mapOf(
+                                        LinkQualification.relatedService to mapOf(
+                                            UUID.randomUUID().toString() to it
+                                        )
+                                    )
+                                }
                         } ?: mapOf(),
                     content = mapOf(
                         language to Content(
@@ -541,11 +635,13 @@ class SoftwareMedicalFileImport(
                         ),
                     ),
                 )
-        } ?: listOf()
+            } ?: listOf()
 
         val contactDate = extractTransactionDateTime(trn)
         val trnCd = trn.cds.find { it.s == CDTRANSACTIONschemes.CD_TRANSACTION }?.value
-        val contactId = transactionMfid?.let { kmehrIndex.transactionIds[it]?.first?.toString() } ?: idGenerator.newGUID().toString()
+        val contactId =
+            transactionMfid?.let { kmehrIndex.transactionIds[it]?.first?.toString() } ?: idGenerator.newGUID()
+                .toString()
         val formId = kmehrIndex.formIdMask.xor(UUID.fromString(contactId)).toString()
         val subContacts = services.map { makeSubContact(contactId, formId, transactionMfid, it, kmehrIndex) }
         val simplifiedSubContacts = simplifySubContacts(subContacts.flatMap { it }).toSet()
@@ -558,19 +654,25 @@ class SoftwareMedicalFileImport(
                     .map {
                         Form(
                             id = it,
-                            parent = if (it == formId) kmehrIndex.transactionChildOf[transactionMfid]?.firstOrNull()?.let { kmehrIndex.transactionIds[it]?.first?.let { cid -> kmehrIndex.formIdMask.xor(cid).toString() } } else null,
+                            parent = if (it == formId) kmehrIndex.transactionChildOf[transactionMfid]?.firstOrNull()
+                                ?.let {
+                                    kmehrIndex.transactionIds[it]?.first?.let { cid ->
+                                        kmehrIndex.formIdMask.xor(cid).toString()
+                                    }
+                                } else null,
                             contactId = contactId,
                             author = author.id,
                             responsible = trnAuthorHcpId,
                             created = trn.recorddatetime?.toGregorianCalendar()?.toInstant()?.toEpochMilli(),
                             modified = trn.recorddatetime?.toGregorianCalendar()?.toInstant()?.toEpochMilli(),
                         )
-                }
+                    }
             )
         }
 
         return Contact(
-            id = transactionMfid?.let { kmehrIndex.transactionIds[it]?.first?.toString() } ?: idGenerator.newGUID().toString(),
+            id = transactionMfid?.let { kmehrIndex.transactionIds[it]?.first?.toString() } ?: idGenerator.newGUID()
+                .toString(),
             author = author.id,
             tags = listOfNotNull(trnCd, trnTypeCd).map { CodeStub.from("CD-TRANSACTION", it, "1.0") }.toSet(),
             responsible = trn.author?.hcparties
@@ -581,10 +683,19 @@ class SoftwareMedicalFileImport(
             services = services.toSet() +
                     (transactionMfid?.let { mfId ->
                         kmehrIndex.parentOf[mfId]
-                            ?.flatMap { kmehrIndex.transactionIds[it]?.second
-                                ?.let { transaction ->
-                                    parseTransaction(transaction, author, v, language, mappings, saveToDatabase, kmehrIndex).services
-                                } ?: setOf()
+                            ?.flatMap {
+                                kmehrIndex.transactionIds[it]?.second
+                                    ?.let { transaction ->
+                                        parseTransaction(
+                                            transaction,
+                                            author,
+                                            v,
+                                            language,
+                                            mappings,
+                                            saveToDatabase,
+                                            kmehrIndex
+                                        ).services
+                                    } ?: setOf()
                             }?.toSet()
                     } ?: setOf()),
             openingDate = contactDate,
@@ -604,7 +715,8 @@ class SoftwareMedicalFileImport(
         } ?: listOf(SimpleUTIDetector().detectUTI(lnk.value.inputStream(), null, null))
 
         return (utis.firstOrNull()?.identifier ?: "com.adobe.pdf").let {
-            val otherUtis = (if (utis.size > 1) utis.subList(1, utis.size).map { u -> u.identifier } else listOf()).toSet()
+            val otherUtis =
+                (if (utis.size > 1) utis.subList(1, utis.size).map { u -> u.identifier } else listOf()).toSet()
             if (it == "public.plain-text") {
                 Pair("public.plainText", otherUtis + "public.plain-text")
             } else {
@@ -642,7 +754,9 @@ class SoftwareMedicalFileImport(
         val trnCd = trn.cds.find { it.s == CDTRANSACTIONschemes.CD_TRANSACTION }?.value
         val trnTypeCd = trn.cds.find { it.s == CDTRANSACTIONschemes.CD_TRANSACTION_TYPE }?.value
 
-        val contactId = transactionMfid?.let { kmehrIndex.transactionIds[it]?.first?.toString() } ?: idGenerator.newGUID().toString()
+        val contactId =
+            transactionMfid?.let { kmehrIndex.transactionIds[it]?.first?.toString() } ?: idGenerator.newGUID()
+                .toString()
         val trnItems = trn.findItems()
         val formId = kmehrIndex.formIdMask.xor(UUID.fromString(contactId)).toString()
 
@@ -651,7 +765,10 @@ class SoftwareMedicalFileImport(
             if (cdItem == "healthcareelement") {
                 trnItems.none { checkItem ->
                     val checkCdItem = checkItem.cds.find { it.s == CDITEMschemes.CD_ITEM }?.value ?: "note"
-                    checkCdItem != "healthcareelement" && heItemTypes.contains(checkCdItem) && isHealthElementTypeEqual(item, checkItem)
+                    checkCdItem != "healthcareelement" && heItemTypes.contains(checkCdItem) && isHealthElementTypeEqual(
+                        item,
+                        checkItem
+                    )
                 } // Get rid of duplicates
             } else {
                 true
@@ -660,23 +777,71 @@ class SoftwareMedicalFileImport(
             val (label, tags) = mapItem(item, mappings, language)
             when (val cdItem = tags.find { it.type == "CD-ITEM" }?.code ?: "note") {
                 in heItemTypes -> {
-                    parseAndLinkHealthcareElement(cdItem, label, item, author, trnAuthorHcpId, v, contactId, saveToDatabase, kmehrIndex, null, language, mappings)
+                    parseAndLinkHealthcareElement(
+                        cdItem,
+                        label,
+                        item,
+                        author,
+                        trnAuthorHcpId,
+                        v,
+                        contactId,
+                        saveToDatabase,
+                        kmehrIndex,
+                        null,
+                        language,
+                        mappings
+                    )
                     Pair(svcs, sbctcs)
                 }
-                "encountertype", "encounterdatetime", "encounterlocation" -> Pair(svcs, sbctcs) // already added at contact level
+
+                "encountertype", "encounterdatetime", "encounterlocation" -> Pair(
+                    svcs,
+                    sbctcs
+                ) // already added at contact level
                 "insurancystatus", "gmdmanager", "healthcareapproach" -> Pair(svcs, sbctcs) // not services,
-                "incapacity" -> parseIncapacity(item, author, trnAuthorHcpId, language, kmehrIndex, contactId, formId, transactionMfid).let {
+                "incapacity" -> parseIncapacity(
+                    item,
+                    author,
+                    trnAuthorHcpId,
+                    language,
+                    kmehrIndex,
+                    contactId,
+                    formId,
+                    transactionMfid
+                ).let {
                     val (services, subcontacts) = it
                     Pair(svcs + services, sbctcs + subcontacts)
                 }
+
                 else -> {
                     val mfId = getItemMFID(item)
-                    val service = parseGenericItem(cdItem, label, item, author, trnAuthorHcpId, language, kmehrIndex).let { service ->
+                    val service = parseGenericItem(
+                        cdItem,
+                        label,
+                        item,
+                        author,
+                        trnAuthorHcpId,
+                        language,
+                        kmehrIndex
+                    ).let { service ->
                         service.copy(tags = service.tags + tags.filter { it.type != "CD-ITEM" })
                     }.let { service ->
                         if (cdItem == "diagnostic") {
                             // diagnostics are in MSOAP form but also create an HealthcareElement
-                            parseAndLinkHealthcareElement(cdItem, label, item, author, trnAuthorHcpId, v, contactId, saveToDatabase, kmehrIndex, service, language, mappings)
+                            parseAndLinkHealthcareElement(
+                                cdItem,
+                                label,
+                                item,
+                                author,
+                                trnAuthorHcpId,
+                                v,
+                                contactId,
+                                saveToDatabase,
+                                kmehrIndex,
+                                service,
+                                language,
+                                mappings
+                            )
                         }
                         when {
                             setOf("vaccine", "acts").contains(cdItem) -> service.copy(label = "Actes")
@@ -685,7 +850,9 @@ class SoftwareMedicalFileImport(
                         }
                     }
 
-                    Pair(svcs + service, makeSubContact(contactId, formId, mfId, service, kmehrIndex).let { sbctcs + it })
+                    Pair(
+                        svcs + service,
+                        makeSubContact(contactId, formId, mfId, service, kmehrIndex).let { sbctcs + it })
                 }
             }
         }
@@ -700,7 +867,12 @@ class SoftwareMedicalFileImport(
                     .map {
                         Form(
                             id = it,
-                            parent = if (it == formId) kmehrIndex.transactionChildOf[transactionMfid]?.firstOrNull()?.let { kmehrIndex.transactionIds[it]?.first?.let { cid -> kmehrIndex.formIdMask.xor(cid).toString() } } else null,
+                            parent = if (it == formId) kmehrIndex.transactionChildOf[transactionMfid]?.firstOrNull()
+                                ?.let {
+                                    kmehrIndex.transactionIds[it]?.first?.let { cid ->
+                                        kmehrIndex.formIdMask.xor(cid).toString()
+                                    }
+                                } else null,
                             contactId = contactId,
                             author = author.id,
                             responsible = trnAuthorHcpId,
@@ -749,7 +921,18 @@ class SoftwareMedicalFileImport(
                     (transactionMfid?.let {
                         kmehrIndex.parentOf[it]?.flatMap { kmehrId ->
                             kmehrIndex.transactionIds[kmehrId]?.second?.let { transactionType ->
-                                parseTransaction(transactionType, author, v, language, mappings, saveToDatabase, kmehrIndex).services } ?: setOf() }?.toSet() } ?: setOf()),
+                                parseTransaction(
+                                    transactionType,
+                                    author,
+                                    v,
+                                    language,
+                                    mappings,
+                                    saveToDatabase,
+                                    kmehrIndex
+                                ).services
+                            } ?: setOf()
+                        }?.toSet()
+                    } ?: setOf()),
             subContacts = simplifiedSubContacts
         )
     }
@@ -763,7 +946,11 @@ class SoftwareMedicalFileImport(
      * @param language the language of the label.
      * @return a Pair where the key is the label and the value a set of CD-ITEMs CodeStubs.
      */
-    private fun mapItem(item: ItemType, mappings: Map<String, List<ImportMapping>>, language: String): Pair<String, Set<CodeStub>> {
+    private fun mapItem(
+        item: ItemType,
+        mappings: Map<String, List<ImportMapping>>,
+        language: String
+    ): Pair<String, Set<CodeStub>> {
         val guessedCdItem = (item.cds.find { it.s == CDITEMschemes.CD_ITEM }?.value ?: "note").let { cdItem ->
             when {
                 item.contents.any { it.cds.any { cds -> cds.s == CDCONTENTschemes.LOCAL && cds.sl == "MEDINOTE.MEDICALCODEID" } } -> "acts"
@@ -772,11 +959,11 @@ class SoftwareMedicalFileImport(
         }
         val mapping = mappings[guessedCdItem]?.find {
             ((it.lifecycle ?: "*") == "*" || it.lifecycle == item.lifecycle?.cd?.value?.value()) &&
-                (((it.content ?: "*") == "*") || item.hasContentOfType(it.content)) &&
-                (((it.cdLocal ?: "*") == "*") || (it.cdLocal?.split("|")
-                    ?.let { (cdl, cdlcode) ->
-                        item.cds.any { cds -> cds.s == CDITEMschemes.LOCAL && cds.sl == cdl && cds.value == cdlcode }
-                    } != false))
+                    (((it.content ?: "*") == "*") || item.hasContentOfType(it.content)) &&
+                    (((it.cdLocal ?: "*") == "*") || (it.cdLocal?.split("|")
+                        ?.let { (cdl, cdlcode) ->
+                            item.cds.any { cds -> cds.s == CDITEMschemes.LOCAL && cds.sl == cdl && cds.value == cdlcode }
+                        } != false))
         }
 
         val cdItem = mapping?.tags?.find { it.type == "CD-ITEM" }?.code ?: guessedCdItem
@@ -793,7 +980,8 @@ class SoftwareMedicalFileImport(
                 ?.joinToString(" ")
             ?: mappings["note"]?.lastOrNull()?.label?.get(language)
             ?: "Note"
-        return label to (setOf(CodeStub.from("CD-ITEM", cdItem, "1")) + (mapping?.tags?.filter { it.type != "CD-ITEM" } ?: setOf()))
+        return label to (setOf(CodeStub.from("CD-ITEM", cdItem, "1")) + (mapping?.tags?.filter { it.type != "CD-ITEM" }
+            ?: setOf()))
     }
 
     /**
@@ -805,11 +993,11 @@ class SoftwareMedicalFileImport(
      */
     private fun isHealthElementTypeEqual(item: ItemType, checkItem: ItemType) =
         item.recorddatetime == checkItem.recorddatetime &&
-            item.beginmoment == checkItem.beginmoment &&
-            item.lifecycle == checkItem.lifecycle &&
-            extractTags(item) == extractTags(checkItem) &&
-            extractCodes(item) == extractCodes(checkItem) &&
-            getItemDescription(item, "") == getItemDescription(checkItem, "")
+                item.beginmoment == checkItem.beginmoment &&
+                item.lifecycle == checkItem.lifecycle &&
+                extractTags(item) == extractTags(checkItem) &&
+                extractCodes(item) == extractCodes(checkItem) &&
+                getItemDescription(item, "") == getItemDescription(checkItem, "")
 
     /**
      * Creates a new PlanOfAction based on the ItemType passed as parameter.
@@ -820,7 +1008,13 @@ class SoftwareMedicalFileImport(
      * @param trnAuthorHcpId the id of the HCP responsible for the import.
      * @return a PlanOfAction.
      */
-    private fun parseHealthcareApproach(cdItem: String = "healthcareapproach", label: String, item: ItemType, author: User, trnAuthorHcpId: String): PlanOfAction {
+    private fun parseHealthcareApproach(
+        cdItem: String = "healthcareapproach",
+        label: String,
+        item: ItemType,
+        author: User,
+        trnAuthorHcpId: String
+    ): PlanOfAction {
         val poaDate = item.beginmoment?.let { Utils.makeFuzzyLongFromMomentType(it) }
             ?: item.recorddatetime?.let { Utils.makeFuzzyLongFromXMLGregorianCalendar(it) }
             ?: FuzzyValues.getCurrentFuzzyDateTime(ChronoUnit.SECONDS)
@@ -830,9 +1024,9 @@ class SoftwareMedicalFileImport(
             author = author.id,
             responsible = trnAuthorHcpId,
             tags = setOf(CodeStub.from("CD-ITEM", cdItem, "1")) + extractTags(item) + (
-                item.lifecycle?.let { listOf(CodeStub.from("CD-LIFECYCLE", it.cd.value.value(), "1")) }
-                    ?: listOf()
-                ),
+                    item.lifecycle?.let { listOf(CodeStub.from("CD-LIFECYCLE", it.cd.value.value(), "1")) }
+                        ?: listOf()
+                    ),
             codes = extractCodes(item),
             valueDate = poaDate,
             openingDate = poaDate,
@@ -847,12 +1041,13 @@ class SoftwareMedicalFileImport(
      * Convert the first non-null insurance in the ItemType passed as parameter to a list of iCure Insurabilities.
      * @param item the ItemType.
      * @return A List of Insurabilities.
-      */
+     */
     private suspend fun parseInsurancyStatus(item: ItemType): List<Insurability> =
         item.contents.find { it.insurance != null }?.insurance?.let {
             listOf(
                 Insurability(
-                    insuranceId = if (it.id.s == IDINSURANCEschemes.ID_INSURANCE) insuranceLogic.listInsurancesByCode(it.id.value).firstOrNull()?.id else null,
+                    insuranceId = if (it.id.s == IDINSURANCEschemes.ID_INSURANCE) insuranceLogic.listInsurancesByCode(it.id.value)
+                        .firstOrNull()?.id else null,
                     parameters = mapOf(
                         "tc1" to it.cg1,
                         "tc2" to it.cg2,
@@ -895,7 +1090,10 @@ class SoftwareMedicalFileImport(
         val mfId = getItemMFID(item)
         val ittform = Form(
             id = formId,
-            formTemplateId = getFormTemplateIdByGuid(author, "FFFFFFFF-FFFF-FFFF-FFFF-INCAPACITY00"), // ITT form template
+            formTemplateId = getFormTemplateIdByGuid(
+                author,
+                "FFFFFFFF-FFFF-FFFF-FFFF-INCAPACITY00"
+            ), // ITT form template
             parent = transactionMfid?.let { tmfId ->
                 kmehrIndex.transactionChildOf[tmfId]
                     ?.firstOrNull()
@@ -915,28 +1113,28 @@ class SoftwareMedicalFileImport(
 
         val mapServ = mapOf(
             "incapacité de" to
-                item.contents.find { it.incapacity != null }?.let { content ->
-                    // TODO Dorian fix that
-                    content.incapacity.cds.filterIsInstance<CDINCAPACITY>().map { it.value }
-                }?.let {
-                    Pair(
-                        Content(stringValue = it.joinToString("|") { incapacityValue -> incapacityValue.value() }),
-                        it.map { code -> CodeStub.from("CD-INCAPACITY", code.value(), "1") },
-                    )
-                },
+                    item.contents.find { it.incapacity != null }?.let { content ->
+                        // TODO Dorian fix that
+                        content.incapacity.cds.filterIsInstance<CDINCAPACITY>().map { it.value }
+                    }?.let {
+                        Pair(
+                            Content(stringValue = it.joinToString("|") { incapacityValue -> incapacityValue.value() }),
+                            it.map { code -> CodeStub.from("CD-INCAPACITY", code.value(), "1") },
+                        )
+                    },
             "du" to item.beginmoment?.let { Content(fuzzyDateValue = Utils.makeFuzzyLongFromMomentType(it)) },
             "au" to item.endmoment?.let { Content(fuzzyDateValue = Utils.makeFuzzyLongFromMomentType(it)) },
             "inclus/exclus" to Content(stringValue = "inclus"), // no kmehr equivalent
             "pour cause de" to
-                item.contents.find { it.incapacity != null }?.let {
-                    // TODO Dorian fix that
-                    it.incapacity.incapacityreason?.cd?.value
-                }?.let {
-                    Pair(
-                        Content(stringValue = it.value()),
-                        listOf(CodeStub.from("CD-INCAPACITYREASON", it.value(), "1")),
-                    )
-                },
+                    item.contents.find { it.incapacity != null }?.let {
+                        // TODO Dorian fix that
+                        it.incapacity.incapacityreason?.cd?.value
+                    }?.let {
+                        Pair(
+                            Content(stringValue = it.value()),
+                            listOf(CodeStub.from("CD-INCAPACITYREASON", it.value(), "1")),
+                        )
+                    },
             "Commentaire" to Content(stringValue = item.texts.joinToString(" ") { it.value }),
             // missing:
             // "Accident suvenu le"
@@ -957,21 +1155,29 @@ class SoftwareMedicalFileImport(
                     responsible = trnAuthorHcpId,
                     index = 1L,
                     author = author.id,
-                    qualifiedLinks = mapOf(LinkQualification.relatedService to mapOf(UUID.randomUUID().toString() to mainServiceId)),
+                    qualifiedLinks = mapOf(
+                        LinkQualification.relatedService to mapOf(
+                            UUID.randomUUID().toString() to mainServiceId
+                        )
+                    ),
                     created = item.recorddatetime?.toGregorianCalendar()?.toInstant()?.toEpochMilli(),
                     modified = item.recorddatetime?.toGregorianCalendar()?.toInstant()?.toEpochMilli(),
                     valueDate = item.beginmoment?.let { Utils.makeFuzzyLongFromMomentType(it) },
                     content = (it as? Pair<Content, List<CodeStub>>)?.let { content -> mapOf(language to content.first) }
                         ?: (it as? Content)?.let { content -> mapOf(language to content) } ?: mapOf(),
                     tags = setOf(CodeStub.from("CD-ITEM", "incapacity", "1")) + (
-                        (it as? Pair<Content, List<CodeStub>>)?.second?.toSet()
-                            ?: setOf()
-                        ),
+                            (it as? Pair<Content, List<CodeStub>>)?.second?.toSet()
+                                ?: setOf()
+                            ),
                 )
                 service to makeSubContact(contactId, ittform.id, mfId, service, kmehrIndex)
             }
         }.filterNotNull()
-        return Triple(servicesAndSubContacts.map { it.first }, simplifySubContacts(servicesAndSubContacts.flatMap { it.second }), ittform)
+        return Triple(
+            servicesAndSubContacts.map { it.first },
+            simplifySubContacts(servicesAndSubContacts.flatMap { it.second }),
+            ittform
+        )
     }
 
     /**
@@ -1012,7 +1218,8 @@ class SoftwareMedicalFileImport(
 
         return HealthElement(
             id = idGenerator.newGUID().toString(),
-            healthElementId = mfId?.let { kmehrIndex.itemIds[it]?.first?.toString() } ?: idGenerator.newGUID().toString(),
+            healthElementId = mfId?.let { kmehrIndex.itemIds[it]?.first?.toString() } ?: idGenerator.newGUID()
+                .toString(),
             descr = getItemDescription(item, label),
             idService = linkedService?.id,
             tags = tags + setOf(CodeStub.from("CD-ITEM", cdItem, "1")) + extractTags(item),
@@ -1093,7 +1300,18 @@ class SoftwareMedicalFileImport(
         language: String,
         mappings: Map<String, List<ImportMapping>>,
     ): HealthElement? =
-        parseHealthcareElement(cdItem, label, item, author, trnAuthorHcpId, contactId, kmehrIndex, linkedService, language, mappings).let { he ->
+        parseHealthcareElement(
+            cdItem,
+            label,
+            item,
+            author,
+            trnAuthorHcpId,
+            contactId,
+            kmehrIndex,
+            linkedService,
+            language,
+            mappings
+        ).let { he ->
             (if (saveToDatabase) healthElementLogic.createEntities(listOf(he)).firstOrNull() else he)?.also {
                 v.hes.add(it)
             }
@@ -1108,27 +1326,27 @@ class SoftwareMedicalFileImport(
         (item.cds
             .filter { it.s == CDITEMschemes.ICPC || it.s == CDITEMschemes.ICD }
             .map { CodeStub.from(it.s.value(), it.value, it.sv) } +
-        item.contents
-            .filter { (it.cds?.size ?: 0) > 0 }
-            .flatMap { contentType ->
-                contentType.cds.filter {
-                    listOf(
-                        CDCONTENTschemes.CD_DRUG_CNK,
-                        CDCONTENTschemes.ICD,
-                        CDCONTENTschemes.ICPC,
-                        CDCONTENTschemes.CD_ATC,
-                        CDCONTENTschemes.CD_PATIENTWILL,
-                        CDCONTENTschemes.CD_VACCINEINDICATION,
-                    ).contains(it.s)
-                }.map { CodeStub.from(it.s.value(), it.value, it.sv) } + contentType.cds.filter {
-                    (it.s == CDCONTENTschemes.LOCAL && it.sl == "BE-THESAURUS-PROCEDURES")
-                }.map { CodeStub.from(it.sl, it.value, it.sv) } + contentType.cds.filter {
-                    (it.s == CDCONTENTschemes.CD_CLINICAL)
-                }.map { CodeStub.from("BE-THESAURUS", it.value, it.sv) } + contentType.cds.filter {
-                    (it.s == CDCONTENTschemes.LOCAL && it.sl.startsWith("MS-EXTRADATA"))
-                }.map { CodeStub.from(it.sl, it.value, it.sv) }
-            }
-        ).toSet()
+                item.contents
+                    .filter { (it.cds?.size ?: 0) > 0 }
+                    .flatMap { contentType ->
+                        contentType.cds.filter {
+                            listOf(
+                                CDCONTENTschemes.CD_DRUG_CNK,
+                                CDCONTENTschemes.ICD,
+                                CDCONTENTschemes.ICPC,
+                                CDCONTENTschemes.CD_ATC,
+                                CDCONTENTschemes.CD_PATIENTWILL,
+                                CDCONTENTschemes.CD_VACCINEINDICATION,
+                            ).contains(it.s)
+                        }.map { CodeStub.from(it.s.value(), it.value, it.sv) } + contentType.cds.filter {
+                            (it.s == CDCONTENTschemes.LOCAL && it.sl == "BE-THESAURUS-PROCEDURES")
+                        }.map { CodeStub.from(it.sl, it.value, it.sv) } + contentType.cds.filter {
+                            (it.s == CDCONTENTschemes.CD_CLINICAL)
+                        }.map { CodeStub.from("BE-THESAURUS", it.value, it.sv) } + contentType.cds.filter {
+                            (it.s == CDCONTENTschemes.LOCAL && it.sl.startsWith("MS-EXTRADATA"))
+                        }.map { CodeStub.from(it.sl, it.value, it.sv) }
+                    }
+                ).toSet()
 
     /**
      * Extracts all the tags from the CD_PARAMETER, CD_LAB, CD_TECHNICAL, CD_CONTACT_PERSON, and LOCAL CD-ITEM schemes
@@ -1140,20 +1358,20 @@ class SoftwareMedicalFileImport(
         (item.cds
             .filter { it.s == CDITEMschemes.CD_PARAMETER || it.s == CDITEMschemes.CD_LAB || it.s == CDITEMschemes.CD_TECHNICAL || it.s == CDITEMschemes.CD_CONTACT_PERSON }
             .map { CodeStub.from(it.s.value(), it.value, it.sv) } +
-        item.cds
-            .filter { (it.s == CDITEMschemes.LOCAL && it.sl.equals("LOCAL-PARAMETER")) }
-            .map { CodeStub.from(it.sl, it.dn ?: it.value, it.sv) } +
-        item.cds
-            .filter { (it.s == CDITEMschemes.LOCAL && it.sl.equals("GPSMF-PARAMETER")) }
-            .map { CodeStub.from(it.sl, it.dn ?: it.value, it.sv) } +
-        item.contents
-            .filter { (it.cds?.size ?: 0) > 0 }
-            .flatMap { contentType ->
-                contentType.cds.filter {
-                        listOf(CDCONTENTschemes.CD_LAB).contains(it.s)
-                    }.map { CodeStub.from(it.s.value(), it.value, it.sv) }
-            }
-        ).toSet()
+                item.cds
+                    .filter { (it.s == CDITEMschemes.LOCAL && it.sl.equals("LOCAL-PARAMETER")) }
+                    .map { CodeStub.from(it.sl, it.dn ?: it.value, it.sv) } +
+                item.cds
+                    .filter { (it.s == CDITEMschemes.LOCAL && it.sl.equals("GPSMF-PARAMETER")) }
+                    .map { CodeStub.from(it.sl, it.dn ?: it.value, it.sv) } +
+                item.contents
+                    .filter { (it.cds?.size ?: 0) > 0 }
+                    .flatMap { contentType ->
+                        contentType.cds.filter {
+                            listOf(CDCONTENTschemes.CD_LAB).contains(it.s)
+                        }.map { CodeStub.from(it.s.value(), it.value, it.sv) }
+                    }
+                ).toSet()
 
     /**
      * Converts a KmEHR ItemType to a Service which id depends on the MF-ID of the SMF. It adds as content the data
@@ -1180,12 +1398,12 @@ class SoftwareMedicalFileImport(
             ?: item.recorddatetime?.let { Utils.makeFuzzyLongFromXMLGregorianCalendar(it) }
             ?: FuzzyValues.getCurrentFuzzyDateTime(ChronoUnit.SECONDS)
         val tags = setOf(CodeStub.from("CD-ITEM", cdItem, "1")) + extractTags(item) + (
-            item.temporality?.cd?.value?.let { setOf(CodeStub.from("CD-TEMPORALITY", it.value(), "1")) }
-                ?: setOf()
-            ) + (
-            item.lifecycle?.let { setOf(CodeStub.from("CD-LIFECYCLE", it.cd.value.value(), "1")) }
-                ?: setOf()
-            )
+                item.temporality?.cd?.value?.let { setOf(CodeStub.from("CD-TEMPORALITY", it.value(), "1")) }
+                    ?: setOf()
+                ) + (
+                item.lifecycle?.let { setOf(CodeStub.from("CD-LIFECYCLE", it.cd.value.value(), "1")) }
+                    ?: setOf()
+                )
         val mfId = getItemMFID(item)
 
         return Service(
@@ -1207,40 +1425,61 @@ class SoftwareMedicalFileImport(
                     ?.firstOrNull()
                     ?.let { itemId ->
                         kmehrIndex.itemIds[itemId]?.first?.toString()
-                            ?.let { itt -> mapOf(LinkQualification.relatedService to mapOf(UUID.randomUUID().toString() to itt)) }
+                            ?.let { itt ->
+                                mapOf(
+                                    LinkQualification.relatedService to mapOf(
+                                        UUID.randomUUID().toString() to itt
+                                    )
+                                )
+                            }
                     }
             } ?: mapOf(),
             status = (item.lifecycle?.cd?.value?.value()
-                    ?.let {
-                        when (it) {
-                            "inactive", "aborted", "canceled" -> 1
-                            "notpresent", "excluded" -> 4
-                            else -> 0
-                        }
-                    } ?: 0) + if (item.isIsrelevant != true) 2 else 0,
+                ?.let {
+                    when (it) {
+                        "inactive", "aborted", "canceled" -> 1
+                        "notpresent", "excluded" -> 4
+                        else -> 0
+                    }
+                } ?: 0) + if (item.isIsrelevant != true) 2 else 0,
             content = when {
                 (item.contents.any { it.substanceproduct != null || it.medicinalproduct != null || it.compoundprescription != null }) -> {
                     Content(
                         medicationValue = Medication(
                             substanceProduct = item.contents.firstOrNull { it.substanceproduct != null }
                                 ?.let { contentType ->
-                                contentType.substanceproduct?.let {
-                                    Substanceproduct(
-                                        intendedcds = it.intendedcd?.let { cd -> listOf(CodeStub.from(cd.s.value(), cd.value, cd.sv)) }
-                                            ?: listOf(),
-                                        intendedname = it.intendedname ?: "",
-                                    )
-                                }
-                            },
-                            medicinalProduct = item.contents.firstOrNull { it.medicinalproduct != null }?.let { contentType ->
-                                contentType.medicinalproduct?.let {
-                                    Medicinalproduct(
-                                        intendedcds = it.intendedcds?.map { cd -> CodeStub.from(cd.s.value(), cd.value, cd.sv) }
-                                            ?: listOf(),
-                                        intendedname = it.intendedname ?: "",
-                                    )
-                                }
-                            },
+                                    contentType.substanceproduct?.let {
+                                        Substanceproduct(
+                                            intendedcds = it.intendedcd?.let { cd ->
+                                                listOf(
+                                                    CodeStub.from(
+                                                        cd.s.value(),
+                                                        cd.value,
+                                                        cd.sv
+                                                    )
+                                                )
+                                            }
+                                                ?: listOf(),
+                                            intendedname = it.intendedname ?: "",
+                                        )
+                                    }
+                                },
+                            medicinalProduct = item.contents.firstOrNull { it.medicinalproduct != null }
+                                ?.let { contentType ->
+                                    contentType.medicinalproduct?.let {
+                                        Medicinalproduct(
+                                            intendedcds = it.intendedcds?.map { cd ->
+                                                CodeStub.from(
+                                                    cd.s.value(),
+                                                    cd.value,
+                                                    cd.sv
+                                                )
+                                            }
+                                                ?: listOf(),
+                                            intendedname = it.intendedname ?: "",
+                                        )
+                                    }
+                                },
                             compoundPrescription = item.contents.firstOrNull {
                                 it.compoundprescription?.content?.isNotEmpty() ?: false
                             }?.let { contentType ->
@@ -1269,9 +1508,9 @@ class SoftwareMedicalFileImport(
                                 }?.joinToString(" ") { it.trim() }
                             } ?: "",
                             instructionForPatient = (
-                                listOf(item.instructionforpatient?.value) +
-                                    item.lnks.mapNotNull { it.value?.toString(Charsets.UTF_8) }
-                                ).filterNotNull().joinToString(", ").ifBlank { null },
+                                    listOf(item.instructionforpatient?.value) +
+                                            item.lnks.mapNotNull { it.value?.toString(Charsets.UTF_8) }
+                                    ).filterNotNull().joinToString(", ").ifBlank { null },
                             posology = item.posology?.text?.value, // posology can be complex but SMF spec recommends text type
                             duration = item.duration?.let { dt ->
                                 Duration(
@@ -1286,6 +1525,7 @@ class SoftwareMedicalFileImport(
                         ),
                     )
                 }
+
                 (item.contents.any { it.decimal != null }) -> item.contents.firstOrNull { it.decimal != null }?.let {
                     val comment = getItemDescription(item, "")
                     if (it.unit != null) {
@@ -1294,6 +1534,7 @@ class SoftwareMedicalFileImport(
                         Content(measureValue = Measure(value = it.decimal.toDouble(), comment = comment))
                     }
                 }
+
                 (item.contents.any { it.texts.any { t -> t.value?.isNotBlank() ?: false } }) -> {
                     val textValue = item.contents
                         .filter { (it.texts?.size ?: 0) > 0 }
@@ -1328,9 +1569,12 @@ class SoftwareMedicalFileImport(
                         Content(measureValue = measureValue)
                     }
                 }
-                (item.contents.any { it.isBoolean != null }) -> item.contents.firstOrNull { it.isBoolean != null }?.let {
-                    Content(booleanValue = it.isBoolean)
-                }
+
+                (item.contents.any { it.isBoolean != null }) -> item.contents.firstOrNull { it.isBoolean != null }
+                    ?.let {
+                        Content(booleanValue = it.isBoolean)
+                    }
+
                 else -> null
             }?.let { mapOf(language to it) } ?: mapOf(),
         )
@@ -1359,7 +1603,9 @@ class SoftwareMedicalFileImport(
     private fun ItemType.hasContentOfType(content: String?): Boolean =
         content?.let { c ->
             c == "m" && this.contents.any { it.medicinalproduct != null || it.substanceproduct != null || it.compoundprescription != null } ||
-                    c == "s" && this.contents.any { (it.texts?.size ?: 0) > 0 || (it.cds?.size ?: 0) > 0 || it.hcparty != null }
+                    c == "s" && this.contents.any {
+                (it.texts?.size ?: 0) > 0 || (it.cds?.size ?: 0) > 0 || it.hcparty != null
+            }
         } ?: true
 
     /**
@@ -1376,38 +1622,43 @@ class SoftwareMedicalFileImport(
         // test if already exist in current file
         val hcpBySsinOrNihii = v.hcps.find {
             nihii?.let { ni -> it.nihii == ni } == true ||
-                niss?.let { ni -> it.ssin == ni } == true ||
-                (
-                    ((nihii == null || nihii.trim() == "") && (niss == null || niss.trim() == "")) &&
-                        it.firstName?.trim() == p.firstname?.trim() &&
-                        it.lastName?.trim() == p.familyname?.trim() &&
-                        it.name?.trim() == p.name?.trim() &&
-                        it.speciality == specialty
-                    )
+                    niss?.let { ni -> it.ssin == ni } == true ||
+                    (
+                            ((nihii == null || nihii.trim() == "") && (niss == null || niss.trim() == "")) &&
+                                    it.firstName?.trim() == p.firstname?.trim() &&
+                                    it.lastName?.trim() == p.familyname?.trim() &&
+                                    it.name?.trim() == p.name?.trim() &&
+                                    it.speciality == specialty
+                            )
         }  // test if already exist in db
-        ?: nihii?.let { healthcarePartyLogic.listHealthcarePartiesByNihii(it).firstOrNull() }?.also { v.hcps.add(it) }
-        ?: niss?.let { healthcarePartyLogic.listHealthcarePartiesBySsin(it).firstOrNull() }?.also { v.hcps.add(it) }
+            ?: nihii?.let { healthcarePartyLogic.listHealthcarePartiesByNihii(it).firstOrNull() }
+                ?.also { v.hcps.add(it) }
+            ?: niss?.let { healthcarePartyLogic.listHealthcarePartiesBySsin(it).firstOrNull() }?.also { v.hcps.add(it) }
 
-        val existing = if (hcpBySsinOrNihii == null && ((nihii == null || nihii.trim() == "") && (niss == null || niss.trim() == "")) &&
-            p.firstname?.trim()?.let { it == "" } != false &&
-            p.familyname?.trim()?.let { it == "" } != false
-        ) {
-            p.name
-                ?.let { healthcarePartyLogic.listHealthcarePartiesByName(p.name).firstOrNull() }
-                ?.also {
-                    v.hcps.add(it) // do not create it, but should appear in patient external hcparties
-                }
-        } else hcpBySsinOrNihii
+        val existing =
+            if (hcpBySsinOrNihii == null && ((nihii == null || nihii.trim() == "") && (niss == null || niss.trim() == "")) &&
+                p.firstname?.trim()?.let { it == "" } != false &&
+                p.familyname?.trim()?.let { it == "" } != false
+            ) {
+                p.name
+                    ?.let { healthcarePartyLogic.listHealthcarePartiesByName(p.name).firstOrNull() }
+                    ?.also {
+                        v.hcps.add(it) // do not create it, but should appear in patient external hcparties
+                    }
+            } else hcpBySsinOrNihii
 
         return existing
             ?: try {
-                    copyFromHcpToHcp(p, HealthcareParty(id = idGenerator.newGUID().toString(), nihii = nihii, ssin = niss)).also {
-                        v.hcps.add(it)
-                        if (saveToDatabase) healthcarePartyLogic.createHealthcareParty(it)
-                    }
-                } catch (_: MissingRequirementsException) {
-                    null
+                copyFromHcpToHcp(
+                    p,
+                    HealthcareParty(id = idGenerator.newGUID().toString(), nihii = nihii, ssin = niss)
+                ).also {
+                    v.hcps.add(it)
+                    if (saveToDatabase) healthcarePartyLogic.createHealthcareParty(it)
                 }
+            } catch (_: MissingRequirementsException) {
+                null
+            }
     }
 
     /**
@@ -1425,28 +1676,33 @@ class SoftwareMedicalFileImport(
             nihii = hcp.nihii ?: p.ids.find { it.s == IDHCPARTYschemes.ID_HCPARTY }?.value,
             speciality = hcp.speciality ?: p.cds.find { it.s == CDHCPARTYschemes.CD_HCPARTY }?.value,
             addresses = hcp.addresses + (
-                p.addresses?.let { addresses ->
-                    addresses.map { address ->
-                        val addressType = address.cds.find { it.s == CDADDRESSschemes.CD_ADDRESS }?.let { AddressType.valueOf(it.value) }
-                        Address(
-                            addressType = addressType,
-                            street = address.street,
-                            city = address.city,
-                            houseNumber = address.housenumber,
-                            postboxNumber = address.postboxnumber,
-                            postalCode = address.zip,
-                            country = address.country?.cd?.value,
-                            telecoms = p.telecoms
-                                .filter { t -> t.cds.find { it.s == CDTELECOMschemes.CD_ADDRESS }?.let { AddressType.valueOf(it.value) } == addressType }
-                                .mapNotNull { t ->
-                                    t.cds.find { it.s == CDTELECOMschemes.CD_TELECOM }?.let { TelecomType.valueOf(it.value) }?.let { telecomType ->
-                                        Telecom(telecomType = telecomType, telecomNumber = t.telecomnumber)
+                    p.addresses?.let { addresses ->
+                        addresses.map { address ->
+                            val addressType = address.cds.find { it.s == CDADDRESSschemes.CD_ADDRESS }
+                                ?.let { AddressType.valueOf(it.value) }
+                            Address(
+                                addressType = addressType,
+                                street = address.street,
+                                city = address.city,
+                                houseNumber = address.housenumber,
+                                postboxNumber = address.postboxnumber,
+                                postalCode = address.zip,
+                                country = address.country?.cd?.value,
+                                telecoms = p.telecoms
+                                    .filter { t ->
+                                        t.cds.find { it.s == CDTELECOMschemes.CD_ADDRESS }
+                                            ?.let { AddressType.valueOf(it.value) } == addressType
                                     }
-                                }
-                        )
-                    }
-                } ?: listOf()
-            )
+                                    .mapNotNull { t ->
+                                        t.cds.find { it.s == CDTELECOMschemes.CD_TELECOM }
+                                            ?.let { TelecomType.valueOf(it.value) }?.let { telecomType ->
+                                            Telecom(telecomType = telecomType, telecomNumber = t.telecomnumber)
+                                        }
+                                    }
+                            )
+                        }
+                    } ?: listOf()
+                    )
         )
 
     /**
@@ -1467,7 +1723,7 @@ class SoftwareMedicalFileImport(
         val niss = validSsinOrNull(p.ids.find { it.s == IDPATIENTschemes.ID_PATIENT }?.value)
         v.notNull(niss, "Niss shouldn't be null for patient $p")
         res.ssin = niss ?: ""
-        res.dateOfBirth = Utils.makeFuzzyIntFromXMLGregorianCalendar(p.birthdate.date)
+        res.dateOfBirth = p.birthdate?.date?.let { Utils.makeFuzzyIntFromXMLGregorianCalendar(it) }
         res.firstName = p.firstnames.first()
         res.lastName = p.familyname
 
@@ -1525,38 +1781,46 @@ class SoftwareMedicalFileImport(
             return null
         }
 
-        val niss = validSsinOrNull(p.ids.find { it.s == IDPATIENTschemes.ID_PATIENT }?.value) // searching empty niss return all patients
+        val niss =
+            validSsinOrNull(p.ids.find { it.s == IDPATIENTschemes.ID_PATIENT }?.value) // searching empty niss return all patients
         v.notNull(niss, "Niss shouldn't be null for patient $p")
 
         return dest ?: niss?.let {
-                patientLogic.matchEntitiesBy(
-                    PatientByHcPartyAndSsinFilter(
-                        ssin = niss,
-                        healthcarePartyId = checkNotNull(author.healthcarePartyId) { "HealthcareParty id cannot be null"},
-                    )
-                ).firstOrNull()?.let { patientLogic.getPatient(it) }
-            } ?: patientLogic.matchEntitiesBy(
+            patientLogic.matchEntitiesBy(
+                PatientByHcPartyAndSsinFilter(
+                    ssin = niss,
+                    healthcarePartyId = checkNotNull(author.healthcarePartyId) { "HealthcareParty id cannot be null" },
+                )
+            ).firstOrNull()?.let { patientLogic.getPatient(it) }
+        } ?: p.birthdate?.date?.let { patDob ->
+            patientLogic.matchEntitiesBy(
                 PatientByHcPartyDateOfBirthFilter(
-                    healthcarePartyId = checkNotNull(author.healthcarePartyId) { "HealthcareParty id cannot be null"},
-                    dateOfBirth = Utils.makeFuzzyIntFromXMLGregorianCalendar(p.birthdate.date) ?: throw IllegalStateException("Person's date of birth is invalid"),
+                    healthcarePartyId = checkNotNull(author.healthcarePartyId) { "HealthcareParty id cannot be null" },
+                    dateOfBirth = Utils.makeFuzzyIntFromXMLGregorianCalendar(patDob)
+                        ?: throw IllegalStateException("Person's date of birth is invalid"),
                 )
             ).toList().takeIf { it.isNotEmpty() }?.let {
                 patientLogic.getPatients(it).filter {
                     p.firstnames.any { fn -> equals(it.firstName, fn) && equals(it.lastName, p.familyname) }
                 }.firstOrNull()
-            } ?: patientLogic.matchEntitiesBy(
-                PatientByHcPartyNameFilter(
-                    healthcarePartyId = checkNotNull(author.healthcarePartyId) { "HealthcareParty id cannot be null"},
-                    name = sanitizeString(p.familyname + p.firstnames.first())
-                )
-            ).toList()
-                .takeIf { it.isNotEmpty() }
-                ?.let {
-                    patientLogic.getPatients(it).filter { patient ->
-                        patient.dateOfBirth?.let { dateOfBirth -> dateOfBirth == Utils.makeFuzzyIntFromXMLGregorianCalendar(p.birthdate.date) }
-                            ?: false
-                    }.firstOrNull()
-                }
+            }
+        } ?: patientLogic.matchEntitiesBy(
+            PatientByHcPartyNameFilter(
+                healthcarePartyId = checkNotNull(author.healthcarePartyId) { "HealthcareParty id cannot be null" },
+                name = sanitizeString(p.familyname + p.firstnames.first())
+            )
+        ).toList()
+            .takeIf { it.isNotEmpty() }
+            ?.let {
+                patientLogic.getPatients(it).filter { patient ->
+                    patient.dateOfBirth?.let { dateOfBirth ->
+                        dateOfBirth == p.birthdate?.date?.let { Utils.makeFuzzyIntFromXMLGregorianCalendar(
+                            it
+                        )}
+                    }
+                        ?: false
+                }.firstOrNull()
+            }
     }
 
     /**
@@ -1576,7 +1840,12 @@ class SoftwareMedicalFileImport(
         saveToDatabase: Boolean,
         dest: Patient? = null,
         insurabilities: List<Insurability> = listOf(),
-    ) = getExistingPatientWithHcpHierarchy(p, author, v, dest)?.let { it.copy(insurabilities = it.insurabilities + insurabilities) }
+    ) = getExistingPatientWithHcpHierarchy(
+        p,
+        author,
+        v,
+        dest
+    )?.let { it.copy(insurabilities = it.insurabilities + insurabilities) }
         ?: Patient(
             id = idGenerator.newGUID().toString(),
             insurabilities = insurabilities,
@@ -1597,11 +1866,15 @@ class SoftwareMedicalFileImport(
         patient.copy(
             firstName = p.firstnames.firstOrNull(),
             lastName = p.familyname,
-            dateOfBirth = Utils.makeFuzzyIntFromXMLGregorianCalendar(p.birthdate.date),
+            dateOfBirth = p.birthdate?.date?.let { Utils.makeFuzzyIntFromXMLGregorianCalendar(it) },
             ssin = patient.ssin ?: p.ids.find { it.s == IDPATIENTschemes.ID_PATIENT }?.value
-                ?: p.ids.find { it.s == IDPATIENTschemes.INSS }?.value,
+            ?: p.ids.find { it.s == IDPATIENTschemes.INSS }?.value,
             placeOfBirth = if (force || patient.placeOfBirth == null) p.birthlocation?.getFullAddress() else patient.placeOfBirth,
-            dateOfDeath = if (force || patient.dateOfDeath == null) p.deathdate?.let { Utils.makeFuzzyIntFromXMLGregorianCalendar(it.date) } else patient.dateOfDeath,
+            dateOfDeath = if (force || patient.dateOfDeath == null) p.deathdate?.let {
+                Utils.makeFuzzyIntFromXMLGregorianCalendar(
+                    it.date
+                )
+            } else patient.dateOfDeath,
             placeOfDeath = if (force || patient.placeOfDeath == null) p.deathlocation?.getFullAddress() else patient.placeOfDeath,
             gender = if (force || patient.gender == null) {
                 when (p.sex.cd.value) {
@@ -1622,34 +1895,38 @@ class SoftwareMedicalFileImport(
                 if (force || patient.externalId == null) alias else patient.alias
             } ?: patient.alias,
             addresses = patient.addresses + (
-                p.addresses?.let { addresses ->
-                    addresses.map { address ->
-                        val addressType = address.cds.find { it.s == CDADDRESSschemes.CD_ADDRESS }?.let { AddressType.valueOf(it.value) }
-                        Address(
-                            addressType = addressType,
-                            street = address.street,
-                            city = address.city,
-                            houseNumber = address.housenumber,
-                            postboxNumber = address.postboxnumber,
-                            postalCode = address.zip,
-                            country = address.country?.cd?.value,
-                            telecoms = p.telecoms
-                                .filter { t -> t.cds.find { it.s == CDTELECOMschemes.CD_ADDRESS }?.let { AddressType.valueOf(it.value) } == addressType }
-                                .mapNotNull {
-                                    it.cds.find { cds -> cds.s == CDTELECOMschemes.CD_TELECOM }
-                                        ?.let { cds -> TelecomType.valueOf(cds.value) }
-                                        ?.let { telecomType ->
-                                            Telecom(telecomType = telecomType, telecomNumber = it.telecomnumber)
-                                        }
-                                }
-                        )
-                    }
-                } ?: listOf()
-            ),
+                    p.addresses?.let { addresses ->
+                        addresses.map { address ->
+                            val addressType = address.cds.find { it.s == CDADDRESSschemes.CD_ADDRESS }
+                                ?.let { AddressType.valueOf(it.value) }
+                            Address(
+                                addressType = addressType,
+                                street = address.street,
+                                city = address.city,
+                                houseNumber = address.housenumber,
+                                postboxNumber = address.postboxnumber,
+                                postalCode = address.zip,
+                                country = address.country?.cd?.value,
+                                telecoms = p.telecoms
+                                    .filter { t ->
+                                        t.cds.find { it.s == CDTELECOMschemes.CD_ADDRESS }
+                                            ?.let { AddressType.valueOf(it.value) } == addressType
+                                    }
+                                    .mapNotNull {
+                                        it.cds.find { cds -> cds.s == CDTELECOMschemes.CD_TELECOM }
+                                            ?.let { cds -> TelecomType.valueOf(cds.value) }
+                                            ?.let { telecomType ->
+                                                Telecom(telecomType = telecomType, telecomNumber = it.telecomnumber)
+                                            }
+                                    }
+                            )
+                        }
+                    } ?: listOf()
+                    ),
             languages = patient.languages + (
-                p.usuallanguage?.let { if (patient.languages.contains(it)) null else listOf(it) }
-                    ?: listOf()
-                )
+                    p.usuallanguage?.let { if (patient.languages.contains(it)) null else listOf(it) }
+                        ?: listOf()
+                    )
         )
 
     private val consultationFormMeasureLabels: Map<String, String> = mapOf(
@@ -1674,9 +1951,21 @@ class SoftwareMedicalFileImport(
     private suspend fun getFormTemplateIdByGuid(author: User, guid: String): String? =
         formTemplateLogic.getFormTemplatesByGuid(author.id, "deptgeneralpractice", guid).firstOrNull()?.id
 
-    data class HeVersionType(val he: HealthElement, val mfId: String, val isANewVersionOfId: String?, var versionId: String?)
+    data class HeVersionType(
+        val he: HealthElement,
+        val mfId: String,
+        val isANewVersionOfId: String?,
+        var versionId: String?
+    )
+
     data class DocumentLinkType(val document: Document, val service: Service, val isAChildOfId: String?)
-    data class ServiceVersionType(val service: Service, val mfId: String, val isANewVersionOfId: String?, var versionId: String?)
+    data class ServiceVersionType(
+        val service: Service,
+        val mfId: String,
+        val isANewVersionOfId: String?,
+        var versionId: String?
+    )
+
     data class ServiceHeLink(val mfid: String, val serviceId: String, val heMfid: String)
 
     // internal bookkeeping
@@ -1733,7 +2022,8 @@ data class KmehrMessageIndex(
     val parentOf: PersistentMap<String, List<String>> = persistentHashMapOf(),
     val approachFor: PersistentMap<String, List<String>> = persistentHashMapOf(),
     val attestationOf: PersistentMap<String, List<String>> = persistentHashMapOf(),
-    val formIdMask: UUID = UUID.randomUUID().xor(UUID.randomUUID()), // Ensure that marker bits are set to 0 by xoring two UUIDs
+    val formIdMask: UUID = UUID.randomUUID()
+        .xor(UUID.randomUUID()), // Ensure that marker bits are set to 0 by xoring two UUIDs
 ) {
     fun isChildTransaction(trn: TransactionType?) =
         trn?.let { getTransactionMFID(it)?.let { mfid -> childOf.containsKey(mfid) } } ?: false
@@ -1748,7 +2038,8 @@ data class KmehrMessageIndex(
  * @return the updated Collection.
  */
 fun simplifySubContacts(scts: Collection<SubContact>): Collection<SubContact> =
-    scts.groupBy { it.id }.mapValues { it.value.first().copy(services = it.value.flatMap { svc -> svc.services }) }.values
+    scts.groupBy { it.id }
+        .mapValues { it.value.first().copy(services = it.value.flatMap { svc -> svc.services }) }.values
 
 /**
  * Checks that all the Items and Transactions in the SMF have a unique MF-ID. If two items/transactions have the same
@@ -1756,73 +2047,80 @@ fun simplifySubContacts(scts: Collection<SubContact>): Collection<SubContact> =
  * @param idGenerator The UUIDGenerator.
  * @return The Updated KmEHR message.
  */
-fun Kmehrmessage.performIndexation(idGenerator: UUIDGenerator) = this.folders.fold(KmehrMessageIndex()) { folderKmi, folder ->
-    folder.transactions.fold(folderKmi) { transactionKmi, trn ->
-        val tmfId = getTransactionMFID(trn)
-        val tLinks = trn.headingsAndItemsAndTexts
-            .mapNotNull { it as? LnkType }
-            .filter { it.type == CDLNKvalues.ISACHILDOF && it.url != null }
-            .mapNotNull { lnk ->
-                extractMFIDFromUrl(lnk.url)?.let { lnk.type to it }
-            }.groupBy { (from, _) -> from }
-
-        val childOfTLinks = tLinks[CDLNKvalues.ISACHILDOF]
-        trn.findItems().fold(
-            transactionKmi.copy(
-                transactionIds = tmfId?.let { transactionKmi.transactionIds + (it to (idGenerator.newGUID() to trn)) } ?: transactionKmi.transactionIds,
-                transactionChildOf = if (tmfId != null && !childOfTLinks.isNullOrEmpty()) {
-                    transactionKmi.transactionChildOf +
-                        (tmfId to childOfTLinks.map { it.second })
-                } else {
-                    transactionKmi.transactionChildOf
-                },
-                transactionParentOf = if (tmfId != null && !childOfTLinks.isNullOrEmpty()) {
-                    transactionKmi.transactionParentOf +
-                        childOfTLinks.map { it.second to (listOf(tmfId) + (transactionKmi.transactionParentOf[it.second] ?: listOf())) }
-                } else {
-                    transactionKmi.transactionParentOf
-                },
-            ),
-        ) { kmi, item ->
-            val mfId = getItemMFID(item)
-
-            val previousVersion = item.lnks
-                .find { (it.type == CDLNKvalues.ISANEWVERSIONOF) && it.url != null }
-                ?.url
-                ?.let { extractMFIDFromUrl(it) }
-            val id = previousVersion?.let { kmi.itemIds[it]?.first } ?: idGenerator.newGUID()
-
-            val links = item.lnks
-                .filter { (it.type == CDLNKvalues.ISASERVICEFOR || it.type == CDLNKvalues.ISATTESTATIONOF || it.type == CDLNKvalues.ISACHILDOF || it.type == CDLNKvalues.ISAPPROACHFOR) && it.url != null }
+fun Kmehrmessage.performIndexation(idGenerator: UUIDGenerator) =
+    this.folders.fold(KmehrMessageIndex()) { folderKmi, folder ->
+        folder.transactions.fold(folderKmi) { transactionKmi, trn ->
+            val tmfId = getTransactionMFID(trn)
+            val tLinks = trn.headingsAndItemsAndTexts
+                .mapNotNull { it as? LnkType }
+                .filter { it.type == CDLNKvalues.ISACHILDOF && it.url != null }
                 .mapNotNull { lnk ->
                     extractMFIDFromUrl(lnk.url)?.let { lnk.type to it }
                 }.groupBy { (from, _) -> from }
 
-            val serviceForLinks = links[CDLNKvalues.ISASERVICEFOR]
-            val childOfLinks = links[CDLNKvalues.ISACHILDOF]
-            val approachForLinks = links[CDLNKvalues.ISAPPROACHFOR]
-            val attestationOfLinks = links[CDLNKvalues.ISATTESTATIONOF]
-            kmi.copy(
-                itemIds = mfId?.let { kmi.itemIds + (it to (id to item)) } ?: kmi.itemIds,
-                serviceFor = if (mfId != null && !serviceForLinks.isNullOrEmpty())
+            val childOfTLinks = tLinks[CDLNKvalues.ISACHILDOF]
+            trn.findItems().fold(
+                transactionKmi.copy(
+                    transactionIds = tmfId?.let { transactionKmi.transactionIds + (it to (idGenerator.newGUID() to trn)) }
+                        ?: transactionKmi.transactionIds,
+                    transactionChildOf = if (tmfId != null && !childOfTLinks.isNullOrEmpty()) {
+                        transactionKmi.transactionChildOf +
+                                (tmfId to childOfTLinks.map { it.second })
+                    } else {
+                        transactionKmi.transactionChildOf
+                    },
+                    transactionParentOf = if (tmfId != null && !childOfTLinks.isNullOrEmpty()) {
+                        transactionKmi.transactionParentOf +
+                                childOfTLinks.map {
+                                    it.second to (listOf(tmfId) + (transactionKmi.transactionParentOf[it.second]
+                                        ?: listOf()))
+                                }
+                    } else {
+                        transactionKmi.transactionParentOf
+                    },
+                ),
+            ) { kmi, item ->
+                val mfId = getItemMFID(item)
+
+                val previousVersion = item.lnks
+                    .find { (it.type == CDLNKvalues.ISANEWVERSIONOF) && it.url != null }
+                    ?.url
+                    ?.let { extractMFIDFromUrl(it) }
+                val id = previousVersion?.let { kmi.itemIds[it]?.first } ?: idGenerator.newGUID()
+
+                val links = item.lnks
+                    .filter { (it.type == CDLNKvalues.ISASERVICEFOR || it.type == CDLNKvalues.ISATTESTATIONOF || it.type == CDLNKvalues.ISACHILDOF || it.type == CDLNKvalues.ISAPPROACHFOR) && it.url != null }
+                    .mapNotNull { lnk ->
+                        extractMFIDFromUrl(lnk.url)?.let { lnk.type to it }
+                    }.groupBy { (from, _) -> from }
+
+                val serviceForLinks = links[CDLNKvalues.ISASERVICEFOR]
+                val childOfLinks = links[CDLNKvalues.ISACHILDOF]
+                val approachForLinks = links[CDLNKvalues.ISAPPROACHFOR]
+                val attestationOfLinks = links[CDLNKvalues.ISATTESTATIONOF]
+                kmi.copy(
+                    itemIds = mfId?.let { kmi.itemIds + (it to (id to item)) } ?: kmi.itemIds,
+                    serviceFor = if (mfId != null && !serviceForLinks.isNullOrEmpty())
                         kmi.serviceFor + (mfId to serviceForLinks.map { it.second })
                     else kmi.serviceFor,
-                childOf = if (mfId != null && !childOfLinks.isNullOrEmpty())
+                    childOf = if (mfId != null && !childOfLinks.isNullOrEmpty())
                         kmi.childOf + (mfId to childOfLinks.map { it.second })
                     else kmi.childOf,
-                parentOf = if (mfId != null && !childOfLinks.isNullOrEmpty())
-                        kmi.parentOf + childOfLinks.map { it.second to (listOf(mfId) + (kmi.parentOf[it.second] ?: listOf())) }
+                    parentOf = if (mfId != null && !childOfLinks.isNullOrEmpty())
+                        kmi.parentOf + childOfLinks.map {
+                            it.second to (listOf(mfId) + (kmi.parentOf[it.second] ?: listOf()))
+                        }
                     else kmi.parentOf,
-                approachFor = if (mfId != null && !approachForLinks.isNullOrEmpty())
+                    approachFor = if (mfId != null && !approachForLinks.isNullOrEmpty())
                         kmi.approachFor + (mfId to approachForLinks.map { it.second })
                     else kmi.approachFor,
-                attestationOf = if (mfId != null && !attestationOfLinks.isNullOrEmpty())
+                    attestationOf = if (mfId != null && !attestationOfLinks.isNullOrEmpty())
                         kmi.attestationOf + (mfId to attestationOfLinks.map { it.second })
                     else kmi.attestationOf
-            )
+                )
+            }
         }
     }
-}
 
 private fun selector(
     headingsAndItemsAndTexts: MutableList<Serializable>,
