@@ -966,7 +966,7 @@ class SoftwareMedicalFileExport(
 		attachment: ByteArray,
 		decryptor: AsyncDecrypt?,
 	): LnkType {
-		val data = if (document.encryptionKeys.isNotEmpty() && decryptor != null) {
+		val data = if ((document.encryptionKeys.isNotEmpty() || document.securityMetadata?.secureDelegations?.any { it.value.encryptionKeys.isNotEmpty() } == true) && decryptor != null) {
 			decryptor.decrypt(
 				listOf(documentMapper.map(document).copy(encryptedAttachment = documentLogic.getAndDecryptMainAttachment(document.id))),
 				DocumentDto::class.java
