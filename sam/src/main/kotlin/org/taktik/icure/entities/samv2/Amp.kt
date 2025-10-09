@@ -47,19 +47,19 @@ data class Amp(
 
 	override fun withDeletionDate(deletionDate: Long?) = this.copy(deletionDate = deletionDate)
 
-	fun hasValidAmpps(includeWithoutCommercializations: Boolean): Boolean {
+	fun hasValidAmpps(includeWithoutCommercializations: Boolean, includeFutureAmpps: Boolean = false): Boolean {
 		val now = System.currentTimeMillis()
 		val twoYearsAgo = now - Duration.ofDays(365 * 2).toMillis()
 		return from != null && from < now && (to == null || to > now) && ampps.any {
-			it.isValid(now, twoYearsAgo, includeWithoutCommercializations)
+			if (includeFutureAmpps) it.isOrWillBeValid(now, twoYearsAgo, includeWithoutCommercializations) else it.isValid(now, twoYearsAgo, includeWithoutCommercializations)
 		}
 	}
 
-	fun removeInvalidAmpps(includeWithoutCommercializations: Boolean): Amp {
+	fun removeInvalidAmpps(includeWithoutCommercializations: Boolean, includeFutureAmpps: Boolean = false): Amp {
 		val now = System.currentTimeMillis()
 		val twoYearsAgo = now - Duration.ofDays(365 * 2).toMillis()
 		return copy(
-			ampps = ampps.filter { it.isValid(now, twoYearsAgo, includeWithoutCommercializations) }.toSet()
+			ampps = ampps.filter { if (includeFutureAmpps) it.isOrWillBeValid(now, twoYearsAgo, includeWithoutCommercializations) else it.isValid(now, twoYearsAgo, includeWithoutCommercializations) }.toSet()
 		)
 	}
 }
