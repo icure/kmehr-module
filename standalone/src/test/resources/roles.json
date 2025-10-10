@@ -127,8 +127,8 @@
       "_id": "LEGACY_HCP",
       "name": "LEGACY_HCP",
       "permissions": [
-        "CodeManagement.Read",
         "ExtendedEncryptionMetadataEntitiesManagement.ForParent",
+        "ExtendedEncryptionMetadataEntitiesManagement.Any",
         "UserManagement.Update.Own.LoginIdentifiers",
         "AgendaManagement.Create",
         "MessageManagement.ProtectedContentUpdate.ReadStatus",
@@ -252,6 +252,7 @@
         "PatientManagement.ExtendedUpdate.Any",
         "PatientManagement.ExtendedPurge.Any",
         "PatientManagement.ProtectedContentUpdate.CreationMetadata",
+        "PatientManagement.ProtectedContentUpdate.ExternalRelations",
         "ReceiptManagement.Create",
         "ReceiptManagement.ExtendedRead.Any",
         "ReceiptManagement.ExtendedUpdate.Any",

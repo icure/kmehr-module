@@ -3,6 +3,7 @@ package org.taktik.icure.asynclogic.samv2.impl
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.dropWhile
@@ -279,25 +280,41 @@ class SamV2Updater(
 			_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Successfully applied diff update ${samUpdate.version}"))
 		}
 
-		private suspend fun loadSignatures(
+		private tailrec suspend fun loadSignatures(
 			updateVersion: String,
 			type: UpdateType,
 			resourceName: String
 		) {
 			val datastoreInfo = datastoreInstanceProvider.getInstanceAndGroup()
 			val client = drugsCouchDbDispatcher.getClient(datastoreInfo)
-			updatesBridge.getSignaturesUpdateContent(updateVersion, type, resourceName).collect { signatureUpdate ->
-				if (signatureUpdate.type == SignatureUpdate.SignatureType.SamV2) {
-					ampDAO.getVersion(datastoreInfo)?.let { samVersion ->
-						client.update(samVersion.copy(version = signatureUpdate.version.version, date = signatureUpdate.version.date))
-					} ?: client.create(signatureUpdate.version.copy(rev = null))
-				} else {
-					val version = ampDAO.getSignature(datastoreInfo, signatureUpdate.type.name.lowercase())?.let {
-						client.update(it.copy(version = signatureUpdate.version.version, date = signatureUpdate.version.date))
-					} ?: client.create(signatureUpdate.version.copy(rev = null, attachments = emptyMap()))
-					signatureUpdate.idsForAttachment?.also { productIds ->
-						client.createAttachment(version.id, "signatures", version.rev!!, "application/gzip", makeSignatures(productIds))
+			// The compiler does not support tailrec with try/catch
+			val result = runCatching {
+				updatesBridge.getSignaturesUpdateContent(updateVersion, type, resourceName).collect { signatureUpdate ->
+					_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Loaded Signature document of type ${signatureUpdate.type}"))
+					if (signatureUpdate.type == SignatureUpdate.SignatureType.SamV2) {
+						ampDAO.getVersion(datastoreInfo)?.let { samVersion ->
+							client.update(samVersion.copy(version = signatureUpdate.version.version, date = signatureUpdate.version.date))
+						} ?: client.create(signatureUpdate.version.copy(rev = null))
+					} else {
+						val version = ampDAO.getSignature(datastoreInfo, signatureUpdate.type.name.lowercase())?.let {
+							client.update(it.copy(version = signatureUpdate.version.version, date = signatureUpdate.version.date))
+						} ?: client.create(signatureUpdate.version.copy(rev = null, attachments = emptyMap()))
+						signatureUpdate.idsForAttachment?.also { productIds ->
+							client.createAttachment(version.id, "signatures", version.rev!!, "application/gzip", makeSignatures(productIds))
+						}
 					}
+					_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Saved Signature document of type ${signatureUpdate.type}"))
+				}
+			}
+			if (result.isFailure) {
+				val exception = result.exceptionOrNull()
+				when (exception) {
+					is TimeoutCancellationException -> {
+						_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Network timeout while loading Signatures, retrying"))
+						loadSignatures(updateVersion, type, resourceName)
+					}
+					null -> throw IllegalStateException("Process failed without exception")
+					else -> throw exception
 				}
 			}
 		}
