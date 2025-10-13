@@ -3,6 +3,7 @@ package org.taktik.icure.asynclogic.samv2.impl
 import com.fasterxml.jackson.core.JsonToken
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.icure.asyncjacksonhttpclient.net.addSinglePathComponent
+import io.icure.asyncjacksonhttpclient.net.param
 import io.icure.asyncjacksonhttpclient.net.web.HttpMethod
 import io.icure.asyncjacksonhttpclient.net.web.Request
 import io.icure.asyncjacksonhttpclient.net.web.Response
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.produceIn
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.withTimeout
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.taktik.icure.asynclogic.samv2.UpdatesBridge
@@ -25,6 +27,7 @@ import org.taktik.icure.entities.samv2.updates.SamUpdate
 import org.taktik.icure.entities.samv2.updates.SignatureUpdate
 import org.taktik.icure.entities.samv2.updates.UpdateType
 import java.net.URI
+import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @Component
@@ -32,6 +35,7 @@ import java.net.URI
 class UpdatesBridgeImpl(
 	private val client: WebClient,
 	private val objectMapper: ObjectMapper,
+	@param:Value("\${icure.sam.entityDownloadTimeout:60}") private val entityDownloadTimeout: Int = 60,
 	@Value("\${icure.sam.updaterUrl}") updaterUrl: String,
 ) : UpdatesBridge {
 
@@ -39,8 +43,12 @@ class UpdatesBridgeImpl(
 
 	private val baseUri = URI(updaterUrl)
 
-	override suspend fun getFollowingUpdates(jwt: String, currentPatch: SamUpdate?): List<SamUpdate> = client
-		.uri(baseUri.addSinglePathComponent("api").addSinglePathComponent("updates"))
+	override suspend fun getFollowingUpdates(jwt: String, currentPatch: SamUpdate?, forceSnapshot: Boolean): List<SamUpdate> = client
+		.uri(baseUri
+			.addSinglePathComponent("api")
+			.addSinglePathComponent("updates")
+			.param("forceSnapshot", forceSnapshot.toString())
+		)
 		.header(HttpHeaderNames.AUTHORIZATION.toString(), "Bearer $jwt")
 		.header(HttpHeaderNames.CONTENT_TYPE.toString(), "application/json")
 		.method(HttpMethod.POST)
@@ -88,13 +96,17 @@ class UpdatesBridgeImpl(
 				.throwOnError()
 				.toJsonEvents(asyncParser)
 				.produceIn(this)
-			val firstEvent = jsonEvents.receive()
+			val firstEvent = withTimeout(entityDownloadTimeout.seconds) {
+				jsonEvents.receive()
+			}
 			check(firstEvent == StartArray) { "First event must be StartArray" }
 			do {
-				val nextValue = jsonEvents.nextValue(asyncParser) // This method returns null only if the next token is EndArray
+				val nextValue = withTimeout(entityDownloadTimeout.seconds) {
+					jsonEvents.nextValue(asyncParser) // This method returns null only if the next token is EndArray
+				}
 				val nextToken = nextValue?.firstToken()
 				when {
-					klass != String::class.java && nextToken == JsonToken.START_OBJECT -> {
+					klass != String::class.java && nextToken == JsonToken.START_OBJECT -> withTimeout(entityDownloadTimeout.seconds) {
 						emit(nextValue.asParser(objectMapper).readValueAs(klass))
 					}
 					klass == String::class.java && nextToken == JsonToken.VALUE_STRING -> {
@@ -105,7 +117,7 @@ class UpdatesBridgeImpl(
 					nextToken == null -> {}
 					else -> error("Unexpected token type: $nextToken")
 				}
-			} while(nextValue?.firstToken() != null)
+			} while(nextToken != null)
 			jsonEvents.cancel()
 		}
 	}

@@ -102,7 +102,9 @@ class SamV2Controller(
 	@PostMapping("/patch")
 	fun triggerSamUpdate(
 		@RequestParam apiToken: String,
-	) = samV2Updater?.startUpdateJob(apiToken) ?: throw IllegalStateException("Updater backend url is not defined")
+		@RequestParam forceSnapshot: Boolean? = null
+	) = samV2Updater?.startUpdateJob(apiToken, forceSnapshot ?: false)
+		?: throw IllegalStateException("Updater backend url is not defined")
 
 	@GetMapping("/patch")
 	fun getSamUpdateStatus() =
