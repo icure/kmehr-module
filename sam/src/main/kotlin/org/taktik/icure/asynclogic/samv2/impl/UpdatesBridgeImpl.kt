@@ -3,6 +3,7 @@ package org.taktik.icure.asynclogic.samv2.impl
 import com.fasterxml.jackson.core.JsonToken
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.icure.asyncjacksonhttpclient.net.addSinglePathComponent
+import io.icure.asyncjacksonhttpclient.net.param
 import io.icure.asyncjacksonhttpclient.net.web.HttpMethod
 import io.icure.asyncjacksonhttpclient.net.web.Request
 import io.icure.asyncjacksonhttpclient.net.web.Response
@@ -42,8 +43,12 @@ class UpdatesBridgeImpl(
 
 	private val baseUri = URI(updaterUrl)
 
-	override suspend fun getFollowingUpdates(jwt: String, currentPatch: SamUpdate?): List<SamUpdate> = client
-		.uri(baseUri.addSinglePathComponent("api").addSinglePathComponent("updates"))
+	override suspend fun getFollowingUpdates(jwt: String, currentPatch: SamUpdate?, forceSnapshot: Boolean): List<SamUpdate> = client
+		.uri(baseUri
+			.addSinglePathComponent("api")
+			.addSinglePathComponent("updates")
+			.param("forceSnapshot", forceSnapshot.toString())
+		)
 		.header(HttpHeaderNames.AUTHORIZATION.toString(), "Bearer $jwt")
 		.header(HttpHeaderNames.CONTENT_TYPE.toString(), "application/json")
 		.method(HttpMethod.POST)

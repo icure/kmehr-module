@@ -67,11 +67,11 @@ class SamV2Updater(
 	init {
 	    print("initializing SamV2Updater")
 	}
-	fun startUpdateJob(jwt: String) {
+	fun startUpdateJob(jwt: String, forceSnapshot: Boolean) {
 		if (currentJob == null || currentJob?.isCompleted == true) {
 			val task = SamV2UpdateTask()
 			task.job = coroutineScope.launch {
-				task.update(jwt)
+				task.update(jwt, forceSnapshot)
 			}
 			currentJob = task
 		} else {
@@ -108,7 +108,7 @@ class SamV2Updater(
 
 		private suspend fun getCurrentSamUpdate(): SamUpdate? = samUpdateDAO.getLastAppliedUpdate()
 
-		suspend fun update(jwt: String) {
+		suspend fun update(jwt: String, forceSnapshot: Boolean) {
 			try {
 				_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Started, System.currentTimeMillis(), "Update job started"))
 				val datastoreInfo = datastoreInstanceProvider.getInstanceAndGroup()
@@ -116,7 +116,7 @@ class SamV2Updater(
 				checkOnlyLocalNodeExists(client)
 				val currentUpdate = getCurrentSamUpdate()
 				_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Retrieving updates to apply"))
-				val updates = updatesBridge.getFollowingUpdates(jwt, currentUpdate)
+				val updates = updatesBridge.getFollowingUpdates(jwt, currentUpdate, forceSnapshot)
 				if (updates.isNotEmpty()) {
 					_processStatus.addFirst(SamV2UpdateTaskLog(SamV2UpdateTaskLog.Status.Running, System.currentTimeMillis(), "Updates to apply: ${updates.joinToString(", ") { "${it.type} - ${it.id}" }}"))
 				} else {
