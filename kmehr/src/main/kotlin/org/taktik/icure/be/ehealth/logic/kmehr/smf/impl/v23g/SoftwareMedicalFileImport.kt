@@ -1593,7 +1593,7 @@ class SoftwareMedicalFileImport(
         (item.texts.map { it.value } + item.contents.flatMap { it.texts.map { t -> t.value } })
             .filter { it != null && it.trim() != "" }
             .joinToString(", ")
-            .takeIf { it.trim() == "" } ?: defaultValue
+            .takeIf { it.isNotBlank() } ?: defaultValue
 
     /**
      * Checks if an ItemType has a Content of the type passed as parameter.
