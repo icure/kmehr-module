@@ -118,6 +118,7 @@ subprojects {
 				force("io.netty:netty-resolver:4.1.122.Final")
  				force("io.netty:netty-resolver-dns-native-macos:4.1.122.Final")
 				force("com.google.devtools.ksp:symbol-processing-api:2.2.0-2.0.2")
+                force("co.touchlab:kermit:2.0.8")
 			}
 		}
 	}

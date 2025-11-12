@@ -13,10 +13,20 @@ import org.taktik.icure.asyncdao.samv2.PharmaceuticalFormDAO
 import org.taktik.icure.datastore.DatastoreInstanceProvider
 import org.taktik.icure.entities.samv2.PharmaceuticalForm
 
-@View(name = "all", map = "function(doc) { if (doc.java_type == 'org.taktik.icure.entities.samv2.PharmaceuticalForm') emit( null, doc._id )}")
+@View(
+    name = "all",
+    map = "function(doc) { if (doc.java_type == 'org.taktik.icure.entities.samv2.PharmaceuticalForm') emit( null, doc._id )}",
+)
 class PharmaceuticalFormDAOImpl(
-	couchDbDispatcher: CouchDbDispatcher,
-	idGenerator: IDGenerator,
-	datastoreInstanceProvider: DatastoreInstanceProvider,
-	designDocumentProvider: DesignDocumentProvider
-) : InternalDAOImpl<PharmaceuticalForm>(PharmaceuticalForm::class.java, couchDbDispatcher, idGenerator, datastoreInstanceProvider, designDocumentProvider), PharmaceuticalFormDAO
+    couchDbDispatcher: CouchDbDispatcher,
+    idGenerator: IDGenerator,
+    datastoreInstanceProvider: DatastoreInstanceProvider,
+    designDocumentProvider: DesignDocumentProvider,
+) : InternalDAOImpl<PharmaceuticalForm>(
+        PharmaceuticalForm::class.java,
+        couchDbDispatcher,
+        idGenerator,
+        datastoreInstanceProvider,
+        designDocumentProvider,
+    ),
+    PharmaceuticalFormDAO

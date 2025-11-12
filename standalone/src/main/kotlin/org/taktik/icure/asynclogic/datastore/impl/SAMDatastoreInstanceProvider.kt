@@ -10,8 +10,7 @@ import java.net.URI
 @Service
 @Profile("sam")
 class SAMDatastoreInstanceProvider(
-    private val couchDbProperties: CouchDbProperties
-): DatastoreInstanceProvider {
-    override suspend fun getInstanceAndGroup(): IDatastoreInformation =
-        SAMDatastoreInformation(URI(couchDbProperties.url))
+    private val couchDbProperties: CouchDbProperties,
+) : DatastoreInstanceProvider {
+    override suspend fun getInstanceAndGroup(): IDatastoreInformation = SAMDatastoreInformation(URI(couchDbProperties.url))
 }

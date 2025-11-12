@@ -19,5 +19,5 @@ class StandaloneCouchDbProperties(
     override var password: String? = null,
     override var maxConnections: Int? = null,
     override var maxPendingAcquire: Int? = 10_000,
-    override var maxIdleTimeMs: Long? = null
+    override var maxIdleTimeMs: Long? = null,
 ) : CouchDbProperties

@@ -18,20 +18,27 @@ import org.taktik.icure.entities.samv2.Verse
 
 @View(name = "all", map = "function(doc) { if (doc.java_type == 'org.taktik.icure.entities.samv2.Verse') emit( null, doc._id )}")
 class VerseDAOImpl(
-	couchDbDispatcher: CouchDbDispatcher,
-	idGenerator: IDGenerator,
-	datastoreInstanceProvider: DatastoreInstanceProvider,
-	designDocumentProvider: DesignDocumentProvider
-) : InternalDAOImpl<Verse>(Verse::class.java, couchDbDispatcher, idGenerator, datastoreInstanceProvider, designDocumentProvider), VerseDAO {
-	@View(name = "by_chapter_paragraph", map = "classpath:js/verse/By_chapter_paragraph.js")
-	override fun listVerses(datastoreInformation: IDatastoreInformation, chapterName: String, paragraphName: String): Flow<Verse> = flow {
-		val client = couchDbDispatcher.getClient(datastoreInformation)
+    couchDbDispatcher: CouchDbDispatcher,
+    idGenerator: IDGenerator,
+    datastoreInstanceProvider: DatastoreInstanceProvider,
+    designDocumentProvider: DesignDocumentProvider,
+) : InternalDAOImpl<Verse>(Verse::class.java, couchDbDispatcher, idGenerator, datastoreInstanceProvider, designDocumentProvider),
+    VerseDAO {
+    @View(name = "by_chapter_paragraph", map = "classpath:js/verse/By_chapter_paragraph.js")
+    override fun listVerses(
+        datastoreInformation: IDatastoreInformation,
+        chapterName: String,
+        paragraphName: String,
+    ): Flow<Verse> =
+        flow {
+            val client = couchDbDispatcher.getClient(datastoreInformation)
 
-		val viewQuery = createQuery("by_chapter_paragraph")
-			.startKey(ComplexKey.of(chapterName, paragraphName, null, null))
-			.endKey(ComplexKey.of(chapterName, paragraphName, ComplexKey.emptyObject(), ComplexKey.emptyObject()))
-			.includeDocs(true)
+            val viewQuery =
+                createQuery("by_chapter_paragraph")
+                    .startKey(ComplexKey.of(chapterName, paragraphName, null, null))
+                    .endKey(ComplexKey.of(chapterName, paragraphName, ComplexKey.emptyObject(), ComplexKey.emptyObject()))
+                    .includeDocs(true)
 
-		emitAll(client.queryViewIncludeDocs<ComplexKey, Int, Verse>(viewQuery).map { it.doc }.filter { it.endDate == null })
-	}
+            emitAll(client.queryViewIncludeDocs<ComplexKey, Int, Verse>(viewQuery).map { it.doc }.filter { it.endDate == null })
+        }
 }

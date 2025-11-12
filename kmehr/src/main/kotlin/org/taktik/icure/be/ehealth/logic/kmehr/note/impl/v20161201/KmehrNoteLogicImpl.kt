@@ -85,7 +85,9 @@ class KmehrNoteLogicImpl(
                 this.sender = SenderType().apply {
                     hcparties.add(createParty(author, emptyList()))
                     hcparties.add(createSpecialistParty(author, emptyList()))
-                    hcparties.add(HcpartyType().apply { this.cds.addAll(listOf(CDHCPARTY().apply { s(CDHCPARTYschemes.CD_HCPARTY); value = "application" })); this.name = "${config.soft?.name} ${config.soft?.version}" })
+                    hcparties.add(HcpartyType().apply {
+                        this.cds.addAll(listOf(CDHCPARTY().apply { s(CDHCPARTYschemes.CD_HCPARTY); value = "application" }));
+                        this.name = "${config.soft?.name} ${config.soft?.version}" })
                 }
                 val recipient = HealthcareParty(
                     id = UUID.randomUUID().toString(),
