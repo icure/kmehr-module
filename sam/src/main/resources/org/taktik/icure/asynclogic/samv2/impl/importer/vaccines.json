@@ -1161,10 +1161,12 @@
     "cnk": "4855144",
     "codes": ["covid19"]
   },
-	{
-		"cnk": "4654869",
-		"codes": [
-			"yellowfever"
-		]
-	}
+  {
+    "cnk": "4654869",
+    "codes": ["yellowfever"]
+  },
+  {
+    "cnk": "4891487",
+    "codes": ["seasonalinfluenza"]
+  }
 ]
