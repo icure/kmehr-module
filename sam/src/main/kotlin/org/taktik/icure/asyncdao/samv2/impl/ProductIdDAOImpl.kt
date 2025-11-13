@@ -18,5 +18,6 @@ class ProductIdDAOImpl(
     couchDbDispatcher: CouchDbDispatcher,
     idGenerator: IDGenerator,
     datastoreInstanceProvider: DatastoreInstanceProvider,
-    designDocumentProvider: DesignDocumentProvider
-) : InternalDAOImpl<ProductId>(ProductId::class.java, couchDbDispatcher, idGenerator, datastoreInstanceProvider, designDocumentProvider), ProductIdDAO
+    designDocumentProvider: DesignDocumentProvider,
+) : InternalDAOImpl<ProductId>(ProductId::class.java, couchDbDispatcher, idGenerator, datastoreInstanceProvider, designDocumentProvider),
+    ProductIdDAO

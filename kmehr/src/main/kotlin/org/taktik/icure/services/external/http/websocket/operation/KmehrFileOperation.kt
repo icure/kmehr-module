@@ -18,12 +18,19 @@ import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeoutException
 
-class KmehrFileOperation(webSocket: WebSocketSession, objectMapper: ObjectMapper) : BinaryOperation(webSocket, objectMapper), AsyncDecrypt {
+class KmehrFileOperation(
+    webSocket: WebSocketSession,
+    objectMapper: ObjectMapper,
+) : BinaryOperation(webSocket, objectMapper),
+    AsyncDecrypt {
     private val log = LogFactory.getLog(KmehrFileOperation::class.java)
     private val decodingSessions: MutableMap<String?, DecodingSession<*>> = HashMap()
 
     @Throws(IOException::class)
-    override suspend fun <K : Serializable?> decrypt(encrypted: List<K>, clazz: Class<K>): List<K> {
+    override suspend fun <K : Serializable?> decrypt(
+        encrypted: List<K>,
+        clazz: Class<K>,
+    ): List<K> {
         val uuid = UUID.randomUUID().toString()
 
         val message: Message<*> = Message("decrypt", clazz.simpleName, uuid, encrypted)
@@ -34,8 +41,11 @@ class KmehrFileOperation(webSocket: WebSocketSession, objectMapper: ObjectMapper
         log.info("Submit $uuid for decryption")
         val jsonMessage = objectMapper.writeValueAsString(message)
         val wsMessage =
-            if (jsonMessage.length > 65000) webSocket.binaryMessage { it.wrap(jsonMessage.toByteArray(Charsets.UTF_8)) }
-            else webSocket.textMessage(jsonMessage)
+            if (jsonMessage.length > 65000) {
+                webSocket.binaryMessage { it.wrap(jsonMessage.toByteArray(Charsets.UTF_8)) }
+            } else {
+                webSocket.textMessage(jsonMessage)
+            }
         webSocket.send(Mono.just(wsMessage)).awaitFirstOrNull()
         return try {
             val result = Mono.fromFuture(future).timeout(Duration.ofSeconds(240)).awaitFirst()
@@ -49,30 +59,35 @@ class KmehrFileOperation(webSocket: WebSocketSession, objectMapper: ObjectMapper
     }
 
     override fun handle(message: String) {
-        val dto = try {
-            objectMapper.readTree(message)
-        } catch (e: Exception) {
-            log.error("Cannot parse because of $e. Object is: $message", e)
-            throw (e)
-        }
+        val dto =
+            try {
+                objectMapper.readTree(message)
+            } catch (e: Exception) {
+                log.error("Cannot parse because of $e. Object is: $message", e)
+                throw (e)
+            }
         if (dto["command"].asText() == "decryptResponse") {
             val uuid = dto["uuid"].asText()
             log.info("Received response for uuid $uuid")
             decodingSessions[uuid]?.let { session ->
                 val decodingSession = session as DecodingSession<Serializable>
-                val result = dto["body"].mapNotNull { jsonObject ->
-                    try {
-                        val value = objectMapper.treeToValue(jsonObject, decodingSession.clazz)
-                        value
-                    } catch (ee: Exception) {
-                        log.error("Cannot parse because of $ee")
-                        null
+                val result =
+                    dto["body"].mapNotNull { jsonObject ->
+                        try {
+                            val value = objectMapper.treeToValue(jsonObject, decodingSession.clazz)
+                            value
+                        } catch (ee: Exception) {
+                            log.error("Cannot parse because of $ee")
+                            null
+                        }
                     }
-                }
                 decodingSession.future.complete(result)
             } ?: log.warn("Missing session for uuid $uuid")
         }
     }
 
-    private inner class DecodingSession<K : Serializable?> constructor(var future: CompletableFuture<List<K>>, var clazz: Class<K>)
+    private inner class DecodingSession<K : Serializable?> constructor(
+        var future: CompletableFuture<List<K>>,
+        var clazz: Class<K>,
+    )
 }

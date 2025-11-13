@@ -18,5 +18,6 @@ class SubstanceDAOImpl(
     couchDbDispatcher: CouchDbDispatcher,
     idGenerator: IDGenerator,
     datastoreInstanceProvider: DatastoreInstanceProvider,
-    designDocumentProvider: DesignDocumentProvider
-) : InternalDAOImpl<Substance>(Substance::class.java, couchDbDispatcher, idGenerator, datastoreInstanceProvider, designDocumentProvider), SubstanceDAO
+    designDocumentProvider: DesignDocumentProvider,
+) : InternalDAOImpl<Substance>(Substance::class.java, couchDbDispatcher, idGenerator, datastoreInstanceProvider, designDocumentProvider),
+    SubstanceDAO

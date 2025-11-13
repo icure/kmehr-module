@@ -7,10 +7,28 @@ import org.taktik.icure.entities.samv2.updates.SignatureUpdate
 import org.taktik.icure.entities.samv2.updates.UpdateType
 
 interface UpdatesBridge {
+    suspend fun getFollowingUpdates(
+        jwt: String,
+        currentPatch: SamUpdate?,
+        forceSnapshot: Boolean,
+    ): List<SamUpdate>
 
-	suspend fun getFollowingUpdates(jwt: String, currentPatch: SamUpdate?, forceSnapshot: Boolean): List<SamUpdate>
-	fun <T : StoredDocument> getEntityUpdateContent(klass: Class<T>, patchId: String, type: UpdateType, resourceName: String): Flow<T>
+    fun <T : StoredDocument> getEntityUpdateContent(
+        klass: Class<T>,
+        patchId: String,
+        type: UpdateType,
+        resourceName: String,
+    ): Flow<T>
 
-	fun getSignaturesUpdateContent(patchId: String, type: UpdateType, resourceName: String): Flow<SignatureUpdate>
-	fun getEntityDeleteContent(patchId: String, type: UpdateType, resourceName: String): Flow<String>
+    fun getSignaturesUpdateContent(
+        patchId: String,
+        type: UpdateType,
+        resourceName: String,
+    ): Flow<SignatureUpdate>
+
+    fun getEntityDeleteContent(
+        patchId: String,
+        type: UpdateType,
+        resourceName: String,
+    ): Flow<String>
 }
