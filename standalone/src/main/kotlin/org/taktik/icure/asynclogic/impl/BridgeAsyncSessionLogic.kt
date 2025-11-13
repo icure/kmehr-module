@@ -140,6 +140,10 @@ class BridgeAsyncSessionLogic(
 		throw BridgeException()
 	}
 
+	override suspend fun getDataOwnerAuthenticationDetailsOrNull(): DataOwnerAuthenticationDetails? {
+		throw BridgeException()
+	}
+
 	override suspend fun getCurrentDataOwnerId(): String {
 		throw BridgeException()
 	}
