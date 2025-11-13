@@ -42,7 +42,8 @@ class BridgeCredentialsManagerImpl(
         cryptoService = defaultCryptoService,
         applicationId = null,
         options = BasicSdkOptions(),
-        messageGatewayApi = RawMessageGatewayApi(httpClient, defaultCryptoService)
+        messageGatewayApi = RawMessageGatewayApi(httpClient, defaultCryptoService),
+        krakenUrl = bridgeConfig.iCureUrl,
     ) as JwtBasedAuthProvider
 
     override suspend fun getModuleJwt() = provider.getBearerAndRefreshToken().bearer.token
