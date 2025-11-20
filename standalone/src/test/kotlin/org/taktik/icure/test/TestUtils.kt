@@ -81,7 +81,8 @@ fun getAuthProvider(iCureUrl: String, username: String, password: String) =
 		cryptoService = defaultCryptoService,
 		applicationId = null,
 		options = BasicSdkOptions(),
-		messageGatewayApi = RawMessageGatewayApi(testHttpClient, defaultCryptoService)
+		messageGatewayApi = RawMessageGatewayApi(testHttpClient, defaultCryptoService),
+		krakenUrl = iCureUrl
 	) as JwtBasedAuthProvider
 
 @OptIn(InternalIcureApi::class)
