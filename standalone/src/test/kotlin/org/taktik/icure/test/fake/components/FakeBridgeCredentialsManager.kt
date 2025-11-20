@@ -42,7 +42,8 @@ class FakeBridgeCredentialsManager(
         cryptoService = defaultCryptoService,
         applicationId = null,
         options = BasicSdkOptions(),
-        messageGatewayApi = RawMessageGatewayApi(testHttpClient, defaultCryptoService)
+        messageGatewayApi = RawMessageGatewayApi(testHttpClient, defaultCryptoService),
+		krakenUrl = bridgeConfig.iCureUrl
     ) as JwtBasedAuthProvider
 
     override suspend fun getModuleJwt() = provider.getBearerAndRefreshToken().bearer.token
