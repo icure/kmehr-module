@@ -39,8 +39,8 @@ import java.time.Instant
 @WSRequestMapping("/ws/v2/be_kmehr")
 class KmehrWsController(
 	private val sessionLogic: SessionInformationProvider,
-	@Qualifier("sumehrLogicV1") val sumehrLogicV1: SumehrLogic,
-	@Qualifier("sumehrLogicV2") val sumehrLogicV2: SumehrLogic,
+	@param:Qualifier("sumehrLogicV1") val sumehrLogicV1: SumehrLogic,
+	@param:Qualifier("sumehrLogicV2") val sumehrLogicV2: SumehrLogic,
 	private val diaryNoteLogic: DiaryNoteLogic,
 	private val softwareMedicalFileLogic: SoftwareMedicalFileLogic,
 	private val medicationSchemeLogic: MedicationSchemeLogic,
@@ -61,7 +61,7 @@ class KmehrWsController(
 	) = mono {
 		try {
 			val patient = patientLogic.getPatient(patientId)
-			val healthcareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentHealthcarePartyId())
+			val healthcareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentDataOwnerId())
 			patient?.let {
 				healthcareParty?.let { it1 ->
 					operation.binaryResponse(
@@ -93,7 +93,7 @@ class KmehrWsController(
 	) = mono {
 		try {
 			val patient = patientLogic.getPatient(patientId)
-			val healthcareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentHealthcarePartyId())
+			val healthcareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentDataOwnerId())
 			patient?.let {
 				healthcareParty?.let { it1 ->
 					operation.binaryResponse(
@@ -138,7 +138,7 @@ class KmehrWsController(
 	) = mono {
 		try {
 			val patient = patientLogic.getPatient(patientId)
-			val healthcareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentHealthcarePartyId())
+			val healthcareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentDataOwnerId())
 			patient?.let {
 				healthcareParty?.let { it1 ->
 					operation.binaryResponse(
@@ -183,7 +183,7 @@ class KmehrWsController(
 		operation: KmehrFileOperation) = mono {
 		try {
 			val patient = patientLogic.getPatient(patientId)
-			val healthcareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentHealthcarePartyId())
+			val healthcareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentDataOwnerId())
 			patient?.let {
 				healthcareParty?.let { it1 ->
 					operation.binaryResponse(
@@ -228,7 +228,7 @@ class KmehrWsController(
 	) = mono {
 		try {
 			val patient = patientLogic.getPatient(patientId)
-			val healthcareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentHealthcarePartyId())
+			val healthcareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentDataOwnerId())
 			patient?.let {
 				healthcareParty?.let { it1 ->
 					operation.binaryResponse(
@@ -274,7 +274,7 @@ class KmehrWsController(
 	) = mono {
 		try {
 			val patient = patientLogic.getPatient(patientId)
-			val healthcareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentHealthcarePartyId())
+			val healthcareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentDataOwnerId())
 			patient?.let {
 				healthcareParty?.let { it1 ->
 					operation.binaryResponse(
@@ -320,7 +320,7 @@ class KmehrWsController(
 	): Mono<Unit> = mono {
 		try {
 			val patient = patientLogic.getPatient(patientId)
-			val healthcareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentHealthcarePartyId())
+			val healthcareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentDataOwnerId())
 			patient?.let { pat ->
 				healthcareParty?.let { hcp ->
 					try {
@@ -369,7 +369,7 @@ class KmehrWsController(
 	) = mono {
 		try {
 			val patient = patientLogic.getPatient(patientId)
-			val hcParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentHealthcarePartyId())
+			val hcParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentDataOwnerId())
 			patient?.let {
 				hcParty?.let { it1 ->
 					operation.binaryResponse(

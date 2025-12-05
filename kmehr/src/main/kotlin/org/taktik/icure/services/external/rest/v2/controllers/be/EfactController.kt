@@ -24,30 +24,30 @@ import org.taktik.icure.services.external.rest.v2.dto.MapOfIdsDto
 @RequestMapping("/rest/v2/be_efact")
 @Tag(name = "beefact")
 class EfactController(
-    private val efactLogic: EfactLogic,
-    private val sessionLogic: SessionInformationProvider,
-    val healthcarePartyLogic: HealthcarePartyLogic,
-    private val invoiceLogic: InvoiceLogic,
-    private val insuranceLogic: InsuranceLogic,
+	private val efactLogic: EfactLogic,
+	private val sessionLogic: SessionInformationProvider,
+	val healthcarePartyLogic: HealthcarePartyLogic,
+	private val invoiceLogic: InvoiceLogic,
+	private val insuranceLogic: InsuranceLogic,
 ) {
 
-    @Operation(summary = "create batch and message")
-    @PostMapping("/{insuranceId}/{newMessageId}/{numericalRef}")
-    fun createBatchAndMessage(
-        @PathVariable insuranceId: String,
-        @PathVariable newMessageId: String,
-        @PathVariable numericalRef: Long,
-        @RequestBody ids: MapOfIdsDto,
-    ) = mono {
-        val hcp = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentHealthcarePartyId())
-            ?: throw ResponseStatusException(HttpStatus.FORBIDDEN, "Current user is not a HCP")
-        val ins = insuranceLogic.getInsurance(insuranceId) ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Insurance not found")
+	@Operation(summary = "create batch and message")
+	@PostMapping("/{insuranceId}/{newMessageId}/{numericalRef}")
+	fun createBatchAndMessage(
+		@PathVariable insuranceId: String,
+		@PathVariable newMessageId: String,
+		@PathVariable numericalRef: Long,
+		@RequestBody ids: MapOfIdsDto,
+	) = mono {
+		val hcp = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentDataOwnerId())
+			?: throw ResponseStatusException(HttpStatus.FORBIDDEN, "Current user is not a HCP")
+		val ins = insuranceLogic.getInsurance(insuranceId) ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Insurance not found")
 
-        val invoices = ids.mapOfIds.entries.associate {
-            it.key to (invoiceLogic.getInvoices(it.value).toList().takeIf { retrievedInvoices ->
-                retrievedInvoices.size == it.value.size
-            } ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Invoice not found") )
-        }
-        efactLogic.prepareBatch(newMessageId, hcp, ins, invoices)
-    }
+		val invoices = ids.mapOfIds.entries.associate {
+			it.key to (invoiceLogic.getInvoices(it.value).toList().takeIf { retrievedInvoices ->
+				retrievedInvoices.size == it.value.size
+			} ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Invoice not found") )
+		}
+		efactLogic.prepareBatch(newMessageId, hcp, ins, invoices)
+	}
 }

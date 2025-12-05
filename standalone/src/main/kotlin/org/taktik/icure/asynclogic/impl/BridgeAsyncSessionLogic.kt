@@ -13,6 +13,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import org.slf4j.LoggerFactory
+import org.springframework.security.authentication.AuthenticationServiceException
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.stereotype.Service
@@ -25,7 +26,6 @@ import org.taktik.icure.entities.DataOwnerType
 import org.taktik.icure.entities.base.HasEncryptionMetadata
 import org.taktik.icure.entities.utils.SemanticVersion
 import org.taktik.icure.exceptions.BridgeException
-import org.taktik.icure.exceptions.ForbiddenRequestException
 import org.taktik.icure.security.BridgeCredentialsManager
 import org.taktik.icure.security.DataOwnerAuthenticationDetails
 import org.taktik.icure.security.KmehrJWTDetails
@@ -59,7 +59,8 @@ class BridgeAsyncSessionLogic(
 		password: String,
 		session: WebSession?,
 		groupId: String?,
-		applicationId: String?
+		applicationId: String?,
+		scopeDataOwner: String?
 	): JwtAuthentication {
 		throw BridgeException()
 	}
@@ -120,9 +121,9 @@ class BridgeAsyncSessionLogic(
 		getCurrentAuthentication()?.let { KmehrSessionContext(it) }
 			?: throw IllegalAccessException("There is no user currently logged in")
 
-	override suspend fun getCurrentHealthcarePartyId(): String =
-		getCurrentSessionContext().getHealthcarePartyId()
-			?: throw ForbiddenRequestException("Current user is not an Healthcare Party")
+	private suspend fun getKmehrSessionContext(): KmehrSessionContext =
+		getCurrentAuthentication()?.let { KmehrSessionContext(it) }
+			?: throw IllegalAccessException("There is no user currently logged in")
 
 	override suspend fun getSearchKeyMatcher(): (String, HasEncryptionMetadata) -> Boolean {
 		throw BridgeException()
@@ -144,11 +145,20 @@ class BridgeAsyncSessionLogic(
 		throw BridgeException()
 	}
 
-	override suspend fun getCurrentDataOwnerId(): String {
+	override suspend fun getDataOwnerHierarchyIncludingSelf(): List<String> {
 		throw BridgeException()
 	}
 
-	override suspend fun getCurrentUserId(): String = getCurrentSessionContext().getUserId()
+	override suspend fun getDataOwnerHierarchy(): List<String> {
+		throw BridgeException()
+	}
+
+	override suspend fun getCurrentDataOwnerId(): String =
+		getCurrentDataOwnerIdOrNull() ?: throw AuthenticationServiceException("Failed to extract current data owner id")
+
+	override suspend fun getCurrentDataOwnerIdOrNull(): String? = getKmehrSessionContext().getDataOwnerId()
+
+	override suspend fun getCurrentUserId(): String = getKmehrSessionContext().getUserId()
 	override suspend fun requestsAutofixAnonymity(): Boolean {
 		throw BridgeException()
 	}
@@ -158,18 +168,16 @@ class BridgeAsyncSessionLogic(
 	) : SessionInformationProvider.AsyncSessionContext, Serializable {
 		override fun getDataOwnerType(): DataOwnerType? = jwt.claims?.dataOwnerType
 
-		override fun getDeviceId(): String? {
+		override fun getDeviceId(): String {
 			throw BridgeException()
 		}
 
-		override fun getHcpHierarchy(): List<String> {
-			throw BridgeException()
-		}
+		fun getDataOwnerId(): String? = jwt.claims?.dataOwnerId
 
 		override fun getHealthcarePartyId(): String? =
 			jwt.claims?.dataOwnerId?.takeIf { jwt.claims?.dataOwnerType == DataOwnerType.HCP }
 
-		override fun getPatientId(): String? {
+		override fun getPatientId(): String {
 			throw BridgeException()
 		}
 
