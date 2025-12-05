@@ -10,7 +10,6 @@ import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
@@ -18,8 +17,8 @@ import kotlinx.coroutines.reactor.mono
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.context.annotation.Profile
 import org.springframework.core.io.buffer.DataBuffer
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
-import org.springframework.http.server.reactive.ServerHttpResponse
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -27,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.server.ResponseStatusException
 import org.taktik.icure.asynclogic.DocumentLogic
 import org.taktik.icure.asynclogic.HealthcarePartyLogic
 import org.taktik.icure.asynclogic.PatientLogic
@@ -67,15 +67,14 @@ import org.taktik.icure.utils.injectReactorContext
 import java.time.Instant
 import java.util.stream.Collectors
 
-@ExperimentalCoroutinesApi
 @RestController("kmehrControllerV2")
 @Profile("kmehr")
 @RequestMapping("/rest/v2/be_kmehr")
 @Tag(name = "bekmehr")
 class KmehrController(
 	private val sessionLogic: SessionInformationProvider,
-	@Qualifier("sumehrLogicV1") val sumehrLogicV1: SumehrLogic,
-	@Qualifier("sumehrLogicV2") val sumehrLogicV2: SumehrLogic,
+	@param:Qualifier("sumehrLogicV1") val sumehrLogicV1: SumehrLogic,
+	@param:Qualifier("sumehrLogicV2") val sumehrLogicV2: SumehrLogic,
 	private val softwareMedicalFileLogic: SoftwareMedicalFileLogic,
 	private val medicationSchemeLogic: MedicationSchemeLogic,
 	private val incapacityLogic: IncapacityLogic,
@@ -103,11 +102,13 @@ class KmehrController(
 		@RequestBody info: DiaryNoteExportInfoDto,
 	) = flow {
 		patientLogic.getPatient(patientId)?.let {
-			healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentHealthcarePartyId())?.let { it1 ->
-				emitAll(diaryNoteLogic.createDiaryNote(
+			val hcp = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentDataOwnerId())
+				?: throw ResponseStatusException(HttpStatus.FORBIDDEN, "Current user is not a HCP")
+			emitAll(
+				diaryNoteLogic.createDiaryNote(
 					it,
 					info.encryptionDecryptionKeys,
-					it1,
+					hcp,
 					healthcarePartyV2Mapper.map(info.recipient!!),
 					info.note,
 					info.tags,
@@ -115,8 +116,8 @@ class KmehrController(
 					info.psy ?: false,
 					info.documentId,
 					info.attachmentId
-				))
-			}
+				)
+			)
 		} ?: throw IllegalArgumentException("Missing argument")
 	}.injectReactorContext()
 
@@ -128,32 +129,32 @@ class KmehrController(
 		@RequestBody info: SumehrExportInfoDto
 	) = flow {
 		patientLogic.getPatient(patientId)?.let {
-			healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentHealthcarePartyId())?.let { hcp ->
-				emitAll(
-					sumehrLogicV1.createSumehr(
-						it,
-						info.secretForeignKeys,
-						hcp,
-						healthcarePartyV2Mapper.map(info.recipient!!),
-						language,
-						info.comment,
-						info.excludedIds,
-						info.includeIrrelevantInformation ?: false,
-						null,
-						mapServices(info.services),
-						mapHealthElements(info.healthElements),
-						Config(
-							_kmehrId = System.currentTimeMillis().toString(),
-							date = Utils.makeXGC(Instant.now().toEpochMilli())!!,
-							time = Utils.makeXGC(Instant.now().toEpochMilli(), true)!!,
-							soft = Config.Software(name = info.softwareName ?: "iCure", version = info.softwareVersion ?: kmehrConfiguration.kmehrVersion),
-							clinicalSummaryType = "",
-							defaultLanguage = "en",
-							format = Config.Format.SUMEHR,
-						),
+			val hcp = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentDataOwnerId())
+				?: throw ResponseStatusException(HttpStatus.FORBIDDEN, "Current user is not a HCP")
+			emitAll(
+				sumehrLogicV1.createSumehr(
+					it,
+					info.secretForeignKeys,
+					hcp,
+					healthcarePartyV2Mapper.map(info.recipient!!),
+					language,
+					info.comment,
+					info.excludedIds,
+					info.includeIrrelevantInformation ?: false,
+					null,
+					mapServices(info.services),
+					mapHealthElements(info.healthElements),
+					Config(
+						_kmehrId = System.currentTimeMillis().toString(),
+						date = Utils.makeXGC(Instant.now().toEpochMilli())!!,
+						time = Utils.makeXGC(Instant.now().toEpochMilli(), true)!!,
+						soft = Config.Software(name = info.softwareName ?: "iCure", version = info.softwareVersion ?: kmehrConfiguration.kmehrVersion),
+						clinicalSummaryType = "",
+						defaultLanguage = "en",
+						format = Config.Format.SUMEHR,
 					),
-				)
-			}
+				),
+			)
 		} ?: throw IllegalArgumentException("Missing argument")
 	}
 
@@ -165,8 +166,10 @@ class KmehrController(
 		@RequestBody info: SumehrExportInfoDto
 	) = flow {
 		patientLogic.getPatient(patientId)?.let {
-			healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentHealthcarePartyId())?.let { hcp ->
-				emitAll(sumehrLogicV1.validateSumehr(
+			val hcp = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentDataOwnerId())
+				?: throw ResponseStatusException(HttpStatus.FORBIDDEN, "Current user is not a HCP")
+			emitAll(
+				sumehrLogicV1.validateSumehr(
 					it,
 					info.secretForeignKeys,
 					hcp,
@@ -187,8 +190,8 @@ class KmehrController(
 						defaultLanguage = "en",
 						format = Config.Format.SUMEHR,
 					)
-				))
-			}
+				)
+			)
 		} ?: throw IllegalArgumentException("Missing argument")
 	}.injectReactorContext()
 
@@ -200,14 +203,14 @@ class KmehrController(
 	) = mono {
 		SumehrContentDto().apply {
 			services = sumehrLogicV1.getAllServices(
-				sessionLogic.getCurrentHealthcarePartyId(),
+				sessionLogic.getCurrentDataOwnerId(),
 				info.secretForeignKeys,
 				info.excludedIds,
 				info.includeIrrelevantInformation ?: false,
 				null
 			).stream().map { s -> serviceV2Mapper.map(s) }.collect(Collectors.toList())
 			healthElements = sumehrLogicV1.getHealthElements(
-				sessionLogic.getCurrentHealthcarePartyId(),
+				sessionLogic.getCurrentDataOwnerId(),
 				info.secretForeignKeys,
 				info.excludedIds,
 				info.includeIrrelevantInformation ?: false
@@ -224,7 +227,7 @@ class KmehrController(
 		ContentDto(
 			stringValue = patientLogic.getPatient(patientId)?.let {
 				sumehrLogicV1.getSumehrMd5(
-					sessionLogic.getCurrentHealthcarePartyId(),
+					sessionLogic.getCurrentDataOwnerId(),
 					it,
 					info.secretForeignKeys,
 					info.excludedIds,
@@ -242,7 +245,7 @@ class KmehrController(
 	) = mono {
 		SumehrValidityDto(sumehrValid = patientLogic.getPatient(patientId)?.let {
 			sumehrLogicV1.isSumehrValid(
-				sessionLogic.getCurrentHealthcarePartyId(),
+				sessionLogic.getCurrentDataOwnerId(),
 				it,
 				info.secretForeignKeys,
 				info.excludedIds,
@@ -259,33 +262,32 @@ class KmehrController(
 		@RequestBody info: SumehrExportInfoDto
 	) = flow {
 		patientLogic.getPatient(patientId)?.let {
-			val hcpId = sessionLogic.getCurrentHealthcarePartyId()
-			healthcarePartyLogic.getHealthcareParty(hcpId)?.let { hcp ->
-				emitAll(
-					sumehrLogicV2.createSumehr(
-						it,
-						info.secretForeignKeys,
-						hcp,
-						healthcarePartyV2Mapper.map(info.recipient!!),
-						language,
-						info.comment,
-						info.excludedIds,
-						info.includeIrrelevantInformation ?: false,
-						null,
-						mapServices(info.services),
-						mapHealthElements(info.healthElements),
-						Config(
-							_kmehrId = System.currentTimeMillis().toString(),
-							date = Utils.makeXGC(Instant.now().toEpochMilli())!!,
-							time = Utils.makeXGC(Instant.now().toEpochMilli(), true)!!,
-							soft = Config.Software(name = info.softwareName ?: "iCure", version = info.softwareVersion ?: kmehrConfiguration.kmehrVersion),
-							clinicalSummaryType = "",
-							defaultLanguage = "en",
-							format = Config.Format.SUMEHR,
-						)
+			val hcp = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentDataOwnerId())
+				?: throw ResponseStatusException(HttpStatus.FORBIDDEN, "Current user is not a HCP")
+			emitAll(
+				sumehrLogicV2.createSumehr(
+					it,
+					info.secretForeignKeys,
+					hcp,
+					healthcarePartyV2Mapper.map(info.recipient!!),
+					language,
+					info.comment,
+					info.excludedIds,
+					info.includeIrrelevantInformation ?: false,
+					null,
+					mapServices(info.services),
+					mapHealthElements(info.healthElements),
+					Config(
+						_kmehrId = System.currentTimeMillis().toString(),
+						date = Utils.makeXGC(Instant.now().toEpochMilli())!!,
+						time = Utils.makeXGC(Instant.now().toEpochMilli(), true)!!,
+						soft = Config.Software(name = info.softwareName ?: "iCure", version = info.softwareVersion ?: kmehrConfiguration.kmehrVersion),
+						clinicalSummaryType = "",
+						defaultLanguage = "en",
+						format = Config.Format.SUMEHR,
 					)
 				)
-			}
+			)
 		} ?: throw IllegalArgumentException("Missing argument")
 	}.injectReactorContext()
 
@@ -297,8 +299,10 @@ class KmehrController(
 		@RequestBody info: SumehrExportInfoDto
 	) = flow {
 		patientLogic.getPatient(patientId)?.let {
-			healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentHealthcarePartyId())?.let { hcp ->
-				emitAll(sumehrLogicV2.validateSumehr(
+			val hcp = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentDataOwnerId())
+				?: throw ResponseStatusException(HttpStatus.FORBIDDEN, "Current user is not a HCP")
+			emitAll(
+				sumehrLogicV2.validateSumehr(
 					it,
 					info.secretForeignKeys,
 					hcp,
@@ -319,8 +323,8 @@ class KmehrController(
 						defaultLanguage = "en",
 						format = Config.Format.SUMEHR,
 					),
-				))
-			}
+				)
+			)
 		} ?: throw IllegalArgumentException("Missing argument")
 	}.injectReactorContext()
 
@@ -332,14 +336,14 @@ class KmehrController(
 	) = mono {
 		SumehrContentDto().apply {
 			services = sumehrLogicV2.getAllServices(
-				sessionLogic.getCurrentHealthcarePartyId(),
+				sessionLogic.getCurrentDataOwnerId(),
 				info.secretForeignKeys,
 				info.excludedIds,
 				info.includeIrrelevantInformation ?: false,
 				null
 			).stream().map { s -> serviceV2Mapper.map(s) }.collect(Collectors.toList())
 			healthElements = sumehrLogicV2.getHealthElements(
-				sessionLogic.getCurrentHealthcarePartyId(),
+				sessionLogic.getCurrentDataOwnerId(),
 				info.secretForeignKeys,
 				info.excludedIds,
 				info.includeIrrelevantInformation
@@ -365,7 +369,7 @@ class KmehrController(
 		ContentDto(
 			stringValue = patientLogic.getPatient(patientId)?.let {
 				sumehrLogicV2.getSumehrMd5(
-					sessionLogic.getCurrentHealthcarePartyId(),
+					sessionLogic.getCurrentDataOwnerId(),
 					it,
 					info.secretForeignKeys,
 					info.excludedIds,
@@ -385,7 +389,7 @@ class KmehrController(
 			patientLogic.getPatient(patientId)
 				?.let {
 					sumehrLogicV2.isSumehrValid(
-						sessionLogic.getCurrentHealthcarePartyId(),
+						sessionLogic.getCurrentDataOwnerId(),
 						it,
 						info.secretForeignKeys,
 						info.excludedIds,
@@ -405,38 +409,36 @@ class KmehrController(
 	) = mono {
 		patientLogic.getPatient(patientId)
 			?.let {
-				healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentHealthcarePartyId())
-					?.let { it1 ->
-						softwareMedicalFileLogic.createSmfExport(
-							it,
-							smfExportParams.secretForeignKeys,
-							it1,
-							language,
-							null,
-							null,
-							Config(
-								_kmehrId = System.currentTimeMillis().toString(),
-								date = Utils.makeXGC(Instant.now().toEpochMilli())!!,
-								time = Utils.makeXGC(Instant.now().toEpochMilli(), true)!!,
-								soft = Config.Software(name = smfExportParams.softwareName ?: "iCure", version = smfExportParams.softwareVersion ?: kmehrConfiguration.kmehrVersion),
-								clinicalSummaryType = "",
-								defaultLanguage = "en",
-								format = Config.Format.SMF,
-							),
-						)
-					}
+				val hcp = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentDataOwnerId())
+					?: throw ResponseStatusException(HttpStatus.FORBIDDEN, "Current user is not a HCP")
+				softwareMedicalFileLogic.createSmfExport(
+					it,
+					smfExportParams.secretForeignKeys,
+					hcp,
+					language,
+					null,
+					null,
+					Config(
+						_kmehrId = System.currentTimeMillis().toString(),
+						date = Utils.makeXGC(Instant.now().toEpochMilli())!!,
+						time = Utils.makeXGC(Instant.now().toEpochMilli(), true)!!,
+						soft = Config.Software(name = smfExportParams.softwareName ?: "iCure", version = smfExportParams.softwareVersion ?: kmehrConfiguration.kmehrVersion),
+						clinicalSummaryType = "",
+						defaultLanguage = "en",
+						format = Config.Format.SMF,
+					),
+				)
 			} ?: throw IllegalArgumentException("Missing argument")
 	}
 
 	@Operation(summary = "Get KMEHR Patient Info export", responses = [ApiResponse(responseCode = "200", content = [Content(mediaType = MediaType.APPLICATION_OCTET_STREAM_VALUE, schema = Schema(type = "string", format = "binary"))])])
 	@PostMapping("/patientinfo/{patientId}/export", produces = [MediaType.APPLICATION_OCTET_STREAM_VALUE])
 	fun generatePatientInfoExport(@PathVariable patientId: String, @RequestParam language: String?) = flow {
-		val userHealthCareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentHealthcarePartyId())
+		val userHealthCareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentDataOwnerId())
+			?: throw ResponseStatusException(HttpStatus.FORBIDDEN, "Current user is not a HCP")
 		val patient = patientLogic.getPatient(patientId)
 		patient?.let {
-			userHealthCareParty?.let {
-				emitAll(patientInfoFileLogic.createExport(patient, userHealthCareParty, language ?: "fr"))
-			}
+			emitAll(patientInfoFileLogic.createExport(patient, userHealthCareParty, language ?: "fr"))
 		} ?: throw IllegalArgumentException("Missing argument")
 	}.injectReactorContext()
 
@@ -449,33 +451,32 @@ class KmehrController(
 		@RequestParam version: Int,
 		@RequestBody medicationSchemeExportParams: MedicationSchemeExportInfoDto
 	) = flow {
-		val userHealthCareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentHealthcarePartyId())
+		val userHealthCareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentDataOwnerId())
+			?: throw ResponseStatusException(HttpStatus.FORBIDDEN, "Current user is not a HCP")
 		val patient = patientLogic.getPatient(patientId)
 
 		patient?.let {
-			userHealthCareParty?.let {
-				if (medicationSchemeExportParams.services.isEmpty()) {
-					emitAll(medicationSchemeLogic.createMedicationSchemeExport(
-						patient,
-						medicationSchemeExportParams.secretForeignKeys,
-						userHealthCareParty,
-						language,
-						recipientSafe,
-						version,
-						null)
-					)
-				} else {
-					emitAll(medicationSchemeLogic.createMedicationSchemeExport(
-						patient,
-						userHealthCareParty,
-						language,
-						recipientSafe,
-						version,
-						medicationSchemeExportParams.services.map { s -> serviceV2Mapper.map(s) },
-						null,
-						null)
-					)
-				}
+			if (medicationSchemeExportParams.services.isEmpty()) {
+				emitAll(medicationSchemeLogic.createMedicationSchemeExport(
+					patient,
+					medicationSchemeExportParams.secretForeignKeys,
+					userHealthCareParty,
+					language,
+					recipientSafe,
+					version,
+					null)
+				)
+			} else {
+				emitAll(medicationSchemeLogic.createMedicationSchemeExport(
+					patient,
+					userHealthCareParty,
+					language,
+					recipientSafe,
+					version,
+					medicationSchemeExportParams.services.map { s -> serviceV2Mapper.map(s) },
+					null,
+					null)
+				)
 			}
 		} ?: throw IllegalArgumentException("Missing argument")
 	}.injectReactorContext()
@@ -488,21 +489,20 @@ class KmehrController(
 		@RequestHeader("X-Timezone-Offset") tz: String?,
 		@RequestBody incapacityExportParams: IncapacityExportInfoDto
 	) = flow {
-		val userHealthCareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentHealthcarePartyId())
+		val userHealthCareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentDataOwnerId())
+			?: throw ResponseStatusException(HttpStatus.FORBIDDEN, "Current user is not a HCP")
 		val patient = patientLogic.getPatient(patientId)
 
 		patient?.let {
-			userHealthCareParty?.let {
-				emitAll(
-					incapacityLogic.createIncapacityExport(
-						patient = patient,
-						sender = userHealthCareParty,
-						language = language,
-						exportInfo = incapacityExportInfoV2Mapper.map(incapacityExportParams),
-						timeZone = tz
-					)
+			emitAll(
+				incapacityLogic.createIncapacityExport(
+					patient = patient,
+					sender = userHealthCareParty,
+					language = language,
+					exportInfo = incapacityExportInfoV2Mapper.map(incapacityExportParams),
+					timeZone = tz
 				)
-			}
+			)
 		} ?: throw IllegalArgumentException("Missing argument")
 	}.injectReactorContext()
 
@@ -519,12 +519,12 @@ class KmehrController(
 		@RequestParam recipientLastName: String,
 		@RequestParam mimeType: String,
 		@Schema(type = "string", format = "binary") @RequestBody document: ByteArray,
-		response: ServerHttpResponse,
 	) = flow {
-		val userHealthCareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentHealthcarePartyId())
+		val userHealthCareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentDataOwnerId())
+			?: throw ResponseStatusException(HttpStatus.FORBIDDEN, "Current user is not a HCP")
 		val patient = patientLogic.getPatient(patientId)
 
-		if (userHealthCareParty != null && patient != null) {
+		if (patient != null) {
 			emitAll(kmehrNoteLogic.createNote(id, userHealthCareParty, date, recipientNihii, recipientSsin, recipientFirstName, recipientLastName, patient, language, "contactreport", mimeType, document))
 		} else {
 			throw IllegalArgumentException("Missing argument")
@@ -545,10 +545,11 @@ class KmehrController(
 		@RequestParam mimeType: String,
 		@Schema(type = "string", format = "binary") @RequestBody document: ByteArray
 	) = flow {
-		val userHealthCareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentHealthcarePartyId())
+		val userHealthCareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentDataOwnerId())
+		 ?: throw ResponseStatusException(HttpStatus.FORBIDDEN, "Current user is not a HCP")
 		val patient = patientLogic.getPatient(patientId)
 
-		if (userHealthCareParty != null && patient != null) {
+		if (patient != null) {
 			emitAll(kmehrNoteLogic.createNote(id, userHealthCareParty, date, recipientNihii, recipientSsin, recipientFirstName, recipientLastName, patient, language, "labresult", mimeType, document))
 		} else {
 			throw IllegalArgumentException("Missing argument")
@@ -569,9 +570,10 @@ class KmehrController(
 		@RequestParam mimeType: String,
 		@Schema(type = "string", format = "binary") @RequestBody document: ByteArray
 	) = flow {
-		val userHealthCareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentHealthcarePartyId())
+		val userHealthCareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentDataOwnerId())
+			?: throw ResponseStatusException(HttpStatus.FORBIDDEN, "Current user is not a HCP")
 		val patient = patientLogic.getPatient(patientId)
-		if (userHealthCareParty != null && patient != null) {
+		if (patient != null) {
 			emitAll(kmehrNoteLogic.createNote(id, userHealthCareParty, date, recipientNihii, recipientSsin, recipientFirstName, recipientLastName, patient, language, "note", mimeType, document))
 		} else {
 			throw IllegalArgumentException("Missing argument")
@@ -592,9 +594,10 @@ class KmehrController(
 		@RequestParam mimeType: String,
 		@Schema(type = "string", format = "binary") @RequestBody document: ByteArray
 	) = flow {
-		val userHealthCareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentHealthcarePartyId())
+		val userHealthCareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentDataOwnerId())
+			?: throw ResponseStatusException(HttpStatus.FORBIDDEN, "Current user is not a HCP")
 		val patient = patientLogic.getPatient(patientId)
-		if (userHealthCareParty != null && patient != null) {
+		if ( patient != null) {
 			emitAll(kmehrNoteLogic.createNote(id, userHealthCareParty, date, recipientNihii, recipientSsin, recipientFirstName, recipientLastName, patient, language, "prescription", mimeType, document))
 		} else {
 			throw IllegalArgumentException("Missing argument")
@@ -615,9 +618,10 @@ class KmehrController(
 		@RequestParam mimeType: String,
 		@Schema(type = "string", format = "binary") @RequestBody document: ByteArray
 	) = flow {
-		val userHealthCareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentHealthcarePartyId())
+		val userHealthCareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentDataOwnerId())
+			?: throw ResponseStatusException(HttpStatus.FORBIDDEN, "Current user is not a HCP")
 		val patient = patientLogic.getPatient(patientId)
-		if (userHealthCareParty != null && patient != null) {
+		if (patient != null) {
 			emitAll(kmehrNoteLogic.createNote(id, userHealthCareParty, date, recipientNihii, recipientSsin, recipientFirstName, recipientLastName, patient, language, "report", mimeType, document))
 		} else {
 			throw IllegalArgumentException("Missing argument")
@@ -638,9 +642,10 @@ class KmehrController(
 		@RequestParam mimeType: String,
 		@Schema(type = "string", format = "binary") @RequestBody document: ByteArray
 	) = flow {
-		val userHealthCareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentHealthcarePartyId())
+		val userHealthCareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentDataOwnerId())
+			?: throw ResponseStatusException(HttpStatus.FORBIDDEN, "Current user is not a HCP")
 		val patient = patientLogic.getPatient(patientId)
-		if (userHealthCareParty != null && patient != null) {
+		if (patient != null) {
 			emitAll(kmehrNoteLogic.createNote(id, userHealthCareParty, date, recipientNihii, recipientSsin, recipientFirstName, recipientLastName, patient, language, "request", mimeType, document))
 		} else {
 			throw IllegalArgumentException("Missing argument")
@@ -661,9 +666,10 @@ class KmehrController(
 		@RequestParam mimeType: String,
 		@Schema(type = "string", format = "binary") @RequestBody document: ByteArray
 	) = flow {
-		val userHealthCareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentHealthcarePartyId())
+		val userHealthCareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentDataOwnerId())
+			?: throw ResponseStatusException(HttpStatus.FORBIDDEN, "Current user is not a HCP")
 		val patient = patientLogic.getPatient(patientId)
-		if (userHealthCareParty != null && patient != null) {
+		if (patient != null) {
 			emitAll(kmehrNoteLogic.createNote(id, userHealthCareParty, date, recipientNihii, recipientSsin, recipientFirstName, recipientLastName, patient, language, "result", mimeType, document))
 		} else {
 			throw IllegalArgumentException("Missing argument")
@@ -680,7 +686,7 @@ class KmehrController(
 		@RequestParam(required = false) dryRun: Boolean?,
 		@RequestBody(required = false) mappings: HashMap<String, List<ImportMapping>>?,
 	) = mono {
-		val userHealthCareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentHealthcarePartyId())
+		val userHealthCareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentDataOwnerId())
 		val document = documentLogic.getDocument(documentId)
 		val attachment = document?.let { documentLogic.getAndDecryptMainAttachment(it.id, documentKey) }
 		val user = userLogic.getUser(sessionLogic.getCurrentUserId(), false) ?: throw NotFoundRequestException("User not found")
@@ -707,7 +713,8 @@ class KmehrController(
 		val document = documentLogic.getDocument(documentId)
 
 		val attachmentId = document?.attachmentId
-		val user = userLogic.getUser(sessionLogic.getCurrentUserId(), false) ?: throw NotFoundRequestException("User not found")
+		val user = userLogic.getUser(sessionLogic.getCurrentUserId(), false)
+			?: throw NotFoundRequestException("User not found")
 
 		attachmentId?.let {
 			softwareMedicalFileLogic.checkIfSMFPatientsExists(
@@ -729,11 +736,12 @@ class KmehrController(
 		@RequestParam(required = false) language: String?,
 		@RequestBody(required = false) mappings: HashMap<String, List<ImportMapping>>?,
 	) = mono {
-		val userHealthCareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentHealthcarePartyId())
+		val userHealthCareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentDataOwnerId())
 		val document = documentLogic.getDocument(documentId)
 
 		val attachmentId = document?.attachmentId
-		val user = userLogic.getUser(sessionLogic.getCurrentUserId(), false) ?: throw NotFoundRequestException("User not found")
+		val user = userLogic.getUser(sessionLogic.getCurrentUserId(), false)
+			?: throw NotFoundRequestException("User not found")
 
 		attachmentId?.let {
 			sumehrLogicV1.importSumehr(
@@ -759,11 +767,12 @@ class KmehrController(
 		@RequestParam(required = false) language: String?,
 		@RequestBody(required = false) mappings: HashMap<String, List<ImportMapping>>?,
 	) = mono {
-		val userHealthCareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentHealthcarePartyId())
+		val userHealthCareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentDataOwnerId())
 		val document = documentLogic.getDocument(documentId)
 
 		val attachmentId = document?.attachmentId
-		val user = userLogic.getUser(sessionLogic.getCurrentUserId(), false) ?: throw NotFoundRequestException("User not found")
+		val user = userLogic.getUser(sessionLogic.getCurrentUserId(), false)
+			?: throw NotFoundRequestException("User not found")
 		attachmentId?.let {
 			sumehrLogicV2.importSumehrByItemId(
 				documentLogic.getMainAttachment(documentId).map(DataBuffer::asByteBuffer),
@@ -788,11 +797,12 @@ class KmehrController(
 		@RequestParam(required = false) language: String?,
 		@RequestBody(required = false) mappings: HashMap<String, List<ImportMapping>>?
 	) = mono {
-		val userHealthCareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentHealthcarePartyId())
+		val userHealthCareParty = healthcarePartyLogic.getHealthcareParty(sessionLogic.getCurrentDataOwnerId())
 		val document = documentLogic.getDocument(documentId)
 
 		val attachmentId = document?.attachmentId
-		val user = userLogic.getUser(sessionLogic.getCurrentUserId(), false) ?: throw NotFoundRequestException("User not found")
+		val user = userLogic.getUser(sessionLogic.getCurrentUserId(), false)
+			?: throw NotFoundRequestException("User not found")
 		attachmentId?.let {
 			medicationSchemeLogic.importMedicationSchemeFile(
 				documentLogic.getMainAttachment(documentId).map(DataBuffer::asByteBuffer),

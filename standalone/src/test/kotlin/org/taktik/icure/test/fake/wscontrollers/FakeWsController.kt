@@ -3,12 +3,10 @@ package org.taktik.icure.test.fake.wscontrollers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.reactor.mono
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import org.taktik.icure.asynclogic.bridge.HealthcarePartyLogicBridge
 import org.taktik.icure.asynclogic.impl.BridgeAsyncSessionLogic
 import org.taktik.icure.security.jwt.JwtDecoder
-import org.taktik.icure.security.jwt.JwtKeyUtils
 import org.taktik.icure.services.external.http.WsController
 import org.taktik.icure.services.external.http.websocket.annotation.WSOperation
 import org.taktik.icure.services.external.http.websocket.annotation.WSRequestMapping
@@ -28,7 +26,7 @@ class FakeWsController(
 	@WSRequestMapping("/echo")
 	@WSOperation(PlainTextOperation::class)
 	fun echo(operation: PlainTextOperation) = mono {
-		val response = sessionLogic.getCurrentHealthcarePartyId()
+		val response = sessionLogic.getCurrentDataOwnerId()
 		operation.textResponse(response)
 	}
 
@@ -39,7 +37,7 @@ class FakeWsController(
 		assert(jwt?.let { !isJwtExpired(jwt) } ?: false)
 		delay(10_000)
 		assert(jwt?.let { !isJwtExpired(jwt) } ?: false)
-		val hcpId = sessionLogic.getCurrentHealthcarePartyId()
+		val hcpId = sessionLogic.getCurrentDataOwnerId()
 		val currentHcp = hcpBridge.getHealthcareParties(listOf(hcpId)).first()
 		operation.textResponse(currentHcp.id)
 	}
