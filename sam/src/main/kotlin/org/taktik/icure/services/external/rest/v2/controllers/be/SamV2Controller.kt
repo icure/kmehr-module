@@ -43,6 +43,7 @@ import org.taktik.icure.pagination.mapElements
 import org.taktik.icure.pagination.toPaginatedFlow
 import org.taktik.icure.services.external.rest.v2.dto.ListOfIdsDto
 import org.taktik.icure.services.external.rest.v2.dto.samv2.AmpDto
+import org.taktik.icure.services.external.rest.v2.dto.samv2.AmpWithAmppCtiExtendedDto
 import org.taktik.icure.services.external.rest.v2.dto.samv2.NmpDto
 import org.taktik.icure.services.external.rest.v2.dto.samv2.ParagraphDto
 import org.taktik.icure.services.external.rest.v2.dto.samv2.PharmaceuticalFormDto
@@ -121,7 +122,7 @@ class SamV2Controller(
 
     @Operation(
         summary = "Finding AMPs by label with pagination.",
-        description = "Returns a list of codes matched with given input. If several types are provided, paginantion is not supported",
+        description = "Returns a list of codes matched with given input. If several types are provided, pagination is not supported",
     )
     @GetMapping("/amp")
     fun findPaginatedAmpsByLabel(
@@ -134,11 +135,6 @@ class SamV2Controller(
         @Parameter(description = "Whether to only include amps with valid ampps, filtering out the ampps that are not valid.")
         @RequestParam(required = false)
         onlyValidAmpps: Boolean = false,
-        @Parameter(
-            description = "The start key for pagination: a JSON representation of an array containing all the necessary components to form the Complex Key's startKey",
-        )
-        @RequestParam(required = false)
-        startKey: String?, // Start key is actually not used in the logic
         @Parameter(description = "An amp document ID")
         @RequestParam(required = false)
         startDocumentId: String?,
@@ -159,6 +155,45 @@ class SamV2Controller(
             .toPaginatedFlow(paginationOffset.limit, { it.id }) { null }
             .asPaginatedFlux()
     }
+
+    @Operation(
+        summary = "Finding AMPs by label with pagination.",
+        description = "Returns a list of codes matched with given input. If several types are provided, pagination is not supported",
+    )
+    @GetMapping("/ampp")
+    fun findPaginatedAmppsByLabel(
+        @Parameter(description = "language")
+        @RequestParam(required = false)
+        language: String?,
+        @Parameter(description = "label")
+        @RequestParam(required = false)
+        label: String?,
+        @Parameter(description = "Whether to only include amps with valid ampps, filtering out the ampps that are not valid.")
+        @RequestParam(required = false)
+        onlyValidAmpps: Boolean = false,
+        @Parameter(description = "The concatenation of a ampp CTI extended and amp document ID in the form ampId:ctiExtended")
+        @RequestParam(required = false)
+        startDocumentId: String?,
+        @Parameter(description = "Number of rows")
+        @RequestParam(required = false)
+        limit: Int?,
+    ): PaginatedFlux<AmpWithAmppCtiExtendedDto> {
+        if (label == null || label.trim().length < 3) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Label must be at least 3 characters long")
+        }
+
+        val realLimit = limit ?: DEFAULT_LIMIT
+        val paginationOffset = PaginationOffset(null, startDocumentId, null, realLimit)
+
+        val result = samV2Logic.findAmppsByLabel(language, label, onlyValidAmpps, paginationOffset).map { (ctiExtended, amp) ->
+            AmpWithAmppCtiExtendedDto(ampV2Mapper.map(amp), ctiExtended)
+        }
+
+        return addProductIdsToCtiExtendedAmps(result)
+            .toPaginatedFlow(paginationOffset.limit, { it.amp.id + ":" + it.ctiExtended }) { null }
+            .asPaginatedFlux()
+    }
+
 
     @Operation(
         summary = "Finding VMPs by label with pagination.",
@@ -801,6 +836,22 @@ class SamV2Controller(
                 }
             }
             addProductIdsToAmps(acc).forEach { emit(it) }
+        }
+
+    private fun addProductIdsToCtiExtendedAmps(amps: Flow<AmpWithAmppCtiExtendedDto>) =
+        flow {
+            val acc = ArrayDeque<AmpWithAmppCtiExtendedDto>(20)
+            amps.collect {
+                acc.add(it)
+                if (acc.size == 20) {
+                    val extract = acc.toList()
+                    addProductIdsToAmps(extract.map { it.amp }).forEachIndexed { idx, it -> emit(
+                        AmpWithAmppCtiExtendedDto(it, extract[idx].ctiExtended)) }
+                    acc.clear()
+                }
+            }
+            val extract = acc.toList()
+            addProductIdsToAmps(acc.map { it.amp }).forEachIndexed { idx, it -> emit(AmpWithAmppCtiExtendedDto(it, extract[idx].ctiExtended)) }
         }
 
     private fun addProductIdsToVmpGroups(vmpGroups: Flow<VmpGroupDto>) =

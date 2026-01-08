@@ -194,6 +194,77 @@ class SamV2LogicImpl(
             )
         }
 
+
+    /**
+     * Finds all AMP entities with their associated AMPP CTI Extended identifiers matching the given label.
+     *
+     * This function searches for Actual Medicinal Products (AMPs) and their Packages (AMPPs)
+     * by performing a text-based label search across multiple name fields. The search is case-insensitive
+     * and supports multi-word queries, with all words required to match (AND logic).
+     *
+     * @param language Optional language code for localized name matching. Supported values are:
+     *                 - "fr" for French
+     *                 - "en" for English
+     *                 - "de" for German
+     *                 - "nl" for Dutch
+     * @param label The search label string. Multiple words can be separated by spaces.
+     *              Each word will be sanitized and must appear in at least one of the searchable fields.
+     * @param onlyValidAmpps If true, returns only AMPs that have valid AMPPs with active commercializations.
+     *                        If false, includes AMPs even if they have no valid commercializations.
+     * @param paginationOffset Pagination offset configuration for limiting and cursor-based pagination.
+     *                         The startDocumentId (if provided) should be in the format "ampId|ctiExtended".
+     *
+     * @return A Flow emitting pairs of (AMPP CTI Extended identifier, AMP entity).
+     *         Each pair represents an AMP with one of its matching AMPPs.
+     *         The flow respects the pagination limit and filtering criteria.
+     *
+     * The function searches across the following AMP name fields:
+     * - Official name (always searched, not language-dependent)
+     * - Abbreviated name (localized if language is specified)
+     * - Prescription name (localized if language is specified)
+     * - Generic name (localized if language is specified)
+     * - AMPP-specific prescription name (localized if language is specified)
+     *
+     * When [onlyValidAmpps] is true, invalid AMPPs are removed from the returned AMP entities.
+     */
+    override fun findAmppsByLabel(
+        language: String?,
+        label: String,
+        onlyValidAmpps: Boolean,
+        paginationOffset: PaginationOffset<Nothing>,
+    ): Flow<Pair<String,Amp>> =
+        flow {
+            val datastore = datastoreInstanceProvider.getInstanceAndGroup()
+            val labelComponents = label.split(" ").mapNotNull { it.sanitize() }
+            val ampIds = ampDAO.listAmpAmppIdsByLabel(datastore, language, labelComponents.maxByOrNull { it.length }).toSet().toList()
+
+            emitAll(
+                aggregateResultsAsFlow(
+                    ids = ampIds,
+                    limit = paginationOffset.limitIncludingKey().limit,
+                    supplier = { ids -> ampDAO.getEntities(ids.map { it.first }).toList().mapIndexed { idx, it -> ampIds[idx].second to it }.asFlow() },
+                    filter = { (ctiExtended, amp) ->
+                        labelComponents.all { labelComponent ->
+                            listOfNotNull(
+                                amp.officialName,
+                                amp.abbreviatedName?.localized(language)?.sanitize(),
+                                amp.prescriptionName?.localized(language)?.sanitize(),
+                                amp.name?.localized(language)?.sanitize(),
+                                amp.ampps.find { it.ctiExtended === ctiExtended }?.prescriptionName?.localized(language)?.sanitize(),
+                            ).any { it.contains(other = labelComponent, ignoreCase = true) }
+                        } && (!onlyValidAmpps || amp.hasValidAmpps(includeWithoutCommercializations = false))
+                    },
+                    startDocumentId = paginationOffset.startDocumentId?.split(":")?.let { (a,b) -> a to b } ,
+                ).map {
+                    if (onlyValidAmpps) {
+                        it.first to it.second.removeInvalidAmpps(includeWithoutCommercializations = false)
+                    } else {
+                        it
+                    }
+                },
+            )
+        }
+
     override fun findAmpsByLabel(
         language: String?,
         label: String,
@@ -203,7 +274,7 @@ class SamV2LogicImpl(
         flow {
             val datastore = datastoreInstanceProvider.getInstanceAndGroup()
             val labelComponents = label.split(" ").mapNotNull { it.sanitize() }
-            val ampIds = ampDAO.listAmpIdsByLabel(datastore, language, labelComponents.maxByOrNull { it.length }).toSet(TreeSet())
+            val ampIds = ampDAO.listAmpIdsByLabel(datastore, language, labelComponents.maxByOrNull { it.length }).toSet()
 
             emitAll(
                 aggregateResultsAsFlow(

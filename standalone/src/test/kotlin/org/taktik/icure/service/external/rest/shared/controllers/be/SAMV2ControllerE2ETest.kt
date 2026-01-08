@@ -50,6 +50,7 @@ import org.taktik.icure.services.external.rest.v1.dto.samv2.AmpDto
 import org.taktik.icure.services.external.rest.v1.dto.samv2.NmpDto
 import org.taktik.icure.services.external.rest.v1.dto.samv2.VmpDto
 import org.taktik.icure.services.external.rest.v1.dto.samv2.VmpGroupDto
+import org.taktik.icure.services.external.rest.v2.dto.samv2.AmpWithAmppCtiExtendedDto
 import org.taktik.icure.test.EnvironmentBootstrapper
 import org.taktik.icure.test.KmehrTestApplication
 import org.taktik.icure.test.TestHttpClient
@@ -159,9 +160,10 @@ class SAMV2ControllerE2ETest(
 			createVersionAttachment("vmp")
 			createVersionAttachment("nmp")
 
-			listOf("v1", "v2").forEach {
-				findAmpsByLabelE2ETest(httpClient, credentialsProvider, objectMapper, ampDAO, it, "http://127.0.0.1:$port")
-				findVmpsByLabelE2ETest(httpClient, credentialsProvider, objectMapper, vmpDAO, it, "http://127.0.0.1:$port")
+            listOf("v1", "v2").forEach {
+                findAmpsByLabelE2ETest(httpClient, credentialsProvider, objectMapper, ampDAO, it, "http://127.0.0.1:$port")
+                if (it == "v2") { findAmppsByLabelE2ETest(httpClient, credentialsProvider, objectMapper, ampDAO, it, "http://127.0.0.1:$port") }
+                findVmpsByLabelE2ETest(httpClient, credentialsProvider, objectMapper, vmpDAO, it, "http://127.0.0.1:$port")
 				findVmpsByGroupCodeE2ETest(httpClient, credentialsProvider, objectMapper, vmpDAO, it, "http://127.0.0.1:$port")
 				findVmpsByCodeE2ETest(httpClient, credentialsProvider, objectMapper, vmpDAO, it, "http://127.0.0.1:$port")
 				findNmpsByLabelE2ETest(httpClient, credentialsProvider, objectMapper, nmpDAO, it, "http://127.0.0.1:$port")
@@ -2058,6 +2060,12 @@ private fun StringSpec.findAmpsByLabelE2ETest(
 			createdAmps shouldContain it.id
 			it.name?.en shouldBe enLabel.joinToString(" ")
 		}.size shouldBe size
+
+		// Verify sorted lexicographically by name
+		val sortedRows = response.rows.sortedBy {
+			it.name?.en?.lowercase()?.replace(Regex("[^a-z]"), "")
+		}
+		response.rows shouldBe sortedRows
 	}
 
 	"$apiVersion - An HCP can get Amps by label with pagination" {
@@ -2101,6 +2109,12 @@ private fun StringSpec.findAmpsByLabelE2ETest(
 			it.prescriptionName?.en?.lowercase() shouldContain enLabel.first()
 		}.size shouldBe limit
 
+		// Verify sorted lexicographically by prescriptionName
+		val sortedRows = responseFirstPage.rows.sortedBy {
+			it.prescriptionName?.en?.lowercase()?.replace(Regex("[^a-z]"), "")
+		}
+		responseFirstPage.rows shouldBe sortedRows
+
 		val startDocId = responseFirstPage.nextKeyPair.shouldNotBeNull().startKeyDocId.shouldNotBeNull()
 		val responseSecondPage = httpClient.makeGetRequest(
 			"$samUrl/rest/$apiVersion/be_samv2/amp?language=en&label=${enLabel.first()}&limit=$limit&startDocumentId=$startDocId",
@@ -2110,6 +2124,13 @@ private fun StringSpec.findAmpsByLabelE2ETest(
 		responseSecondPage.rows.onEach {
 			it.prescriptionName?.en?.lowercase() shouldContain enLabel.first()
 		}.size shouldBeLessThanOrEqual limit
+
+		// Verify sorted lexicographically by prescriptionName
+		val sortedSecondPageRows = responseSecondPage.rows.sortedBy {
+			it.prescriptionName?.en?.lowercase()?.replace(Regex("[^a-z]"), "")
+		}
+		responseSecondPage.rows shouldBe sortedSecondPageRows
+
 		responseSecondPage.nextKeyPair shouldBe null
 	}
 
@@ -2151,3 +2172,214 @@ private fun StringSpec.findAmpsByLabelE2ETest(
 	}
 
 }
+
+private fun StringSpec.findAmppsByLabelE2ETest(
+	httpClient: TestHttpClient,
+	credentialsProvider: SAMV2ControllerE2ETest.CredentialsProvider,
+	objectMapper: ObjectMapper,
+	ampDAO: AmpDAO,
+	apiVersion: String,
+	samUrl: String
+) {
+
+	"$apiVersion - An HCP can get Ampp entries by label with pagination and sorting" {
+		val enLabel = uuid().split("-")
+		val frLabel = uuid().split("-")
+		val size = 10
+		val limit = (size / 2) + 1
+
+		val createdAmps = ampDAO.save(List(size) {
+			Amp(
+				id = uuid(),
+				prescriptionName = SamText(
+					en = enLabel.joinToString(" "),
+					fr = frLabel.joinToString(" ")
+				),
+				ampps = setOf(
+					Ampp(
+						index = (size - it).toDouble(), // Create different indices to test sorting by index
+						ctiExtended = "100${it}K1"
+					)
+				)
+			)
+		}).mapNotNull {
+			if (it is BulkSaveResult.Success) {
+				it.entity.id
+			} else {
+				null
+			}
+		}.toList()
+		createdAmps.size shouldBe size
+
+		ampDAO.save(List(size) {
+			Amp(
+				id = uuid(),
+				prescriptionName = SamText(
+					en = uuid(),
+					fr = uuid()
+				),
+				ampps = setOf(
+					Ampp(
+						index = 1.0,
+						ctiExtended = "other"
+					)
+				)
+			)
+		}).collect()
+
+		val responseFirstPage = httpClient.makeGetRequest(
+			"$samUrl/rest/$apiVersion/be_samv2/ampp?language=en&label=${enLabel.first()}&limit=$limit",
+			mapOf("Authorization" to "Bearer ${credentialsProvider.getCredentials(CredentialsType.HCP).authJWT!!}")
+		).shouldNotBeNull().let { objectMapper.readValue<PaginatedList<AmpWithAmppCtiExtendedDto>>(it) }
+
+		responseFirstPage.rows.size shouldBe limit
+
+		// Verify that entries are sorted first by the index of the Ampp with matching ctiExtended, then by prescriptionName
+		val sortedRows = responseFirstPage.rows.sortedWith(compareBy<AmpWithAmppCtiExtendedDto> { dto ->
+			// Find the Ampp with matching ctiExtended and get its index
+			dto.amp.ampps.find { it.ctiExtended == dto.ctiExtended }?.index ?: Double.MAX_VALUE
+		}.thenBy { dto ->
+			// Then sort by prescriptionName lexicographically
+			dto.amp.prescriptionName?.en?.lowercase()?.replace(Regex("[^a-z]"), "") ?: ""
+		})
+		responseFirstPage.rows shouldBe sortedRows
+
+		// Verify that CTI extended values exist
+		responseFirstPage.rows.onEach {
+			it.ctiExtended shouldNotBe null
+			it.ctiExtended.shouldContain("K1")
+		}
+
+		val startDocId = responseFirstPage.nextKeyPair.shouldNotBeNull().startKeyDocId.shouldNotBeNull()
+		val responseSecondPage = httpClient.makeGetRequest(
+			"$samUrl/rest/$apiVersion/be_samv2/ampp?language=en&label=${enLabel.first()}&limit=$limit&startDocumentId=$startDocId",
+			mapOf("Authorization" to "Bearer ${credentialsProvider.getCredentials(CredentialsType.HCP).authJWT!!}")
+		).shouldNotBeNull().let { objectMapper.readValue<PaginatedList<AmpWithAmppCtiExtendedDto>>(it) }
+
+		responseSecondPage.rows.size shouldBeLessThanOrEqual limit
+
+		// Verify that entries are sorted first by index of Ampp with matching ctiExtended, then by prescriptionName on second page
+		val sortedSecondPageRows = responseSecondPage.rows.sortedWith(compareBy<AmpWithAmppCtiExtendedDto> { dto ->
+			dto.amp.ampps.find { it.ctiExtended == dto.ctiExtended }?.index ?: Double.MAX_VALUE
+		}.thenBy { dto ->
+			dto.amp.prescriptionName?.en?.lowercase()?.replace(Regex("[^a-z]"), "") ?: ""
+		})
+		responseSecondPage.rows shouldBe sortedSecondPageRows
+
+		responseSecondPage.nextKeyPair shouldBe null
+	}
+
+	"$apiVersion - An HCP can get Ampp entries by label" {
+		val enLabel = uuid().split("-")
+		val frLabel = uuid().split("-")
+		val size = 10
+
+		val createdAmps = ampDAO.save(List(size) {
+			Amp(
+				id = uuid(),
+				prescriptionName = SamText(
+					en = enLabel.joinToString(" "),
+					fr = frLabel.joinToString(" ")
+				),
+				ampps = setOf(
+					Ampp(
+						index = it.toDouble(),
+						ctiExtended = "200${it}K1"
+					)
+				)
+			)
+		}).mapNotNull {
+			if (it is BulkSaveResult.Success) {
+				it.entity.id
+			} else {
+				null
+			}
+		}.toList()
+		createdAmps.size shouldBe size
+
+		ampDAO.save(List(size) {
+			Amp(
+				id = uuid(),
+				prescriptionName = SamText(
+					en = uuid(),
+					fr = uuid()
+				),
+				ampps = setOf(
+					Ampp(
+						index = 1.0,
+						ctiExtended = "other"
+					)
+				)
+			)
+		}).collect()
+
+		val responseString = httpClient.makeGetRequest(
+			"$samUrl/rest/$apiVersion/be_samv2/ampp?language=en&label=${enLabel.first()}",
+			mapOf("Authorization" to "Bearer ${credentialsProvider.getCredentials(CredentialsType.HCP).authJWT!!}")
+		).shouldNotBeNull()
+		val response = objectMapper.readValue<PaginatedList<AmpWithAmppCtiExtendedDto>>(responseString)
+
+		response.rows.size shouldBe size
+
+		// Verify that entries are sorted first by the index of the Ampp with matching ctiExtended, then by prescriptionName
+		val sortedRows = response.rows.sortedWith(compareBy<AmpWithAmppCtiExtendedDto> { dto ->
+			// Find the Ampp with matching ctiExtended and get its index
+			dto.amp.ampps.find { it.ctiExtended == dto.ctiExtended }?.index ?: Double.MAX_VALUE
+		}.thenBy { dto ->
+			// Then sort by prescriptionName lexicographically
+			dto.amp.prescriptionName?.en?.lowercase()?.replace(Regex("[^a-z]"), "") ?: ""
+		})
+		response.rows shouldBe sortedRows
+
+		// Verify that all entries have valid CTI extended values
+		response.rows.onEach {
+			it.ctiExtended shouldNotBe null
+			it.ctiExtended.shouldContain("K1")
+		}
+	}
+
+	"$apiVersion - An HCP is provided an empty result if no Ampp matching the label is found" {
+		ampDAO.save(List(10) {
+			Amp(
+				id = uuid(),
+				prescriptionName = SamText(
+					en = uuid(),
+					fr = uuid()
+				),
+				ampps = setOf(
+					Ampp(
+						index = 1.0,
+						ctiExtended = "other"
+					)
+				)
+			)
+		}).collect()
+
+		val responseString = httpClient.makeGetRequest(
+			"$samUrl/rest/$apiVersion/be_samv2/ampp?language=en&label=${uuid()}",
+			mapOf("Authorization" to "Bearer ${credentialsProvider.getCredentials(CredentialsType.HCP).authJWT!!}")
+		)
+		responseString shouldNotBe null
+		val response = objectMapper.readValue<PaginatedList<AmpWithAmppCtiExtendedDto>>(responseString)
+
+		response.rows.size shouldBe 0
+	}
+
+	"$apiVersion - A Patient cannot get Ampps by label" {
+		httpClient.makeGetRequest(
+			"$samUrl/rest/$apiVersion/be_samv2/ampp?language=en&label=${uuid()}",
+			mapOf("Authorization" to "Bearer ${credentialsProvider.getCredentials(CredentialsType.PATIENT).authJWT!!}"),
+			403
+		)
+	}
+
+	"$apiVersion - A HCP cannot get Ampps if the passed label is too short" {
+		httpClient.makeGetRequest(
+			"$samUrl/rest/$apiVersion/be_samv2/ampp?language=en&label=a",
+			mapOf("Authorization" to "Bearer ${credentialsProvider.getCredentials(CredentialsType.HCP).authJWT!!}"),
+			400
+		)
+	}
+
+}
+
