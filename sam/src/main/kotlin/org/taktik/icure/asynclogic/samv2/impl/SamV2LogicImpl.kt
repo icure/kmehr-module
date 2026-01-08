@@ -255,6 +255,7 @@ class SamV2LogicImpl(
                         } && (!onlyValidAmpps || amp.hasValidAmpps(includeWithoutCommercializations = false))
                     },
                     startDocumentId = paginationOffset.startDocumentId?.split(":")?.let { (a,b) -> a to b } ,
+                    heuristic = 1.2,
                 ).map {
                     if (onlyValidAmpps) {
                         it.first to it.second.removeInvalidAmpps(includeWithoutCommercializations = false)

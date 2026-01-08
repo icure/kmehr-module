@@ -36,6 +36,7 @@ import org.taktik.icure.db.PaginationOffset
 import org.taktik.icure.db.sanitizeString
 import org.taktik.icure.entities.samv2.Amp
 import org.taktik.icure.entities.samv2.SamVersion
+import org.taktik.icure.exceptions.TooManyResultsException
 import org.taktik.icure.utils.makeFromTo
 import org.taktik.icure.utils.toInputStream
 import java.util.zip.GZIPInputStream
@@ -54,8 +55,17 @@ class AmpDAOImpl(
 		const val ampPaginationLimit = 101
 	}
 
-    private val amppCache = Caffeine.newBuilder().maximumSize(1000).expireAfterAccess(2.minutes.toJavaDuration()).buildAsync<String, List<Pair<String, String>>>()
-	private val ampCache = Caffeine.newBuilder().maximumSize(1000).expireAfterAccess(2.minutes.toJavaDuration()).buildAsync<String, List<String>>()
+    private val amppCache = Caffeine.newBuilder()
+        .maximumWeight(1_000_0000)
+        .weigher { _: String, value: List<Pair<String, String>> -> value.size }
+        .expireAfterAccess(2.minutes.toJavaDuration())
+        .buildAsync<String, List<Pair<String, String>>>()
+
+	private val ampCache = Caffeine.newBuilder()
+        .maximumWeight(1_000_0000)
+        .weigher { _: String, value: List<String> -> value.size }
+        .expireAfterAccess(2.minutes.toJavaDuration())
+        .buildAsync<String, List<String>>()
 
     @View(name = "by_dmppcode", map = "classpath:js/amp/By_dmppcode.js")
 	override fun findAmpsByDmppCode(datastoreInformation: IDatastoreInformation, dmppCode: String) = flow {
@@ -299,6 +309,7 @@ class AmpDAOImpl(
                             .startKey(from)
                             .endKey(to)
                             .reduce(false)
+                            .limit(10001)
                             .includeDocs(false)
                         client.queryView<ComplexKey, AmppRef>(viewQuery)
                             .mapNotNull { it.value?.let { value -> ViewRowNoDoc(it.id, it.key, AmppRef(
@@ -306,6 +317,7 @@ class AmpDAOImpl(
                                 value.name?.lowercase()?.replace(Regex("[^a-z0-9]"), ""),
                                 value.ctiExtended)
                             ) } }.toList()
+                            .also { if (it.size > 10000) throw TooManyResultsException("Too many results for label '$label', please provide a more precise label") }
                             .sortedWith(compareBy({it.value?.index}, {it.value?.name}))
                             .mapNotNull { it.value?.ctiExtended?.let { ctiExtended -> it.id to ctiExtended } }
                     }
@@ -328,8 +340,11 @@ class AmpDAOImpl(
 							.startKey(from)
 							.endKey(to)
 							.reduce(false)
+                            .limit(10001)
 							.includeDocs(false)
-						client.queryView<ComplexKey, String>(viewQuery).map { ViewRowNoDoc(it.id, it.key, it.value?.lowercase()?.replace(Regex("[^a-z0-9]"), "")) }.toList().sortedBy { it.value }.map { it.id }
+						client.queryView<ComplexKey, String>(viewQuery).map { ViewRowNoDoc(it.id, it.key, it.value?.lowercase()?.replace(Regex("[^a-z0-9]"), "")) }.toList()
+                            .also { if (it.size > 10000) throw TooManyResultsException("Too many results for label '$label', please provide a more precise label") }
+                            .sortedBy { it.value }.map { it.id }
 					}
 				}
 			}.await()
