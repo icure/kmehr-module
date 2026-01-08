@@ -56,13 +56,13 @@ class AmpDAOImpl(
 	}
 
     private val amppCache = Caffeine.newBuilder()
-        .maximumWeight(1_000_0000)
+        .maximumWeight(1_000_000)
         .weigher { _: String, value: List<Pair<String, String>> -> value.size }
         .expireAfterAccess(2.minutes.toJavaDuration())
         .buildAsync<String, List<Pair<String, String>>>()
 
 	private val ampCache = Caffeine.newBuilder()
-        .maximumWeight(1_000_0000)
+        .maximumWeight(1_000_000)
         .weigher { _: String, value: List<String> -> value.size }
         .expireAfterAccess(2.minutes.toJavaDuration())
         .buildAsync<String, List<String>>()
