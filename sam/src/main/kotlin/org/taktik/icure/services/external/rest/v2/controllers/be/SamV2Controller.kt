@@ -126,7 +126,7 @@ class SamV2Controller(
     )
     @GetMapping("/amp")
     fun findPaginatedAmpsByLabel(
-        @Parameter(description = "language")
+        @Parameter(description = "language, defaults to fr")
         @RequestParam(required = false)
         language: String?,
         @Parameter(description = "label")
@@ -149,7 +149,7 @@ class SamV2Controller(
         val realLimit = limit ?: DEFAULT_LIMIT
         val paginationOffset = PaginationOffset(null, startDocumentId, null, realLimit)
 
-        val result = samV2Logic.findAmpsByLabel(language, label, onlyValidAmpps, paginationOffset).map(ampV2Mapper::map)
+        val result = samV2Logic.findAmpsByLabel(language ?: "fr", label, onlyValidAmpps, paginationOffset).map(ampV2Mapper::map)
 
         return addProductIdsToAmps(result)
             .toPaginatedFlow(paginationOffset.limit, { it.id }) { null }
@@ -162,7 +162,7 @@ class SamV2Controller(
     )
     @GetMapping("/ampp")
     fun findPaginatedAmppsByLabel(
-        @Parameter(description = "language")
+        @Parameter(description = "language, defaults to fr")
         @RequestParam(required = false)
         language: String?,
         @Parameter(description = "label")
@@ -185,7 +185,7 @@ class SamV2Controller(
         val realLimit = limit ?: DEFAULT_LIMIT
         val paginationOffset = PaginationOffset(null, startDocumentId, null, realLimit)
 
-        val result = samV2Logic.findAmppsByLabel(language, label, onlyValidAmpps, paginationOffset).map { (ctiExtended, amp) ->
+        val result = samV2Logic.findAmppsByLabel(language ?: "fr", label, onlyValidAmpps, paginationOffset).map { (ctiExtended, amp) ->
             AmpWithAmppCtiExtendedDto(ampV2Mapper.map(amp), ctiExtended)
         }
 

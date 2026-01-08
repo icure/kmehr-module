@@ -25,7 +25,7 @@ import org.taktik.icure.pagination.toPaginatedFlow
 import org.taktik.icure.utils.aggregateResultsAsFlow
 import org.taktik.icure.utils.bufferedChunks
 import org.taktik.icure.utils.distinct
-import java.util.*
+import kotlin.math.min
 
 @Service
 @Profile("sam")
@@ -228,7 +228,7 @@ class SamV2LogicImpl(
      * When [onlyValidAmpps] is true, invalid AMPPs are removed from the returned AMP entities.
      */
     override fun findAmppsByLabel(
-        language: String?,
+        language: String,
         label: String,
         onlyValidAmpps: Boolean,
         paginationOffset: PaginationOffset<Nothing>,
@@ -236,7 +236,8 @@ class SamV2LogicImpl(
         flow {
             val datastore = datastoreInstanceProvider.getInstanceAndGroup()
             val labelComponents = label.split(" ").mapNotNull { it.sanitize() }
-            val ampIds = ampDAO.listAmpAmppIdsByLabel(datastore, language, labelComponents.maxByOrNull { it.length }).toSet().toList()
+            val ampIds = labelComponents.maxByOrNull { it.length }?.let { ampDAO.listAmpAmppIdsByLabel(datastore, language, it).toSet().toList() }
+                ?: throw IllegalArgumentException("Label must contain at least one valid component")
 
             emitAll(
                 aggregateResultsAsFlow(
@@ -255,6 +256,7 @@ class SamV2LogicImpl(
                         } && (!onlyValidAmpps || amp.hasValidAmpps(includeWithoutCommercializations = false))
                     },
                     startDocumentId = paginationOffset.startDocumentId?.split(":")?.let { (a,b) -> a to b } ,
+                    heuristic = if (labelComponents.size == 1) 1.1 else min(3.0, labelComponents.size.toDouble()),
                 ).map {
                     if (onlyValidAmpps) {
                         it.first to it.second.removeInvalidAmpps(includeWithoutCommercializations = false)
@@ -266,7 +268,7 @@ class SamV2LogicImpl(
         }
 
     override fun findAmpsByLabel(
-        language: String?,
+        language: String,
         label: String,
         onlyValidAmpps: Boolean,
         paginationOffset: PaginationOffset<Nothing>,
@@ -274,8 +276,8 @@ class SamV2LogicImpl(
         flow {
             val datastore = datastoreInstanceProvider.getInstanceAndGroup()
             val labelComponents = label.split(" ").mapNotNull { it.sanitize() }
-            val ampIds = ampDAO.listAmpIdsByLabel(datastore, language, labelComponents.maxByOrNull { it.length }).toSet()
-
+            val ampIds = labelComponents.maxByOrNull { it.length }?.let { ampDAO.listAmpIdsByLabel(datastore, language, it).toSet() }
+                ?: throw IllegalArgumentException("Label must contain at least one valid component")
             emitAll(
                 aggregateResultsAsFlow(
                     ids = ampIds,
@@ -292,6 +294,7 @@ class SamV2LogicImpl(
                         } && (!onlyValidAmpps || amp.hasValidAmpps(includeWithoutCommercializations = false))
                     },
                     startDocumentId = paginationOffset.startDocumentId,
+                    heuristic = if (labelComponents.size == 1) 1.1 else min(3.0, labelComponents.size.toDouble()),
                 ).map {
                     if (onlyValidAmpps) {
                         it.removeInvalidAmpps(includeWithoutCommercializations = false)
@@ -312,8 +315,8 @@ class SamV2LogicImpl(
         }
 
     override fun listAmpIdsByLabel(
-        language: String?,
-        label: String?,
+        language: String,
+        label: String,
     ): Flow<String> =
         flow {
             val datastore = datastoreInstanceProvider.getInstanceAndGroup()

@@ -36,6 +36,7 @@ import org.taktik.icure.db.PaginationOffset
 import org.taktik.icure.db.sanitizeString
 import org.taktik.icure.entities.samv2.Amp
 import org.taktik.icure.entities.samv2.SamVersion
+import org.taktik.icure.exceptions.TooManyResultsException
 import org.taktik.icure.utils.makeFromTo
 import org.taktik.icure.utils.toInputStream
 import java.util.zip.GZIPInputStream
@@ -54,8 +55,17 @@ class AmpDAOImpl(
 		const val ampPaginationLimit = 101
 	}
 
-    private val amppCache = Caffeine.newBuilder().maximumSize(1000).expireAfterAccess(2.minutes.toJavaDuration()).buildAsync<String, List<Pair<String, String>>>()
-	private val ampCache = Caffeine.newBuilder().maximumSize(1000).expireAfterAccess(2.minutes.toJavaDuration()).buildAsync<String, List<String>>()
+    private val amppCache = Caffeine.newBuilder()
+        .maximumWeight(1_000_000)
+        .weigher { _: String, value: List<Pair<String, String>> -> value.size }
+        .expireAfterAccess(2.minutes.toJavaDuration())
+        .buildAsync<String, List<Pair<String, String>>>()
+
+	private val ampCache = Caffeine.newBuilder()
+        .maximumWeight(1_000_000)
+        .weigher { _: String, value: List<String> -> value.size }
+        .expireAfterAccess(2.minutes.toJavaDuration())
+        .buildAsync<String, List<String>>()
 
     @View(name = "by_dmppcode", map = "classpath:js/amp/By_dmppcode.js")
 	override fun findAmpsByDmppCode(datastoreInformation: IDatastoreInformation, dmppCode: String) = flow {
@@ -284,13 +294,14 @@ class AmpDAOImpl(
     @View(name = "by_language_label_official_sort", map = "classpath:js/amp/By_language_label_official_sort.js", secondaryPartition = "official-sort")
     override fun listAmpAmppIdsByLabel(
         datastoreInformation: IDatastoreInformation,
-        language: String?,
-        label: String?
+        language: String,
+        label: String
     ): Flow<Pair<String, String>> = flow {
-        require(label != null && label.length >= 3) { "Label must be at least 3 characters long" }
+        require(label.length >= 3) { "Label must be at least 3 characters long" }
         val rowIds = coroutineScope {
             //TODO check the relevance of using a SupervisorScope to avoid failure on parallel cancellation
             //TODO Use Pair<Long,Long> for key (SHA) and it
+            //NOTE: the datastoreInformation always point to the same db and must not be part of the cache key
             amppCache.get(label) { key, _ ->
                 future {
                     val client = couchDbDispatcher.getClient(datastoreInformation)
@@ -299,6 +310,7 @@ class AmpDAOImpl(
                             .startKey(from)
                             .endKey(to)
                             .reduce(false)
+                            .limit(10001)
                             .includeDocs(false)
                         client.queryView<ComplexKey, AmppRef>(viewQuery)
                             .mapNotNull { it.value?.let { value -> ViewRowNoDoc(it.id, it.key, AmppRef(
@@ -306,6 +318,7 @@ class AmpDAOImpl(
                                 value.name?.lowercase()?.replace(Regex("[^a-z0-9]"), ""),
                                 value.ctiExtended)
                             ) } }.toList()
+                            .also { if (it.size > 10000) throw TooManyResultsException("Too many results for label '$label', please provide a more precise label") }
                             .sortedWith(compareBy({it.value?.index}, {it.value?.name}))
                             .mapNotNull { it.value?.ctiExtended?.let { ctiExtended -> it.id to ctiExtended } }
                     }
@@ -315,11 +328,12 @@ class AmpDAOImpl(
         emitAll(rowIds.asFlow())    }
 
 
-    override fun listAmpIdsByLabel(datastoreInformation: IDatastoreInformation, language: String?, label: String?): Flow<String> = flow {
-		require(label != null && label.length >= 3) { "Label must be at least 3 characters long" }
+    override fun listAmpIdsByLabel(datastoreInformation: IDatastoreInformation, language: String, label: String): Flow<String> = flow {
+		require(label.length >= 3) { "Label must be at least 3 characters long" }
 		val rowIds = coroutineScope {
 			//TODO check the relevance of using a SupervisorScope to avoid failure on parallel cancellation
 			//TODO Use Pair<Long,Long> for key (SHA) and it
+            //NOTE: the datastoreInformation always point to the same db and must not be part of the cache key
 			ampCache.get(label) { key, _ ->
 				future {
 					val client = couchDbDispatcher.getClient(datastoreInformation)
@@ -328,8 +342,11 @@ class AmpDAOImpl(
 							.startKey(from)
 							.endKey(to)
 							.reduce(false)
+                            .limit(10001)
 							.includeDocs(false)
-						client.queryView<ComplexKey, String>(viewQuery).map { ViewRowNoDoc(it.id, it.key, it.value?.lowercase()?.replace(Regex("[^a-z0-9]"), "")) }.toList().sortedBy { it.value }.map { it.id }
+						client.queryView<ComplexKey, String>(viewQuery).map { ViewRowNoDoc(it.id, it.key, it.value?.lowercase()?.replace(Regex("[^a-z0-9]"), "")) }.toList()
+                            .also { if (it.size > 10000) throw TooManyResultsException("Too many results for label '$label', please provide a more precise label") }
+                            .sortedBy { it.value }.map { it.id }
 					}
 				}
 			}.await()
