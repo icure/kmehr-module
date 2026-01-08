@@ -25,7 +25,7 @@ import org.taktik.icure.pagination.toPaginatedFlow
 import org.taktik.icure.utils.aggregateResultsAsFlow
 import org.taktik.icure.utils.bufferedChunks
 import org.taktik.icure.utils.distinct
-import kotlin.math.max
+import kotlin.math.min
 
 @Service
 @Profile("sam")
@@ -256,7 +256,7 @@ class SamV2LogicImpl(
                         } && (!onlyValidAmpps || amp.hasValidAmpps(includeWithoutCommercializations = false))
                     },
                     startDocumentId = paginationOffset.startDocumentId?.split(":")?.let { (a,b) -> a to b } ,
-                    heuristic = if (labelComponents.size == 1) 1.1 else max(3.0, labelComponents.size.toDouble()),
+                    heuristic = if (labelComponents.size == 1) 1.1 else min(3.0, labelComponents.size.toDouble()),
                 ).map {
                     if (onlyValidAmpps) {
                         it.first to it.second.removeInvalidAmpps(includeWithoutCommercializations = false)
@@ -294,7 +294,7 @@ class SamV2LogicImpl(
                         } && (!onlyValidAmpps || amp.hasValidAmpps(includeWithoutCommercializations = false))
                     },
                     startDocumentId = paginationOffset.startDocumentId,
-                    heuristic = if (labelComponents.size == 1) 1.1 else max(3.0, labelComponents.size.toDouble()),
+                    heuristic = if (labelComponents.size == 1) 1.1 else min(3.0, labelComponents.size.toDouble()),
                 ).map {
                     if (onlyValidAmpps) {
                         it.removeInvalidAmpps(includeWithoutCommercializations = false)
