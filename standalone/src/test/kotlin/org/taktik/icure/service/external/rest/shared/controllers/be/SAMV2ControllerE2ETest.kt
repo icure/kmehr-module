@@ -2063,7 +2063,7 @@ private fun StringSpec.findAmpsByLabelE2ETest(
 
 		// Verify sorted lexicographically by name
 		val sortedRows = response.rows.sortedBy {
-			it.name?.en?.lowercase()?.replace(Regex("[^a-z]"), "")
+			it.prescriptionName?.en?.lowercase()?.replace(Regex("[^a-z0-9]"), "")
 		}
 		response.rows shouldBe sortedRows
 	}
@@ -2111,7 +2111,7 @@ private fun StringSpec.findAmpsByLabelE2ETest(
 
 		// Verify sorted lexicographically by prescriptionName
 		val sortedRows = responseFirstPage.rows.sortedBy {
-			it.prescriptionName?.en?.lowercase()?.replace(Regex("[^a-z]"), "")
+			it.prescriptionName?.en?.lowercase()?.replace(Regex("[^a-z0-9]"), "")
 		}
 		responseFirstPage.rows shouldBe sortedRows
 
@@ -2127,7 +2127,7 @@ private fun StringSpec.findAmpsByLabelE2ETest(
 
 		// Verify sorted lexicographically by prescriptionName
 		val sortedSecondPageRows = responseSecondPage.rows.sortedBy {
-			it.prescriptionName?.en?.lowercase()?.replace(Regex("[^a-z]"), "")
+			it.prescriptionName?.en?.lowercase()?.replace(Regex("[^a-z0-9]"), "")
 		}
 		responseSecondPage.rows shouldBe sortedSecondPageRows
 
@@ -2240,7 +2240,7 @@ private fun StringSpec.findAmppsByLabelE2ETest(
 			dto.amp.ampps.find { it.ctiExtended == dto.ctiExtended }?.index ?: Double.MAX_VALUE
 		}.thenBy { dto ->
 			// Then sort by prescriptionName lexicographically
-			dto.amp.prescriptionName?.en?.lowercase()?.replace(Regex("[^a-z]"), "") ?: ""
+			dto.amp.prescriptionName?.en?.lowercase()?.replace(Regex("[^a-z0-9]"), "") ?: ""
 		})
 		responseFirstPage.rows shouldBe sortedRows
 
@@ -2262,7 +2262,7 @@ private fun StringSpec.findAmppsByLabelE2ETest(
 		val sortedSecondPageRows = responseSecondPage.rows.sortedWith(compareBy<AmpWithAmppCtiExtendedDto> { dto ->
 			dto.amp.ampps.find { it.ctiExtended == dto.ctiExtended }?.index ?: Double.MAX_VALUE
 		}.thenBy { dto ->
-			dto.amp.prescriptionName?.en?.lowercase()?.replace(Regex("[^a-z]"), "") ?: ""
+			dto.amp.prescriptionName?.en?.lowercase()?.replace(Regex("[^a-z0-9]"), "") ?: ""
 		})
 		responseSecondPage.rows shouldBe sortedSecondPageRows
 
@@ -2327,7 +2327,7 @@ private fun StringSpec.findAmppsByLabelE2ETest(
 			dto.amp.ampps.find { it.ctiExtended == dto.ctiExtended }?.index ?: Double.MAX_VALUE
 		}.thenBy { dto ->
 			// Then sort by prescriptionName lexicographically
-			dto.amp.prescriptionName?.en?.lowercase()?.replace(Regex("[^a-z]"), "") ?: ""
+			dto.amp.prescriptionName?.en?.lowercase()?.replace(Regex("[^a-z0-9]"), "") ?: ""
 		})
 		response.rows shouldBe sortedRows
 

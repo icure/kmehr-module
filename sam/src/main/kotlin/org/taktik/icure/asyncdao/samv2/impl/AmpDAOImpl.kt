@@ -303,7 +303,7 @@ class AmpDAOImpl(
                         client.queryView<ComplexKey, AmppRef>(viewQuery)
                             .mapNotNull { it.value?.let { value -> ViewRowNoDoc(it.id, it.key, AmppRef(
                                 value.index,
-                                value.name?.lowercase()?.replace(Regex("[^a-z]"), ""),
+                                value.name?.lowercase()?.replace(Regex("[^a-z0-9]"), ""),
                                 value.ctiExtended)
                             ) } }.toList()
                             .sortedWith(compareBy({it.value?.index}, {it.value?.name}))
@@ -329,7 +329,7 @@ class AmpDAOImpl(
 							.endKey(to)
 							.reduce(false)
 							.includeDocs(false)
-						client.queryView<ComplexKey, String>(viewQuery).map { ViewRowNoDoc(it.id, it.key, it.value?.lowercase()?.replace(Regex("[^a-z]"), "")) }.toList().sortedBy { it.value }.map { it.id }
+						client.queryView<ComplexKey, String>(viewQuery).map { ViewRowNoDoc(it.id, it.key, it.value?.lowercase()?.replace(Regex("[^a-z0-9]"), "")) }.toList().sortedBy { it.value }.map { it.id }
 					}
 				}
 			}.await()
