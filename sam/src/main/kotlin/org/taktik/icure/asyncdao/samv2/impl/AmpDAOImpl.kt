@@ -294,13 +294,14 @@ class AmpDAOImpl(
     @View(name = "by_language_label_official_sort", map = "classpath:js/amp/By_language_label_official_sort.js", secondaryPartition = "official-sort")
     override fun listAmpAmppIdsByLabel(
         datastoreInformation: IDatastoreInformation,
-        language: String?,
-        label: String?
+        language: String,
+        label: String
     ): Flow<Pair<String, String>> = flow {
-        require(label != null && label.length >= 3) { "Label must be at least 3 characters long" }
+        require(label.length >= 3) { "Label must be at least 3 characters long" }
         val rowIds = coroutineScope {
             //TODO check the relevance of using a SupervisorScope to avoid failure on parallel cancellation
             //TODO Use Pair<Long,Long> for key (SHA) and it
+            //NOTE: the datastoreInformation always point to the same db and must not be part of the cache key
             amppCache.get(label) { key, _ ->
                 future {
                     val client = couchDbDispatcher.getClient(datastoreInformation)
@@ -327,11 +328,12 @@ class AmpDAOImpl(
         emitAll(rowIds.asFlow())    }
 
 
-    override fun listAmpIdsByLabel(datastoreInformation: IDatastoreInformation, language: String?, label: String?): Flow<String> = flow {
-		require(label != null && label.length >= 3) { "Label must be at least 3 characters long" }
+    override fun listAmpIdsByLabel(datastoreInformation: IDatastoreInformation, language: String, label: String): Flow<String> = flow {
+		require(label.length >= 3) { "Label must be at least 3 characters long" }
 		val rowIds = coroutineScope {
 			//TODO check the relevance of using a SupervisorScope to avoid failure on parallel cancellation
 			//TODO Use Pair<Long,Long> for key (SHA) and it
+            //NOTE: the datastoreInformation always point to the same db and must not be part of the cache key
 			ampCache.get(label) { key, _ ->
 				future {
 					val client = couchDbDispatcher.getClient(datastoreInformation)

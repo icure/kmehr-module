@@ -21,8 +21,8 @@ import org.taktik.icure.entities.samv2.embed.SamText
 import org.taktik.icure.pagination.PaginationElement
 
 interface SamV2Logic {
-	fun findAmpsByLabel(language: String?, label: String, onlyValidAmpps: Boolean, paginationOffset: PaginationOffset<Nothing>): Flow<Amp>
-    fun findAmppsByLabel(language: String?, label: String, onlyValidAmpps: Boolean, paginationOffset: PaginationOffset<Nothing>): Flow<Pair<String, Amp>>
+	fun findAmpsByLabel(language: String, label: String, onlyValidAmpps: Boolean, paginationOffset: PaginationOffset<Nothing>): Flow<Amp>
+    fun findAmppsByLabel(language: String, label: String, onlyValidAmpps: Boolean, paginationOffset: PaginationOffset<Nothing>): Flow<Pair<String, Amp>>
 	fun findNmpsByLabel(language: String?, label: String?, paginationOffset: PaginationOffset<List<String>>): Flow<ViewQueryResultEvent>
 	fun findVmpsByLabel(language: String?, label: String?, paginationOffset: PaginationOffset<List<String>>): Flow<PaginationElement>
 	fun findVmpGroupsByLabel(language: String?, label: String?, paginationOffset: PaginationOffset<List<String>>): Flow<ViewQueryResultEvent>
@@ -39,7 +39,7 @@ interface SamV2Logic {
 	fun findAmpsByDmppCode(dmppCode: String): Flow<ViewQueryResultEvent>
 	fun findAmpsByAmpCode(ampCode: String): Flow<ViewQueryResultEvent>
 
-	fun listAmpIdsByLabel(language: String?, label: String?): Flow<String>
+	fun listAmpIdsByLabel(language: String, label: String): Flow<String>
 	fun listNmpIdsByLabel(language: String?, label: String?): Flow<String>
 	fun listVmpIdsByLabel(language: String?, label: String?): Flow<String>
 	fun listVmpGroupIdsByLabel(language: String?, label: String?): Flow<String>
