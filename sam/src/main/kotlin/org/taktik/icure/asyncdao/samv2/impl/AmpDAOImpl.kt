@@ -4,6 +4,10 @@
 
 package org.taktik.icure.asyncdao.samv2.impl
 
+import com.fasterxml.jackson.core.JsonParser
+import com.fasterxml.jackson.databind.DeserializationContext
+import com.fasterxml.jackson.databind.JsonDeserializer
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import com.github.benmanes.caffeine.cache.Caffeine
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -11,10 +15,12 @@ import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.future.future
 import org.taktik.couchdb.ViewQueryResultEvent
+import org.taktik.couchdb.ViewRowNoDoc
 import org.taktik.couchdb.annotation.View
 import org.taktik.couchdb.dao.DesignDocumentProvider
 import org.taktik.couchdb.entity.ComplexKey
@@ -48,9 +54,10 @@ class AmpDAOImpl(
 		const val ampPaginationLimit = 101
 	}
 
-	private val cache = Caffeine.newBuilder().maximumSize(1000).expireAfterAccess(1.minutes.toJavaDuration()).buildAsync<String, List<String>>()
+    private val amppCache = Caffeine.newBuilder().maximumSize(1000).expireAfterAccess(2.minutes.toJavaDuration()).buildAsync<String, List<Pair<String, String>>>()
+	private val ampCache = Caffeine.newBuilder().maximumSize(1000).expireAfterAccess(2.minutes.toJavaDuration()).buildAsync<String, List<String>>()
 
-	@View(name = "by_dmppcode", map = "classpath:js/amp/By_dmppcode.js")
+    @View(name = "by_dmppcode", map = "classpath:js/amp/By_dmppcode.js")
 	override fun findAmpsByDmppCode(datastoreInformation: IDatastoreInformation, dmppCode: String) = flow {
 		val client = couchDbDispatcher.getClient(datastoreInformation)
 		emitAll(
@@ -274,12 +281,46 @@ class AmpDAOImpl(
 		emitAll(client.queryView(viewQuery, ComplexKey::class.java, Int::class.java, Amp::class.java))
 	}
 
-	override fun listAmpIdsByLabel(datastoreInformation: IDatastoreInformation, language: String?, label: String?): Flow<String> = flow {
+    @View(name = "by_language_label_official_sort", map = "classpath:js/amp/By_language_label_official_sort.js", secondaryPartition = "official-sort")
+    override fun listAmpAmppIdsByLabel(
+        datastoreInformation: IDatastoreInformation,
+        language: String?,
+        label: String?
+    ): Flow<Pair<String, String>> = flow {
+        require(label != null && label.length >= 3) { "Label must be at least 3 characters long" }
+        val rowIds = coroutineScope {
+            //TODO check the relevance of using a SupervisorScope to avoid failure on parallel cancellation
+            //TODO Use Pair<Long,Long> for key (SHA) and it
+            amppCache.get(label) { key, _ ->
+                future {
+                    val client = couchDbDispatcher.getClient(datastoreInformation)
+                    makeFromTo(key, language).let { (from, to) ->
+                        val viewQuery = createQuery("by_language_label_official_sort", "official-sort")
+                            .startKey(from)
+                            .endKey(to)
+                            .reduce(false)
+                            .includeDocs(false)
+                        client.queryView<ComplexKey, AmppRef>(viewQuery)
+                            .mapNotNull { it.value?.let { value -> ViewRowNoDoc(it.id, it.key, AmppRef(
+                                value.index,
+                                value.name?.lowercase()?.replace(Regex("[^a-z0-9]"), ""),
+                                value.ctiExtended)
+                            ) } }.toList()
+                            .sortedWith(compareBy({it.value?.index}, {it.value?.name}))
+                            .mapNotNull { it.value?.ctiExtended?.let { ctiExtended -> it.id to ctiExtended } }
+                    }
+                }
+            }.await()
+        }
+        emitAll(rowIds.asFlow())    }
+
+
+    override fun listAmpIdsByLabel(datastoreInformation: IDatastoreInformation, language: String?, label: String?): Flow<String> = flow {
 		require(label != null && label.length >= 3) { "Label must be at least 3 characters long" }
 		val rowIds = coroutineScope {
 			//TODO check the relevance of using a SupervisorScope to avoid failure on parallel cancellation
 			//TODO Use Pair<Long,Long> for key (SHA) and it
-			cache.get(label) { key, _ ->
+			ampCache.get(label) { key, _ ->
 				future {
 					val client = couchDbDispatcher.getClient(datastoreInformation)
 					makeFromTo(key, language).let { (from, to) ->
@@ -288,7 +329,7 @@ class AmpDAOImpl(
 							.endKey(to)
 							.reduce(false)
 							.includeDocs(false)
-						client.queryView<ComplexKey, String>(viewQuery).toList().sortedBy { it.value }.map { it.id }
+						client.queryView<ComplexKey, String>(viewQuery).map { ViewRowNoDoc(it.id, it.key, it.value?.lowercase()?.replace(Regex("[^a-z0-9]"), "")) }.toList().sortedBy { it.value }.map { it.id }
 					}
 				}
 			}.await()
@@ -296,3 +337,23 @@ class AmpDAOImpl(
 		emitAll(rowIds.asFlow())
 	}
 }
+
+class AmppRefDeserializer : JsonDeserializer<AmppRef>() {
+	override fun deserialize(p: JsonParser, ctxt: DeserializationContext?): AmppRef {
+		val array = p.codec.readTree<com.fasterxml.jackson.databind.node.ArrayNode>(p)
+		check(array.size() == 3) { "AmppRef array must have exactly 3 elements" }
+
+		val index = array[0].asDouble()
+		val name = if (array[1].isNull) null else array[1].asText()
+		val ctiExtended = if (array[2].isNull) null else array[2].asText()
+
+		return AmppRef(index, name, ctiExtended)
+	}
+}
+
+@JsonDeserialize(using = AmppRefDeserializer::class)
+data class AmppRef(
+    val index: Double,
+    val name: String?,
+    val ctiExtended: String?
+)

@@ -67,6 +67,12 @@ interface AmpDAO : InternalDAO<Amp> {
         paginationOffset: PaginationOffset<List<String>>,
     ): Flow<ViewQueryResultEvent>
 
+    fun listAmpAmppIdsByLabel(
+        datastoreInformation: IDatastoreInformation,
+        language: String?,
+        label: String?,
+    ): Flow<Pair<String, String>>
+
     fun listAmpIdsByLabel(
         datastoreInformation: IDatastoreInformation,
         language: String?,

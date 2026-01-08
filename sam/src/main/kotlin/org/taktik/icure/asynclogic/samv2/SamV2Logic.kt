@@ -22,6 +22,7 @@ import org.taktik.icure.pagination.PaginationElement
 
 interface SamV2Logic {
 	fun findAmpsByLabel(language: String?, label: String, onlyValidAmpps: Boolean, paginationOffset: PaginationOffset<Nothing>): Flow<Amp>
+    fun findAmppsByLabel(language: String?, label: String, onlyValidAmpps: Boolean, paginationOffset: PaginationOffset<Nothing>): Flow<Pair<String, Amp>>
 	fun findNmpsByLabel(language: String?, label: String?, paginationOffset: PaginationOffset<List<String>>): Flow<ViewQueryResultEvent>
 	fun findVmpsByLabel(language: String?, label: String?, paginationOffset: PaginationOffset<List<String>>): Flow<PaginationElement>
 	fun findVmpGroupsByLabel(language: String?, label: String?, paginationOffset: PaginationOffset<List<String>>): Flow<ViewQueryResultEvent>
