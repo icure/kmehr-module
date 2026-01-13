@@ -97,7 +97,7 @@ class SamV2Controller(
 	@Operation(summary = "Finding AMPs by label with pagination.", description = "Returns a list of codes matched with given input. If several types are provided, paginantion is not supported")
 	@GetMapping("/amp")
 	fun findPaginatedAmpsByLabel(
-		@Parameter(description = "language")
+		@Parameter(description = "language, defaults to fr")
 		@RequestParam(required = false)
 		language: String?,
 		@Parameter(description = "label")
@@ -120,7 +120,7 @@ class SamV2Controller(
 		val realLimit = limit ?: SamV2Controller.DEFAULT_LIMIT
 		val paginationOffset = PaginationOffset(null, startDocumentId, null, realLimit)
 
-		val result = samV2Logic.findAmpsByLabel(language, label, false, paginationOffset).map(ampMapper::map)
+		val result = samV2Logic.findAmpsByLabel(language ?: "fr", label, false, paginationOffset).map(ampMapper::map)
 
 		return addProductIdsToAmps(result)
 			.toPaginatedFlow(paginationOffset.limit, { it.id }) { null }

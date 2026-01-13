@@ -36,6 +36,7 @@ subprojects {
 				force(kmehrLibs.logbackClassic)
 				force(kmehrLibs.logbackCore)
 				force(kmehrLibs.micrometerObservation)
+				force("io.netty:netty-transport-native-unix-common:${coreLibs.versions.nettyVersion.get()}")
 				force(kmehrLibs.okio)
 				force(kmehrLibs.slf4jApi)
 
@@ -48,6 +49,7 @@ subprojects {
 				force(coreLibs.commonsCodec)
 				force(coreLibs.commonsCodec)
 				force(coreLibs.commonsIO)
+				force(coreLibs.commonsLogging)
 				force(coreLibs.googleErrorProneAnnotations)
 				force(coreLibs.googleGson)
 				force(coreLibs.googleHttpClient)

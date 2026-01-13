@@ -69,14 +69,14 @@ interface AmpDAO : InternalDAO<Amp> {
 
     fun listAmpAmppIdsByLabel(
         datastoreInformation: IDatastoreInformation,
-        language: String?,
-        label: String?,
+        language: String,
+        label: String,
     ): Flow<Pair<String, String>>
 
     fun listAmpIdsByLabel(
         datastoreInformation: IDatastoreInformation,
-        language: String?,
-        label: String?,
+        language: String,
+        label: String,
     ): Flow<String>
 
     fun listAmpIdsByVmpGroupCode(
