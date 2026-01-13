@@ -33,6 +33,7 @@ import org.taktik.icure.asyncdao.samv2.AmpDAO
 import org.taktik.icure.datastore.DatastoreInstanceProvider
 import org.taktik.icure.datastore.IDatastoreInformation
 import org.taktik.icure.db.PaginationOffset
+import org.taktik.icure.db.sanitizeForSorting
 import org.taktik.icure.db.sanitizeString
 import org.taktik.icure.entities.samv2.Amp
 import org.taktik.icure.entities.samv2.SamVersion
@@ -315,7 +316,7 @@ class AmpDAOImpl(
                         client.queryView<ComplexKey, AmppRef>(viewQuery)
                             .mapNotNull { it.value?.let { value -> ViewRowNoDoc(it.id, it.key, AmppRef(
                                 value.index,
-                                value.name?.lowercase()?.replace(Regex("[^a-z0-9]"), ""),
+                                value.name?.let { sanitizeForSorting(it) },
                                 value.ctiExtended)
                             ) } }.toList()
                             .also { if (it.size > 10000) throw TooManyResultsException("Too many results for label '$label', please provide a more precise label") }
@@ -344,7 +345,7 @@ class AmpDAOImpl(
 							.reduce(false)
                             .limit(10001)
 							.includeDocs(false)
-						client.queryView<ComplexKey, String>(viewQuery).map { ViewRowNoDoc(it.id, it.key, it.value?.lowercase()?.replace(Regex("[^a-z0-9]"), "")) }.toList()
+						client.queryView<ComplexKey, String>(viewQuery).map { ViewRowNoDoc(it.id, it.key, sanitizeForSorting(it.value)) }.toList()
                             .also { if (it.size > 10000) throw TooManyResultsException("Too many results for label '$label', please provide a more precise label") }
                             .sortedBy { it.value }.map { it.id }
 					}

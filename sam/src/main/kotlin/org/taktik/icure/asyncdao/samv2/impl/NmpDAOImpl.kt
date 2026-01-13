@@ -27,6 +27,7 @@ import org.taktik.icure.asyncdao.samv2.NmpDAO
 import org.taktik.icure.datastore.DatastoreInstanceProvider
 import org.taktik.icure.datastore.IDatastoreInformation
 import org.taktik.icure.db.PaginationOffset
+import org.taktik.icure.db.sanitizeForSorting
 import org.taktik.icure.db.sanitizeString
 import org.taktik.icure.entities.samv2.Nmp
 import org.taktik.icure.utils.makeFromTo
@@ -57,7 +58,7 @@ class NmpDAOImpl(
 							.endKey(to)
 							.reduce(false)
 							.includeDocs(false)
-						client.queryView<ComplexKey, String>(viewQuery).toList().sortedBy { it.value }.map { it.id }
+						client.queryView<ComplexKey, String>(viewQuery).toList().sortedBy { sanitizeForSorting(it.value) }.map { it.id }
 					}
 				}
 			}.await()
