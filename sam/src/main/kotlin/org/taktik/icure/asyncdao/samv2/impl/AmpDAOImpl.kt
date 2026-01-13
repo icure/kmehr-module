@@ -33,6 +33,7 @@ import org.taktik.icure.asyncdao.samv2.AmpDAO
 import org.taktik.icure.datastore.DatastoreInstanceProvider
 import org.taktik.icure.datastore.IDatastoreInformation
 import org.taktik.icure.db.PaginationOffset
+import org.taktik.icure.db.sanitizeForSorting
 import org.taktik.icure.db.sanitizeString
 import org.taktik.icure.entities.samv2.Amp
 import org.taktik.icure.entities.samv2.SamVersion
@@ -303,7 +304,7 @@ class AmpDAOImpl(
                         client.queryView<ComplexKey, AmppRef>(viewQuery)
                             .mapNotNull { it.value?.let { value -> ViewRowNoDoc(it.id, it.key, AmppRef(
                                 value.index,
-                                value.name?.lowercase()?.replace(Regex("[^a-z0-9]"), ""),
+                                value.name?.let { sanitizeForSorting(it) },
                                 value.ctiExtended)
                             ) } }.toList()
                             .sortedWith(compareBy({it.value?.index}, {it.value?.name}))
@@ -329,7 +330,7 @@ class AmpDAOImpl(
 							.endKey(to)
 							.reduce(false)
 							.includeDocs(false)
-						client.queryView<ComplexKey, String>(viewQuery).map { ViewRowNoDoc(it.id, it.key, it.value?.lowercase()?.replace(Regex("[^a-z0-9]"), "")) }.toList().sortedBy { it.value }.map { it.id }
+						client.queryView<ComplexKey, String>(viewQuery).map { ViewRowNoDoc(it.id, it.key, sanitizeForSorting(it.value)) }.toList().sortedBy { it.value }.map { it.id }
 					}
 				}
 			}.await()

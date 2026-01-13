@@ -25,6 +25,7 @@ import org.taktik.icure.asyncdao.samv2.VmpGroupDAO
 import org.taktik.icure.datastore.DatastoreInstanceProvider
 import org.taktik.icure.datastore.IDatastoreInformation
 import org.taktik.icure.db.PaginationOffset
+import org.taktik.icure.db.sanitizeForSorting
 import org.taktik.icure.entities.samv2.VmpGroup
 import org.taktik.icure.utils.makeFromTo
 import kotlin.time.Duration.Companion.minutes
@@ -122,7 +123,7 @@ class VmpGroupDAOImpl(
                                 client
                                     .queryView<ComplexKey, String>(viewQuery)
                                     .toList()
-                                    .sortedBy { it.value }
+                                    .sortedBy { sanitizeForSorting(it.value) }
                                     .map { it.id }
                             }
                         }
