@@ -51,7 +51,7 @@ map = function(doc) {
             terms.sort().forEach(function (t, idx) {
                 if (idx === terms.length - 1 || !(terms[idx + 1].indexOf(t) === 0)) {
                     (doc.ampps ?? []).forEach(function (ampp) {
-                        emit([l, t], [ampp.index ?? 1000, ampp.prescriptionName?.[l] ?? doc.prescriptionName?.[l] ?? doc.officialName, ampp.ctiExtended]);
+                        emit([l, t], [doc?.vmp?.vmpGroup?.name?.[l], ampp.index ?? 1000, ampp.prescriptionName?.[l] ?? doc.prescriptionName?.[l] ?? doc.officialName, ampp.ctiExtended]);
                     })
                 }
             })
