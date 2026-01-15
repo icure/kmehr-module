@@ -315,12 +315,13 @@ class AmpDAOImpl(
                             .includeDocs(false)
                         client.queryView<ComplexKey, AmppRef>(viewQuery)
                             .mapNotNull { it.value?.let { value -> ViewRowNoDoc(it.id, it.key, AmppRef(
+                                value.vmpGroupName,
                                 value.index,
                                 value.name?.let { sanitizeForSorting(it) },
                                 value.ctiExtended)
                             ) } }.toList()
                             .also { if (it.size > 10000) throw TooManyResultsException("Too many results for label '$label', please provide a more precise label") }
-                            .sortedWith(compareBy({it.value?.index}, {it.value?.name}))
+                            .sortedWith(compareBy({it.value?.vmpGroupName}, {it.value?.index}, {it.value?.name}))
                             .mapNotNull { it.value?.ctiExtended?.let { ctiExtended -> it.id to ctiExtended } }
                     }
                 }
@@ -359,18 +360,20 @@ class AmpDAOImpl(
 class AmppRefDeserializer : JsonDeserializer<AmppRef>() {
 	override fun deserialize(p: JsonParser, ctxt: DeserializationContext?): AmppRef {
 		val array = p.codec.readTree<com.fasterxml.jackson.databind.node.ArrayNode>(p)
-		check(array.size() == 3) { "AmppRef array must have exactly 3 elements" }
+		check(array.size() == 4) { "AmppRef array must have exactly 4 elements" }
 
-		val index = array[0].asDouble()
-		val name = if (array[1].isNull) null else array[1].asText()
-		val ctiExtended = if (array[2].isNull) null else array[2].asText()
+        val vmpGroupName = if (array[0].isNull) null else array[0].asText()
+		val index = array[1].asDouble()
+		val name = if (array[2].isNull) null else array[2].asText()
+		val ctiExtended = if (array[3].isNull) null else array[3].asText()
 
-		return AmppRef(index, name, ctiExtended)
+		return AmppRef(vmpGroupName, index, name, ctiExtended)
 	}
 }
 
 @JsonDeserialize(using = AmppRefDeserializer::class)
 data class AmppRef(
+    val vmpGroupName: String? = null,
     val index: Double,
     val name: String?,
     val ctiExtended: String?
