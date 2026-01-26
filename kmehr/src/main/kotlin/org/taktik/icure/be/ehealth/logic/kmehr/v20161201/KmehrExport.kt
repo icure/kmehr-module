@@ -169,18 +169,38 @@ open class KmehrExport (
      * @param cds the cds to add to the HcpartyType.
      * @return The HcpartyType.
      */
-    fun createSpecialistParty(m: HealthcareParty, cds: List<CDHCPARTY>? = listOf()): HcpartyType =
+    suspend fun createSpecialistParty(m: HealthcareParty, cds: List<CDHCPARTY>? = listOf()): HcpartyType =
         HcpartyType().apply {
+            if (!m.nihii.isNullOrBlank()) {
+                m.nihii.let { nihii -> ids.add(IDHCPARTY().apply { s = IDHCPARTYschemes.ID_HCPARTY; sv = "1.0"; value = nihii!!.replace("[^0-9]".toRegex(), "") }) }
+            }
+            if (!m.ssin.isNullOrBlank()) {
+                m.ssin.let { ssin -> ids.add(IDHCPARTY().apply { s = IDHCPARTYschemes.INSS; sv = "1.0"; value = ssin!!.replace("[^0-9]".toRegex(), "") }) }
+            }
             cds?.let { this.cds.addAll(it) }
             this.cds.addAll(
-                if (m.specialityCodes.isNotEmpty()) {
-                    m.specialityCodes.map { CDHCPARTY().apply { s(CDHCPARTYschemes.CD_HCPARTY); value = it.code } }
-                } else if ((m.speciality ?: "") != "") {
-                    listOf(CDHCPARTY().apply { s(CDHCPARTYschemes.CD_HCPARTY); value = m.speciality })
-                } else {
-                    listOf(CDHCPARTY().apply { s(CDHCPARTYschemes.CD_HCPARTY); value = "persphysician" })
-                },
+                when {
+                    m.specialityCodes.isNotEmpty() -> m.specialityCodes.map { CDHCPARTY().apply { s(CDHCPARTYschemes.CD_HCPARTY); value = it.code } }
+                    !m.speciality.isNullOrBlank() -> listOf(CDHCPARTY().apply { s(CDHCPARTYschemes.CD_HCPARTY); value = m.speciality })
+                    !m.lastName.isNullOrBlank() && !m.firstName.isNullOrBlank() -> listOf(CDHCPARTY().apply { s(CDHCPARTYschemes.CD_HCPARTY); value = "persphysician" })
+                    else -> listOf(CDHCPARTY().apply { s(CDHCPARTYschemes.CD_HCPARTY); value = "orghospital" })
+                }
             )
+
+            if (this.cds.filter { it.s == CDHCPARTYschemes.CD_HCPARTY && !it.value.isNullOrEmpty() }.any { it.value.startsWith("pers") }) {
+                firstname = m.firstName
+                familyname = m.lastName
+            } else {
+                name = m.name?.trim().let {
+                    when (it) {
+                        null, "" -> listOfNotNull(m.firstName, m.lastName).joinToString(" ").trim()
+                        else -> it
+                    }
+                }
+            }
+
+            addresses.addAll(makeAddresses(m.addresses))
+            telecoms.addAll(makeTelecoms(m.addresses))
         }
 
     /**
