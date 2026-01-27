@@ -20,6 +20,7 @@ data class Reimbursement(
 	val temporary: Boolean? = null,
 	val reference: Boolean? = null,
 	val legalReferencePath: String? = null,
+    val chapterParagraph: ChapterParagraph? = null,
 	val flatRateSystem: Boolean? = null,
 	val reimbursementBasePrice: BigDecimal? = null,
 	val referenceBasePrice: BigDecimal? = null,
@@ -32,7 +33,7 @@ data class Reimbursement(
 	override fun compareTo(other: Reimbursement): Int {
 		return if (this == other) {
 			0
-		} else compareValuesBy(this, other, { it.from }, { it.codeType }, { it.code }, { it.deliveryEnvironment }, { it.flatRateSystem }, { it.reference }, { it.legalReferencePath }, { it.multiple }, { it.temporary }, { it.to })
+		} else compareValuesBy(this, other, { it.from }, { it.codeType }, { it.code }, { it.deliveryEnvironment }, { it.flatRateSystem }, { it.reference }, { it.legalReferencePath }, { it.chapterParagraph }, { it.multiple }, { it.temporary }, { it.to })
 	}
 
 	override fun equals(other: Any?): Boolean {

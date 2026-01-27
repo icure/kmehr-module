@@ -34,6 +34,7 @@ data class ReimbursementDto(
 	val temporary: Boolean? = null,
 	val reference: Boolean? = null,
 	val legalReferencePath: String? = null,
+    val chapterParagraph: ChapterParagraphDto? = null,
 	val flatRateSystem: Boolean? = null,
 	val reimbursementBasePrice: BigDecimal? = null,
 	val referenceBasePrice: BigDecimal? = null,
