@@ -50,6 +50,7 @@ data class Reimbursement(
 		if (temporary != other.temporary) return false
 		if (reference != other.reference) return false
 		if (legalReferencePath != other.legalReferencePath) return false
+        if (chapterParagraph != other.chapterParagraph) return false
 		if (flatRateSystem != other.flatRateSystem) return false
 		if (reimbursementBasePrice != null && other.reimbursementBasePrice == null || reimbursementBasePrice == null && other.reimbursementBasePrice != null || (reimbursementBasePrice?.compareTo(other.reimbursementBasePrice) != 0 && reimbursementBasePrice != other.reimbursementBasePrice)) return false
 		if (referenceBasePrice != null && other.referenceBasePrice == null || referenceBasePrice == null && other.referenceBasePrice != null || (referenceBasePrice?.compareTo(other.referenceBasePrice) != 0 && referenceBasePrice != other.referenceBasePrice)) return false
@@ -72,6 +73,7 @@ data class Reimbursement(
 		result = 31 * result + (temporary?.hashCode() ?: 0)
 		result = 31 * result + (reference?.hashCode() ?: 0)
 		result = 31 * result + (legalReferencePath?.hashCode() ?: 0)
+        result = 31 * result + (chapterParagraph?.hashCode() ?: 0)
 		result = 31 * result + (flatRateSystem?.hashCode() ?: 0)
 		result = 31 * result + (reimbursementBasePrice?.toInt() ?: 0)
 		result = 31 * result + (referenceBasePrice?.toInt() ?: 0)
