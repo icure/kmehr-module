@@ -13,9 +13,9 @@ import org.taktik.icure.services.external.rest.v1.dto.samv2.embed.ReimbursementD
 
 @Mapper(componentModel = "spring", uses = [CopaymentMapper::class, PricingMapper::class, ReimbursementCriterionMapper::class], injectionStrategy = InjectionStrategy.CONSTRUCTOR)
 interface ReimbursementMapper {
-	fun map(reimbursementDto: ReimbursementDto): Reimbursement
     @Mappings(
         Mapping(target = "chapterParagraph", ignore = true),
     )
-	fun map(reimbursement: Reimbursement): ReimbursementDto
+    fun map(reimbursementDto: ReimbursementDto): Reimbursement
+    fun map(reimbursement: Reimbursement): ReimbursementDto
 }
