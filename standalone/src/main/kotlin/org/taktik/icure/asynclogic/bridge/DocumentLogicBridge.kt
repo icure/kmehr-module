@@ -33,10 +33,14 @@ class DocumentLogicBridge(
 		throw BridgeException()
 	}
 
-	override suspend fun createDocument(document: Document, strict: Boolean): Document? =
+	override suspend fun createDocument(document: Document, strict: Boolean): Document =
 		rawDocumentApi.createDocument(documentMapper.map(document))
 			.successBody()
 			.let(documentMapper::map)
+
+	override fun createDocuments(documents: List<Document>): Flow<Document> {
+		throw BridgeException()
+	}
 
 	override fun createOrModifyDocuments(documents: List<BatchUpdateDocumentInfo>, strict: Boolean): Flow<Document> {
 		throw BridgeException()
@@ -103,7 +107,7 @@ class DocumentLogicBridge(
 		throw BridgeException()
 	}
 
-	override suspend fun modifyDocument(updatedDocument: Document, strict: Boolean): Document? {
+	override suspend fun modifyDocument(updatedDocument: Document, strict: Boolean): Document {
 		throw BridgeException()
 	}
 

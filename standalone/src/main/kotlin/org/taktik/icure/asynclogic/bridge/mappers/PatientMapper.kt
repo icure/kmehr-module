@@ -2,6 +2,7 @@ package org.taktik.icure.asynclogic.bridge.mappers
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.icure.cardinal.sdk.model.EncryptedPatient
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.stereotype.Service
 import org.taktik.icure.entities.Patient
 import org.taktik.icure.services.external.rest.v2.dto.PatientDto
@@ -9,7 +10,7 @@ import org.taktik.icure.services.external.rest.v2.mapper.PatientV2Mapper
 
 @Service
 class PatientMapper(
-	objectMapper: ObjectMapper,
+	@Qualifier("legacyObjectMapper") objectMapper: ObjectMapper,
 	patientMapper: PatientV2Mapper
 ) : AbstractEntityMapper<Patient, EncryptedPatient, PatientDto>(
 	objectMapper,

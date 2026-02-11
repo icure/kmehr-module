@@ -60,7 +60,7 @@ private fun StringSpec.formTemplateLogicBridgeTest(
 			val type = uuid().substring(0, 6)
 			val code = uuid().substring(0, 6)
 			val version = uuid().substring(0, 6)
-			val template = formTemplateBridge.createFormTemplate(
+			val template = formTemplateBridge.createEntity(
 				FormTemplate(
 					id = uuid(),
 					guid = uuid(),
@@ -81,7 +81,7 @@ private fun StringSpec.formTemplateLogicBridgeTest(
 
 	"Cannot retrieve a Form Template as another user" {
 		withAuthenticatedReactorContext(credentials) {
-			val template = formTemplateBridge.createFormTemplate(
+			val template = formTemplateBridge.createEntity(
 				FormTemplate(
 					id = uuid(),
 					guid = uuid()

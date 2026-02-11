@@ -1,6 +1,7 @@
 package org.taktik.icure.asynclogic.bridge.mappers
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.springframework.beans.factory.annotation.Qualifier
 import org.taktik.icure.domain.filter.AbstractFilter
 import org.taktik.icure.domain.filter.impl.service.ServiceByAssociationIdFilter
 import org.taktik.icure.domain.filter.impl.service.ServiceByHcPartyTagCodeDateFilter
@@ -25,7 +26,7 @@ import com.icure.cardinal.sdk.model.filter.AbstractFilter as SdkAbstractFilter
 
 @SpringService
 class ServiceFilterMapper(
-	objectMapper: ObjectMapper
+	@Qualifier("legacyObjectMapper") objectMapper: ObjectMapper
 ): AbstractFilterMapper<Service, SdkService>(objectMapper) {
 
 	fun mapOrNull(filter: AbstractFilter<*>): SdkAbstractFilter<SdkService>? = when(filter) {

@@ -2,6 +2,9 @@ package org.taktik.icure.config
 
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.ser.FilterProvider
+import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter
+import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider
 import com.fasterxml.jackson.module.kotlin.KotlinFeature
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.icure.cardinal.sdk.utils.Serialization
@@ -21,7 +24,25 @@ import org.taktik.icure.spring.encoder.PaginatedCollectingJackson2JsonEncoder
 
 @Configuration
 @EnableWebFlux
-class WebConfig : WebFluxConfigurer {
+class WebConfig: WebFluxConfigurer {
+
+	private val legacyJacksonFilter: FilterProvider = SimpleFilterProvider().addFilter(
+		"healthElementFilter",
+		SimpleBeanPropertyFilter.serializeAll()
+	)
+
+	private val legacyObjectMapper: ObjectMapper =
+		ObjectMapper().registerModule(
+			KotlinModule.Builder()
+				.configure(KotlinFeature.NullIsSameAsDefault, true)
+				.build()
+		).apply {
+			setSerializationInclusion(JsonInclude.Include.NON_NULL)
+			setFilterProvider(legacyJacksonFilter)
+		}
+
+	@Bean
+	fun legacyObjectMapper(): ObjectMapper = legacyObjectMapper
 
 	override fun configureHttpMessageCodecs(configurer: ServerCodecConfigurer) {
 		configurer.defaultCodecs().maxInMemorySize(128 * 1024 * 1024)
@@ -29,13 +50,7 @@ class WebConfig : WebFluxConfigurer {
 		configurer.customCodecs().register(FluxStringJsonEncoder())
 
 		configurer.defaultCodecs().jackson2JsonEncoder(
-			PaginatedCollectingJackson2JsonEncoder(
-				ObjectMapper().registerModule(
-					KotlinModule.Builder()
-						.configure(KotlinFeature.NullIsSameAsDefault, true)
-						.build()
-				).apply { setSerializationInclusion(JsonInclude.Include.NON_NULL) }
-			)
+			PaginatedCollectingJackson2JsonEncoder(legacyObjectMapper)
 		)
 		configurer.defaultCodecs().jackson2JsonDecoder(
 			Jackson2JsonDecoder(

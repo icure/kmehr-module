@@ -28,16 +28,16 @@ class CodeLogicBridge(
 	private val codeMapper: CodeMapper,
 ) : GenericLogicBridge<Code>(), CodeLogic {
 
-	override suspend fun create(batch: List<Code>): List<Code>? {
+	override suspend fun modify(code: Code): Code {
 		throw BridgeException()
 	}
 
-	override suspend fun modify(code: Code): Code? {
-		throw BridgeException()
-	}
-
-	override suspend fun create(code: Code): Code? =
+	override suspend fun create(code: Code): Code =
 		sdk.code.createCode(codeMapper.map(code)).let(codeMapper::map)
+
+	override fun create(codes: List<Code>): Flow<Code> {
+		throw BridgeException()
+	}
 
 	override fun findCodesBy(type: String?, code: String?, version: String?): Flow<Code> = flow {
 		val filter = CodeIdsByTypeCodeVersionIntervalFilter(

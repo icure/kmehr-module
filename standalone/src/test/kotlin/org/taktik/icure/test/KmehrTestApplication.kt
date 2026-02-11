@@ -18,6 +18,7 @@ import com.icure.cardinal.sdk.utils.Serialization
 import io.ktor.client.plugins.expectSuccess
 import io.ktor.client.request.*
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
@@ -124,6 +125,7 @@ class KmehrTestApplication {
 			)
 
 			val jwtAuthPublicKeyAsString = testHttpClient.get("$baseICurePath/rest/v2/auth/publicKey/authJwt") {
+				accept(ContentType.Text.Plain)
 				expectSuccess = true
 			}.bodyAsText()
 			jwtAuthPublicKey = JwtKeyUtils.decodePublicKeyFromString(jwtAuthPublicKeyAsString)
