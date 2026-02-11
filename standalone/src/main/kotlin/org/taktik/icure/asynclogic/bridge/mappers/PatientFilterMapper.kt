@@ -1,6 +1,7 @@
 package org.taktik.icure.asynclogic.bridge.mappers
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.springframework.beans.factory.annotation.Qualifier
 import com.icure.cardinal.sdk.model.Patient as SdkPatient
 import org.springframework.stereotype.Service
 import org.taktik.icure.domain.filter.AbstractFilter
@@ -37,7 +38,7 @@ import com.icure.cardinal.sdk.model.filter.AbstractFilter as SdkAbstractFilter
 
 @Service
 class PatientFilterMapper(
-	objectMapper: ObjectMapper
+	@Qualifier("legacyObjectMapper") objectMapper: ObjectMapper
 ) : AbstractFilterMapper<Patient, SdkPatient>(objectMapper) {
 
 	fun mapOrNull(filter: AbstractFilter<*>): SdkAbstractFilter<SdkPatient>? = when(filter) {

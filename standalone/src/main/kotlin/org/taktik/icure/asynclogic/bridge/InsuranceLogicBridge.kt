@@ -1,7 +1,6 @@
 package org.taktik.icure.asynclogic.bridge
 
 import com.icure.cardinal.sdk.CardinalBaseApis
-import com.icure.utils.InternalIcureApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flow
@@ -19,7 +18,7 @@ class InsuranceLogicBridge(
 	private val insuranceMapper: InsuranceMapper
 ) : GenericLogicBridge<Insurance>(), InsuranceLogic {
 
-	override suspend fun createInsurance(insurance: Insurance): Insurance? {
+	override suspend fun createInsurance(insurance: Insurance): Insurance {
 		throw BridgeException()
 	}
 
@@ -48,7 +47,7 @@ class InsuranceLogicBridge(
 		throw BridgeException()
 	}
 
-	override suspend fun modifyInsurance(insurance: Insurance): Insurance? {
+	override suspend fun modifyInsurance(insurance: Insurance): Insurance {
 		throw BridgeException()
 	}
 }

@@ -29,9 +29,13 @@ class HealthcarePartyLogicBridge(
 	private val healthcarePartyMapper: HealthcarePartyMapper
 ) : GenericLogicBridge<HealthcareParty>(), HealthcarePartyLogic {
 
-	override suspend fun createHealthcareParty(healthcareParty: HealthcareParty): HealthcareParty? =
+	override suspend fun createHealthcareParty(healthcareParty: HealthcareParty): HealthcareParty =
 		sdk.healthcareParty.createHealthcareParty(healthcarePartyMapper.map(healthcareParty))
 			.let { healthcarePartyMapper.map(it) }
+
+	override fun createHealthcareParties(healthcareParties: List<HealthcareParty>): Flow<HealthcareParty> {
+		throw BridgeException()
+	}
 
 	override fun filterHealthcareParties(
 		paginationOffset: PaginationOffset<Nothing>,
@@ -183,8 +187,12 @@ class HealthcarePartyLogicBridge(
 	override fun listHealthcarePartiesByNihii(nihii: String): Flow<HealthcareParty> =
 		listHealthcarePartiesBySsinOrNihii(nihii) { it.nihii == nihii }
 
-	override suspend fun modifyHealthcareParty(healthcareParty: HealthcareParty): HealthcareParty? {
+	override suspend fun modifyHealthcareParty(healthcareParty: HealthcareParty): HealthcareParty {
 		throw BridgeException()
+	}
+
+	override fun modifyHealthcareParties(healthcareParties: List<HealthcareParty>): Flow<HealthcareParty> {
+		TODO("Not yet implemented")
 	}
 
 }

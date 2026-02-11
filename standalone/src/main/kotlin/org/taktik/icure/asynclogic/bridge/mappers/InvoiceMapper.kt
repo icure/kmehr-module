@@ -2,6 +2,7 @@ package org.taktik.icure.asynclogic.bridge.mappers
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.icure.cardinal.sdk.model.EncryptedInvoice
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.stereotype.Service
 import org.taktik.icure.entities.Invoice
 import org.taktik.icure.services.external.rest.v2.dto.InvoiceDto
@@ -9,7 +10,7 @@ import org.taktik.icure.services.external.rest.v2.mapper.InvoiceV2Mapper
 
 @Service
 class InvoiceMapper(
-	objectMapper: ObjectMapper,
+	@Qualifier("legacyObjectMapper") objectMapper: ObjectMapper,
 	invoiceMapper: InvoiceV2Mapper
 ) : AbstractEntityMapper<Invoice, EncryptedInvoice, InvoiceDto>(
 	objectMapper,

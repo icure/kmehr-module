@@ -115,7 +115,7 @@ class HealthElementLogicBridge(
 
 	}
 
-	override suspend fun modifyHealthElement(healthElement: HealthElement): HealthElement? {
+	override suspend fun modifyHealthElement(healthElement: HealthElement): HealthElement {
 		throw BridgeException()
 	}
 }

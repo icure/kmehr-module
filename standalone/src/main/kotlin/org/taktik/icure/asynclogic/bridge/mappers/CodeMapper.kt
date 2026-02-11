@@ -1,6 +1,7 @@
 package org.taktik.icure.asynclogic.bridge.mappers
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.springframework.beans.factory.annotation.Qualifier
 import com.icure.cardinal.sdk.model.Code as SdkCode
 import org.springframework.stereotype.Service
 import org.taktik.icure.entities.base.Code
@@ -9,7 +10,7 @@ import org.taktik.icure.services.external.rest.v2.mapper.base.CodeV2Mapper
 
 @Service
 class CodeMapper(
-	objectMapper: ObjectMapper,
+	@Qualifier("legacyObjectMapper") objectMapper: ObjectMapper,
 	codeMapper: CodeV2Mapper
 ) : AbstractEntityMapper<Code, SdkCode, CodeDto>(
 	objectMapper,
