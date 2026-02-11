@@ -2,8 +2,10 @@ package org.taktik.icure.config
 
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.expectSuccess
+import io.ktor.client.request.accept
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
 import kotlinx.coroutines.runBlocking
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -34,6 +36,7 @@ class SecurityConfig {
 		val jwtAuthPublicKeyAsString = runBlocking {
 			httpClient.get("${bridgeConfig.iCureUrl}/rest/v2/auth/publicKey/authJwt") {
 				expectSuccess = true
+				accept(ContentType.Text.Plain)
 			}.bodyAsText()
 		}
 		val jwtAuthPublicKey = JwtKeyUtils.decodePublicKeyFromString(jwtAuthPublicKeyAsString)
