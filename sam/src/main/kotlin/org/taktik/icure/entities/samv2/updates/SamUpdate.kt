@@ -10,9 +10,9 @@ import org.taktik.icure.entities.embed.RevisionInfo
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class SamUpdate(
-	@JsonProperty("_id") override val id: String,
-	@JsonProperty("_rev") override val rev: String? = null,
-	@JsonProperty("deleted") override val deletionDate: Long? = null,
+	@param:JsonProperty("_id") override val id: String,
+	@param:JsonProperty("_rev") override val rev: String? = null,
+	@param:JsonProperty("deleted") override val deletionDate: Long? = null,
 
 	val samVersion: SamVersion,
 	val version: String,
@@ -21,10 +21,10 @@ data class SamUpdate(
 	val updates: Map<BundleType, String> = emptyMap(),
 	val deletions: Map<BundleType, String> = emptyMap(),
 
-	@JsonProperty("_attachments") override val attachments: Map<String, Attachment>? = emptyMap(),
-	@JsonProperty("_revs_info") override val revisionsInfo: List<RevisionInfo>? = emptyList(),
-	@JsonProperty("_conflicts") override val conflicts: List<String>? = emptyList(),
-	@JsonProperty("rev_history") override val revHistory: Map<String, String>? = emptyMap()
+	@param:JsonProperty("_attachments") override val attachments: Map<String, Attachment>? = emptyMap(),
+	@param:JsonProperty("_revs_info") override val revisionsInfo: List<RevisionInfo>? = emptyList(),
+	@param:JsonProperty("_conflicts") override val conflicts: List<String>? = emptyList(),
+	@param:JsonProperty("rev_history") override val revHistory: Map<String, String>? = emptyMap()
 ) : StoredDocument {
 
 	enum class BundleType { Amps, NonMedicinals, Paragraphs, PharmaceuticalForms, Signatures, Substances, Verses, Vmps, VmpGroups }
