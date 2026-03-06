@@ -32,6 +32,29 @@ class UserLogicBridge(
 		throw BridgeException()
 	}
 
+	override suspend fun changeUserEmail(
+		userId: String,
+		newEmail: String,
+		previousEmail: String
+	): User {
+		throw BridgeException()
+	}
+
+	override suspend fun changeUserMobilePhone(
+		userId: String,
+		newMobilePhone: String,
+		previousMobilePhone: String
+	): User {
+		throw BridgeException()
+	}
+
+	override suspend fun changeUserPassword(
+		userId: String,
+		newPassword: String
+	): User {
+		throw BridgeException()
+	}
+
 	override suspend fun createUser(user: User): User {
 		throw UnsupportedOperationException("The Kmehr module cannot create users")
 	}
