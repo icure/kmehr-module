@@ -36,7 +36,7 @@ class DocumentLogicBridge(
 	override suspend fun createDocument(document: Document, strict: Boolean): Document =
 		rawDocumentApi.createDocument(documentMapper.map(document))
 			.successBody()
-			.let(documentMapper::map)
+			.let { documentMapper.map(it) }
 
 	override fun createDocuments(documents: List<Document>): Flow<Document> {
 		throw BridgeException()
@@ -51,7 +51,7 @@ class DocumentLogicBridge(
 	}
 
 	override suspend fun getDocument(documentId: String): Document? =
-		sdk.document.getDocument(documentId)?.let(documentMapper::map)
+		sdk.document.getDocument(documentId)?.let { documentMapper.map(it) }
 
 	override fun getDocuments(documentIds: Collection<String>): Flow<Document> {
 		throw BridgeException()
@@ -121,14 +121,14 @@ class DocumentLogicBridge(
 		when(mainAttachmentChange) {
 			is DataAttachmentChange.CreateOrUpdate -> api.setRawMainAttachment(
 				documentId = documentId,
-				rev = checkNotNull(documentRev) { "Rev cannot be null" },
+				rev = documentRev,
 				utis = mainAttachmentChange.utis,
 				attachment = mainAttachmentChange.data.toByteArray(true),
 				encrypted = false
 			)
 			is DataAttachmentChange.Delete -> api.deleteMainAttachment(
 				entityId = documentId,
-				rev = checkNotNull(documentRev) { "Rev cannot be null" }
+				rev = documentRev
 			)
 			else -> api.getDocument(documentId) ?: throw NotFoundRequestException("Document $documentId not found")
 		}.let { initialDocument ->
@@ -137,7 +137,7 @@ class DocumentLogicBridge(
 					is DataAttachmentChange.CreateOrUpdate -> api.setRawSecondaryAttachment(
 						documentId = doc.id,
 						key = key,
-						rev = checkNotNull(documentRev) { "Rev cannot be null" },
+						rev = documentRev,
 						utis = update.utis,
 						attachment = update.data.toByteArray(true),
 						encrypted = false
@@ -145,10 +145,10 @@ class DocumentLogicBridge(
 					is DataAttachmentChange.Delete -> api.deleteSecondaryAttachment(
 						documentId = doc.id,
 						key = key,
-						rev = checkNotNull(documentRev) { "Rev cannot be null" }
+						rev = documentRev
 					)
 				}
 			}
-		}.let(documentMapper::map)
+		}.let { documentMapper.map(it) }
 	}
 }

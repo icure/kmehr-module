@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.emptyFlow
 import com.icure.cardinal.sdk.model.HealthcareParty as SdkHealthcareParty
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.JsonElement
 import org.springframework.stereotype.Service
 import org.taktik.couchdb.ViewQueryResultEvent
@@ -100,8 +101,8 @@ class HealthcarePartyLogicBridge(
 			emitAll(
 				sdk.healthcareParty
 					.getHealthcareParties(ids )
-					.map(healthcarePartyMapper::map)
 					.asFlow()
+					.map(healthcarePartyMapper::map)
 			)
 		} else emptyFlow()
 
@@ -145,7 +146,7 @@ class HealthcarePartyLogicBridge(
 			limit = 1000,
 			desc = desc
 		)
-		emitAll(result.rows.map(healthcarePartyMapper::map).asFlow())
+		emitAll(result.rows.asFlow().map(healthcarePartyMapper::map))
 		if(result.nextKeyPair?.startKeyDocId != null) {
 			emitAll(
 				findHealthcarePartiesByNameRecursive(
@@ -172,8 +173,8 @@ class HealthcarePartyLogicBridge(
 			emitAll(sdk.healthcareParty
 				.getHealthcareParties(batch)
 				.filter(filter)
-				.map(healthcarePartyMapper::map)
 				.asFlow()
+				.map(healthcarePartyMapper::map)
 			)
 		}
 	}
@@ -192,7 +193,7 @@ class HealthcarePartyLogicBridge(
 	}
 
 	override fun modifyHealthcareParties(healthcareParties: List<HealthcareParty>): Flow<HealthcareParty> {
-		TODO("Not yet implemented")
+		throw BridgeException()
 	}
 
 }

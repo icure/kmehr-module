@@ -33,7 +33,9 @@ class CodeLogicBridge(
 	}
 
 	override suspend fun create(code: Code): Code =
-		sdk.code.createCode(codeMapper.map(code)).let(codeMapper::map)
+		sdk.code.createCode(codeMapper.map(code)).let {
+			codeMapper.map(it)
+		}
 
 	override fun create(codes: List<Code>): Flow<Code> {
 		throw BridgeException()
@@ -51,7 +53,7 @@ class CodeLogicBridge(
 		val codeIds = rawCodeApi.matchCodesBy(filter).successBody()
 		emitAll(
 			sdk.code.getCodes(codeIds)
-				.map(codeMapper::map)
+				.map { codeMapper.map(it) }
 				.asFlow()
 		)
 	}
@@ -134,7 +136,7 @@ class CodeLogicBridge(
 			throw IllegalArgumentException("Region cannot be null")
 		}
 		return sdk.code.getCodeByRegionLanguageTypeLabel(region, label, type, languages.joinToString(","))
-			?.let(codeMapper::map)
+			?.let { codeMapper.map(it) }
 	}
 
 	override fun listCodeIdsByTypeCodeVersionInterval(

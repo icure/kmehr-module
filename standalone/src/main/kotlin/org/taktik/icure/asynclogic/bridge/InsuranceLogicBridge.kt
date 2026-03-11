@@ -27,7 +27,7 @@ class InsuranceLogicBridge(
 	}
 
 	override suspend fun getInsurance(insuranceId: String): Insurance? =
-		sdk.insurance.getInsurance(insuranceId)?.let(insuranceMapper::map)
+		sdk.insurance.getInsurance(insuranceId)?.let { insuranceMapper.map(it) }
 
 
 	override fun getInsurances(ids: Set<String>): Flow<Insurance> {
@@ -38,7 +38,7 @@ class InsuranceLogicBridge(
 		if(code.isNotBlank())
 			flow {
 				sdk.insurance.listInsurancesByCode(code)
-					.map(insuranceMapper::map)
+					.map { insuranceMapper.map(it) }
 					.forEach { emit(it) }
 			}
 		else emptyFlow()

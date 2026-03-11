@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import org.springframework.stereotype.Service
 import org.taktik.couchdb.entity.ComplexKey
 import org.taktik.icure.asynclogic.InvoiceLogic
@@ -74,8 +75,8 @@ class InvoiceLogicBridge(
 	override fun getInvoices(ids: List<String>): Flow<Invoice> = flow {
 		emitAll(sdk.invoice
 			.getInvoices(ids)
-			.map(invoiceMapper::map)
 			.asFlow()
+			.map(invoiceMapper::map)
 		)
 	}
 

@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Service
 import org.taktik.icure.asynclogic.FormTemplateLogic
@@ -25,7 +26,7 @@ class FormTemplateLogicBridge(
 ) : GenericLogicBridge<FormTemplate>(), FormTemplateLogic {
 
 	override suspend fun createEntity(entity: FormTemplate): FormTemplate =
-		sdk.form.createFormTemplate(formTemplateMapper.map(entity)).let(formTemplateMapper::map)
+		sdk.form.createFormTemplate(formTemplateMapper.map(entity)).let { formTemplateMapper.map(it) }
 
 	override fun createFormTemplates(
 		entities: Collection<FormTemplate>,
@@ -45,11 +46,12 @@ class FormTemplateLogicBridge(
 
 		emitAll(
 			legacyFormTemplateApi.getFormTemplatesByGuid(formTemplateGuid, specialityCode)
-				.map(formTemplateMapper::map)
 				.asFlow()
+				.map(formTemplateMapper::map)
 		)
 	}
 
+	@Deprecated("Use matchEntitiesBy with a FormTemplateBySpecialtyFilter instead")
 	override fun getFormTemplatesBySpecialty(specialityCode: String, loadLayout: Boolean): Flow<FormTemplate> {
 		throw BridgeException()
 	}
