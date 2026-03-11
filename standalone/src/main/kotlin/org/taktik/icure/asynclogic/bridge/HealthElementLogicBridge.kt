@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import org.springframework.stereotype.Service
 import org.taktik.couchdb.ViewQueryResultEvent
 import org.taktik.icure.asynclogic.HealthElementLogic
@@ -30,10 +31,10 @@ class HealthElementLogicBridge(
 
 	override fun createEntities(entities: Collection<HealthElement>): Flow<HealthElement> = flow {
 		emitAll(rawHealthElementApi
-			.createHealthElements(entities.map(healthElementMapper::map))
+			.createHealthElements(entities.map { healthElementMapper.map(it) })
 			.successBody()
-			.map(healthElementMapper::map)
 			.asFlow()
+			.map(healthElementMapper::map)
 		)
 	}
 
@@ -77,8 +78,8 @@ class HealthElementLogicBridge(
 		if (healthElementIds.isNotEmpty()) {
 			emitAll(sdk.healthElement
 				.getHealthElements(healthElementIds)
-				.map(healthElementMapper::map)
 				.asFlow()
+				.map(healthElementMapper::map)
 			)
 		}
 	}
@@ -108,7 +109,7 @@ class HealthElementLogicBridge(
 				it.healthElementId
 			}.values.mapNotNull { value ->
 				value.maxByOrNull { it.modified ?: it.created ?: 0L }
-			}.map(healthElementMapper::map)
+			}.map { healthElementMapper.map(it) }
 		} else {
 			emptyList()
 		}

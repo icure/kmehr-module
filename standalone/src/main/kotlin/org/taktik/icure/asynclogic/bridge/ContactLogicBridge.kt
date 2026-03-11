@@ -44,7 +44,7 @@ class ContactLogicBridge(
 	override suspend fun createContact(contact: Contact): Contact =
 		rawContactApi.createContact(contactMapper.map(contact))
 			.successBody()
-			.let(contactMapper::map)
+			.let { contactMapper.map(it) }
 
 	override suspend fun modifyContact(contact: Contact): Contact {
 		throw BridgeException()
@@ -98,7 +98,7 @@ class ContactLogicBridge(
 	}
 
 	override suspend fun getContact(id: String): Contact? =
-		sdk.contact.getContact(id)?.let(contactMapper::map)
+		sdk.contact.getContact(id)?.let { contactMapper.map(it) }
 
 	override fun getContacts(selectedIds: Collection<String>): Flow<Contact> {
 		throw BridgeException()
@@ -115,7 +115,7 @@ class ContactLogicBridge(
 	override fun getServices(selectedServiceIds: Collection<String>): Flow<Service> = flow {
 		emitAll(sdk.contact
 			.getServices(selectedServiceIds.toList())
-			.map(serviceMapper::map)
+			.map { serviceMapper.map(it) }
 			.asFlow()
 		)
 	}
@@ -151,7 +151,7 @@ class ContactLogicBridge(
 		if (contactIds.isNotEmpty()) {
 			emitAll(sdk.contact
 				.getContacts(contactIds)
-				.map(contactMapper::map)
+				.map { contactMapper.map(it) }
 				.asFlow()
 			)
 		}
@@ -184,7 +184,7 @@ class ContactLogicBridge(
 		emitAll(
 			rawContactApi.modifyContacts(
 				entities.map(contactMapper::map).toList()
-			).successBody().map(contactMapper::map).asFlow()
+			).successBody().asFlow().map(contactMapper::map)
 		)
 	}
 

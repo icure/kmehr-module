@@ -20,14 +20,14 @@ class EntityReferenceLogicBridge(
 ) : GenericLogicBridge<EntityReference>(), EntityReferenceLogic {
 
 	override suspend fun getLatest(prefix: String): EntityReference? =
-		rawEntityReferenceApi.getLatest(prefix).successBodyOrNull404()?.let(entityReferenceMapper::map)
+		rawEntityReferenceApi.getLatest(prefix).successBodyOrNull404()?.let { entityReferenceMapper.map(it) }
 
 	override fun createEntities(entities: Collection<EntityReference>): Flow<EntityReference> = flow {
 		emitAll(
 			rawEntityReferenceApi.let { api ->
 				entities
 					.map { api.createEntityReference(entityReferenceMapper.map(it)).successBody() }
-					.map(entityReferenceMapper::map)
+					.map { entityReferenceMapper.map(it) }
 					.asFlow()
 			}
 		)

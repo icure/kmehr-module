@@ -20,9 +20,9 @@ class FormLogicBridge(
 ) : GenericLogicBridge<Form>(), FormLogic {
 
 	override suspend fun createForm(form: Form): Form =
-		rawFormApi.createForm(form.let(formMapper::map))
+		rawFormApi.createForm(form.let { formMapper.map(it) })
 			.successBody()
-			.let(formMapper::map)
+			.let { formMapper.map(it) }
 
 	override suspend fun addDelegation(formId: String, delegation: Delegation): Form? {
 		throw BridgeException()

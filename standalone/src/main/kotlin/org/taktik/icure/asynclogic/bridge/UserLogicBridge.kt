@@ -86,7 +86,7 @@ class UserLogicBridge(
 	}
 
 	override suspend fun getUser(id: String, includeMetadataFromGlobalUser: Boolean): User? =
-		sdk.user.getUser(id)?.let(userMapper::map)
+		sdk.user.getUser(id)?.let { userMapper.map(it) }
 
 	override suspend fun getUserByEmail(email: String): User? {
 		throw BridgeException()

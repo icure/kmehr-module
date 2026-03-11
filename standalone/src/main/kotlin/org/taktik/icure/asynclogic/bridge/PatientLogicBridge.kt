@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import org.springframework.stereotype.Service
 import org.taktik.couchdb.ViewQueryResultEvent
 import org.taktik.couchdb.entity.ComplexKey
@@ -48,13 +49,13 @@ class PatientLogicBridge(
 		rawPatientApi
 			.createPatient(patientMapper.map(patient))
 			.successBody()
-			.let(patientMapper::map)
+			.let { patientMapper.map(it) }
 
 	override fun createPatients(patients: List<Patient>): Flow<Patient> =
 		flow {
 			emitAll(
 				rawPatientApi
-					.createPatientsFull(patients.map(patientMapper::map))
+					.createPatientsFull(patients.map { patientMapper.map(it) })
 					.successBody()
 					.let { result ->
 						getPatients(result.map { it.id })
@@ -124,15 +125,17 @@ class PatientLogicBridge(
 	@Deprecated("A DataOwner may now have multiple AES Keys. Use getAesExchangeKeysForDelegate instead")
 	override suspend fun getHcPartyKeysForDelegate(healthcarePartyId: String): Map<String, String> = throw BridgeException()
 
-	override suspend fun getPatient(patientId: String): Patient? = sdk.patient.getPatient(patientId)?.let(patientMapper::map)
+	override suspend fun getPatient(patientId: String): Patient? = sdk.patient.getPatient(patientId)?.let {
+		patientMapper.map(it)
+	}
 
 	override fun getPatients(patientIds: Collection<String>): Flow<Patient> =
 		flow {
 			emitAll(
 				sdk.patient
 					.getPatients(patientIds.toList())
+					.asFlow()
 					.map(patientMapper::map)
-					.asFlow(),
 			)
 		}
 
