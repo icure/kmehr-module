@@ -7,17 +7,20 @@ import org.taktik.couchdb.id.Identifiable
 import org.taktik.icure.domain.filter.AbstractFilter
 import org.taktik.icure.domain.filter.chain.FilterChain
 import org.taktik.icure.entities.base.Code
+import org.taktik.icure.entities.base.StoredDocument
+import org.taktik.icure.entities.conflicts.ConflictResolutionResult
+import org.taktik.icure.entities.conflicts.MergeResult
 import org.taktik.icure.entities.utils.ExternalFilterKey
 import org.taktik.icure.exceptions.BridgeException
 
 @Suppress("UNUSED_PARAMETER", "RedundantSuspendModifier", "unused")
-open class GenericLogicBridge<E : Identifiable<String>> {
+open class GenericLogicBridge<E : StoredDocument> {
 
 	open fun matchEntitiesBy(filter: AbstractFilter<*>): Flow<String> {
 		throw BridgeException()
 	}
 
-	fun solveConflicts(limit: Int?, ids: List<String>?): Flow<IdAndRev> {
+	fun solveConflicts(limit: Int?, ids: List<String>?): Flow<MergeResult> {
 		throw BridgeException()
 	}
 
@@ -115,6 +118,32 @@ open class GenericLogicBridge<E : Identifiable<String>> {
 	}
 
 	suspend fun purgeEntity(id: String, rev: String): DocIdentifier {
+		throw BridgeException()
+	}
+
+	suspend fun getEntity(id: String, rev: String?): E? {
+		throw BridgeException()
+	}
+
+	fun getConflictingEntitiesIds(): Flow<String> {
+		throw BridgeException()
+	}
+
+	fun getConflictsFor(entityId: String): Flow<E> {
+		throw BridgeException()
+	}
+
+	suspend fun declareConflictWinner(
+		entity: E,
+		conflictsToPurge: List<E>
+	): ConflictResolutionResult<E> {
+		throw BridgeException()
+	}
+
+	suspend fun getBypassingCache(
+		id: String,
+		rev: String
+	): E? {
 		throw BridgeException()
 	}
 }
