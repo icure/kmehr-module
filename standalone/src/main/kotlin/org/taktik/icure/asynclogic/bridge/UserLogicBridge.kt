@@ -11,6 +11,7 @@ import org.taktik.icure.asynclogic.UserLogic
 import org.taktik.icure.asynclogic.bridge.mappers.UserMapper
 import org.taktik.icure.db.PaginationOffset
 import org.taktik.icure.domain.filter.chain.FilterChain
+import org.taktik.icure.entities.EnhancedUser
 import org.taktik.icure.entities.User
 import org.taktik.icure.entities.base.PropertyStub
 import org.taktik.icure.exceptions.BridgeException
@@ -35,7 +36,7 @@ class UserLogicBridge(
 	override suspend fun changeUserEmail(
 		userId: String,
 		newEmail: String,
-		previousEmail: String
+		previousEmail: String?
 	): User {
 		throw BridgeException()
 	}
@@ -43,7 +44,7 @@ class UserLogicBridge(
 	override suspend fun changeUserMobilePhone(
 		userId: String,
 		newMobilePhone: String,
-		previousMobilePhone: String
+		previousMobilePhone: String?
 	): User {
 		throw BridgeException()
 	}
@@ -58,6 +59,12 @@ class UserLogicBridge(
 	override suspend fun createUser(user: User): User {
 		throw UnsupportedOperationException("The Kmehr module cannot create users")
 	}
+
+	override suspend fun getUser(
+		id: String,
+		includeMetadataFromGlobalUser: Boolean,
+		rev: String?
+	): EnhancedUser? = sdk.user.getUser(id)?.let { userMapper.map(it) }
 
 	override suspend fun disableUser(userId: String): User? {
 		throw UnsupportedOperationException("The Kmehr module cannot disable users")
@@ -84,9 +91,6 @@ class UserLogicBridge(
 	override fun findByPatientId(patientId: String): Flow<String> {
 		throw BridgeException()
 	}
-
-	override suspend fun getUser(id: String, includeMetadataFromGlobalUser: Boolean): User? =
-		sdk.user.getUser(id)?.let { userMapper.map(it) }
 
 	override suspend fun getUserByEmail(email: String): User? {
 		throw BridgeException()

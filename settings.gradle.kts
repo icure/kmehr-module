@@ -41,6 +41,13 @@ dependencyResolutionManagement {
     }
 }
 
+includeBuild("ksp-json-processor") {
+    dependencySubstitution {
+        substitute(module("com.icure:ksp-json-processor"))
+            .using(project(":library"))
+    }
+}
+
 val sharedDeps = listOf(
     "utils",
     "domain",
