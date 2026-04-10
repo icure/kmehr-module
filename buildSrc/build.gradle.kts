@@ -24,5 +24,4 @@ java {
 
 dependencies {
 	implementation(coreLibs.kotlinxSerializationPlugin)
-	implementation("com.icure:multiplatform-codegen-library:1.7.5")
 }
