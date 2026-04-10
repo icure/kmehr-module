@@ -1,73 +1,66 @@
 pluginManagement {
-    // Include 'plugins build' to define convention plugins.
-    includeBuild("./kraken-common/build-logic")
+	// Include 'plugins build' to define convention plugins.
+	includeBuild("./kraken-common/build-logic")
 
-    repositories {
-        mavenLocal()
-        google()
-        gradlePluginPortal()
-        mavenCentral()
-        maven { url = uri("https://maven.taktik.be/content/groups/public") }
-        maven { url = uri("https://plugins.gradle.org/m2/") }
-        maven { url = uri("https://repo.spring.io/plugins-release") }
-        maven { url = uri("https://jitpack.io") }
-    }
+	repositories {
+		mavenLocal()
+		google()
+		gradlePluginPortal()
+		mavenCentral()
+		maven { url = uri("https://maven.taktik.be/content/groups/public") }
+		maven { url = uri("https://plugins.gradle.org/m2/") }
+		maven { url = uri("https://repo.spring.io/plugins-release") }
+		maven { url = uri("https://jitpack.io") }
+	}
 }
 
 plugins {
-    id("org.gradle.toolchains.foojay-resolver-convention") version "0.7.0"
+	id("org.gradle.toolchains.foojay-resolver-convention") version "0.7.0"
 }
 
 dependencyResolutionManagement {
-    @Suppress("UnstableApiUsage")
-    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
-    @Suppress("UnstableApiUsage")
-    repositories {
-        google()
-        mavenLocal()
-        mavenCentral()
-        maven { url = uri("https://maven.taktik.be/content/groups/public") }
-        maven { url = uri("https://jitpack.io") }
-        maven { url = uri("https://repo.spring.io/plugins-release") }
-    }
+	@Suppress("UnstableApiUsage")
+	repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+	@Suppress("UnstableApiUsage")
+	repositories {
+		google()
+		mavenLocal()
+		mavenCentral()
+		maven { url = uri("https://maven.taktik.be/content/groups/public") }
+		maven { url = uri("https://jitpack.io") }
+		maven { url = uri("https://repo.spring.io/plugins-release") }
+	}
 
-    versionCatalogs {
-        create("coreLibs") {
-            from(files("./kraken-common/libs.versions.toml"))
-        }
-        create("kmehrLibs") {
-            from(files("./libs.versions.toml"))
-        }
-    }
-}
-
-includeBuild("ksp-json-processor") {
-    dependencySubstitution {
-        substitute(module("com.icure:ksp-json-processor"))
-            .using(project(":library"))
-    }
+	versionCatalogs {
+		create("coreLibs") {
+			from(files("./kraken-common/libs.versions.toml"))
+		}
+		create("kmehrLibs") {
+			from(files("./libs.versions.toml"))
+		}
+	}
 }
 
 val sharedDeps = listOf(
-    "utils",
-    "domain",
-    "dto",
-    "dao",
-    "logic",
-    "jwt",
-    "mapper",
-    "core",
-    "service"
+	"utils",
+	"domain",
+	"dto",
+	"dao",
+	"logic",
+	"jwt",
+	"mapper",
+	"core",
+	"service"
 )
 
 val kmehrDeps = listOf(
-    "standalone",
-    "kmehr",
-    "sam"
+	"standalone",
+	"kmehr",
+	"sam"
 )
 
 include(
-    sharedDeps.map { ":kraken-common:$it" } + kmehrDeps.map { ":$it" }
+	sharedDeps.map { ":kraken-common:$it" } + kmehrDeps.map { ":$it" }
 )
 
 rootProject.name = "kmehr-module"
