@@ -22,8 +22,9 @@ import org.mapstruct.InjectionStrategy
 import org.mapstruct.Mapper
 import org.taktik.icure.entities.samv2.embed.Reimbursement
 import org.taktik.icure.services.external.rest.v2.dto.samv2.embed.ReimbursementDto
+import org.taktik.icure.services.external.rest.v2.mapper.samv2.BigDecimalMapper
 
-@Mapper(componentModel = "spring", uses = [CopaymentV2Mapper::class, PricingV2Mapper::class, ReimbursementCriterionV2Mapper::class, ChapterParagraphV2Mapper::class], injectionStrategy = InjectionStrategy.CONSTRUCTOR)
+@Mapper(componentModel = "spring", uses = [BigDecimalMapper::class, CopaymentV2Mapper::class, PricingV2Mapper::class, ReimbursementCriterionV2Mapper::class, ChapterParagraphV2Mapper::class], injectionStrategy = InjectionStrategy.CONSTRUCTOR)
 interface ReimbursementV2Mapper {
 	fun map(reimbursementDto: ReimbursementDto): Reimbursement
 	fun map(reimbursement: Reimbursement): ReimbursementDto

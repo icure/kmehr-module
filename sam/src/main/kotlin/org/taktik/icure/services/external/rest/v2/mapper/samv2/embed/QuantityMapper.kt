@@ -21,8 +21,9 @@ package org.taktik.icure.services.external.rest.v2.mapper.samv2.embed
 import org.mapstruct.Mapper
 import org.taktik.icure.entities.samv2.embed.Quantity
 import org.taktik.icure.services.external.rest.v2.dto.samv2.embed.QuantityDto
+import org.taktik.icure.services.external.rest.v2.mapper.samv2.BigDecimalMapper
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = [BigDecimalMapper::class])
 interface QuantityV2Mapper {
 	fun map(quantityDto: QuantityDto): Quantity
 	fun map(quantity: Quantity): QuantityDto
