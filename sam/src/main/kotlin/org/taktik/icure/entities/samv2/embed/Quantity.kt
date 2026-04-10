@@ -6,16 +6,16 @@ package org.taktik.icure.entities.samv2.embed
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonInclude
-import java.math.BigDecimal
+import org.taktik.icure.decimal.BigDecimalWithScaleIndependentEquality
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-data class Quantity(val value: BigDecimal? = null, val unit: String? = null) {
+data class Quantity(val value: BigDecimalWithScaleIndependentEquality? = null, val unit: String? = null) {
 	override fun equals(other: Any?): Boolean {
 		if (this === other) return true
 		if (other !is Quantity) return false
 
-		if (value != null && other.value == null || value == null && other.value != null || (value?.compareTo(other.value) != 0 && value != other.value)) return false
+		if (value != null && other.value == null || value == null && other.value != null || (value?.compareTo(other.value!!) != 0 && value != other.value)) return false
 		if (unit != other.unit) return false
 
 		return true
