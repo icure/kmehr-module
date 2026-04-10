@@ -22,8 +22,9 @@ import org.mapstruct.InjectionStrategy
 import org.mapstruct.Mapper
 import org.taktik.icure.entities.samv2.embed.StandardDosage
 import org.taktik.icure.services.external.rest.v2.dto.samv2.embed.StandardDosageDto
+import org.taktik.icure.services.external.rest.v2.mapper.samv2.BigDecimalMapper
 
-@Mapper(componentModel = "spring", uses = [QuantityV2Mapper::class, IndicationV2Mapper::class, BoundedParameterV2Mapper::class, RouteOfAdministrationV2Mapper::class, SamTextV2Mapper::class], injectionStrategy = InjectionStrategy.CONSTRUCTOR)
+@Mapper(componentModel = "spring", uses = [BigDecimalMapper::class, QuantityV2Mapper::class, IndicationV2Mapper::class, BoundedParameterV2Mapper::class, RouteOfAdministrationV2Mapper::class, SamTextV2Mapper::class], injectionStrategy = InjectionStrategy.CONSTRUCTOR)
 interface StandardDosageV2Mapper {
 	fun map(standardDosageDto: StandardDosageDto): StandardDosage
 	fun map(standardDosage: StandardDosage): StandardDosageDto

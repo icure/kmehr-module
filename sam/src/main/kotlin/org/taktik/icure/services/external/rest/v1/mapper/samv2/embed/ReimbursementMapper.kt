@@ -10,8 +10,9 @@ import org.mapstruct.Mapping
 import org.mapstruct.Mappings
 import org.taktik.icure.entities.samv2.embed.Reimbursement
 import org.taktik.icure.services.external.rest.v1.dto.samv2.embed.ReimbursementDto
+import org.taktik.icure.services.external.rest.v2.mapper.samv2.BigDecimalMapper
 
-@Mapper(componentModel = "spring", uses = [CopaymentMapper::class, PricingMapper::class, ReimbursementCriterionMapper::class], injectionStrategy = InjectionStrategy.CONSTRUCTOR)
+@Mapper(componentModel = "spring", uses = [BigDecimalMapper::class, CopaymentMapper::class, PricingMapper::class, ReimbursementCriterionMapper::class], injectionStrategy = InjectionStrategy.CONSTRUCTOR)
 interface ReimbursementMapper {
     @Mappings(
         Mapping(target = "chapterParagraph", ignore = true),

@@ -22,8 +22,9 @@ import org.mapstruct.InjectionStrategy
 import org.mapstruct.Mapper
 import org.taktik.icure.entities.samv2.embed.BoundedParameter
 import org.taktik.icure.services.external.rest.v2.dto.samv2.embed.BoundedParameterDto
+import org.taktik.icure.services.external.rest.v2.mapper.samv2.BigDecimalMapper
 
-@Mapper(componentModel = "spring", uses = [DosageParameterV2Mapper::class], injectionStrategy = InjectionStrategy.CONSTRUCTOR)
+@Mapper(componentModel = "spring", uses = [DosageParameterV2Mapper::class, BigDecimalMapper::class], injectionStrategy = InjectionStrategy.CONSTRUCTOR)
 interface BoundedParameterV2Mapper {
 	fun map(boundedParameterDto: BoundedParameterDto): BoundedParameter
 	fun map(boundedParameter: BoundedParameter): BoundedParameterDto

@@ -9,7 +9,9 @@ import org.mapstruct.Mapper
 import org.taktik.icure.entities.samv2.embed.ComplexStrength
 import org.taktik.icure.entities.samv2.embed.Quantity
 import org.taktik.icure.services.external.rest.v1.dto.samv2.embed.QuantityDto
-@Mapper(componentModel = "spring", injectionStrategy = InjectionStrategy.CONSTRUCTOR)
+import org.taktik.icure.services.external.rest.v2.mapper.samv2.BigDecimalMapper
+
+@Mapper(componentModel = "spring", injectionStrategy = InjectionStrategy.CONSTRUCTOR, uses = [BigDecimalMapper::class])
 abstract class QuantityMapper {
 	abstract fun map(quantityDto: QuantityDto): Quantity
 	abstract fun map(quantity: Quantity): QuantityDto
