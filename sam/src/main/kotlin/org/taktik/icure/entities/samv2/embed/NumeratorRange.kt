@@ -5,23 +5,23 @@
 package org.taktik.icure.entities.samv2.embed
 
 import java.io.Serializable
-import java.math.BigDecimal
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonInclude
+import org.taktik.icure.decimal.BigDecimalWithScaleIndependentEquality
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class NumeratorRange(
-	val min: BigDecimal? = null,
-	val max: BigDecimal? = null,
+	val min: BigDecimalWithScaleIndependentEquality? = null,
+	val max: BigDecimalWithScaleIndependentEquality? = null,
 	val unit: String? = null
 ) : Serializable {
 	override fun equals(other: Any?): Boolean {
 		if (this === other) return true
 		if (other !is NumeratorRange) return false
 
-		if (min != null && other.min == null || min == null && other.min != null || (min?.compareTo(other.min) != 0 && min != other.min)) return false
-		if (max != null && other.max == null || max == null && other.max != null || (max?.compareTo(other.max) != 0 && max != other.max)) return false
+		if (min != null && other.min == null || min == null && other.min != null || (min?.compareTo(other.min!!) != 0 && min != other.min)) return false
+		if (max != null && other.max == null || max == null && other.max != null || (max?.compareTo(other.max!!) != 0 && max != other.max)) return false
 		if (unit != other.unit) return false
 
 		return true

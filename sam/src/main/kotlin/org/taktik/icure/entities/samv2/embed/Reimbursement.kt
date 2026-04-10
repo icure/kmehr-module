@@ -4,9 +4,9 @@
 
 package org.taktik.icure.entities.samv2.embed
 
-import java.math.BigDecimal
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonInclude
+import org.taktik.icure.decimal.BigDecimalWithScaleIndependentEquality
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -22,9 +22,9 @@ data class Reimbursement(
 	val legalReferencePath: String? = null,
     val chapterParagraph: ChapterParagraph? = null,
 	val flatRateSystem: Boolean? = null,
-	val reimbursementBasePrice: BigDecimal? = null,
-	val referenceBasePrice: BigDecimal? = null,
-	val copaymentSupplement: BigDecimal? = null,
+	val reimbursementBasePrice: BigDecimalWithScaleIndependentEquality? = null,
+	val referenceBasePrice: BigDecimalWithScaleIndependentEquality? = null,
+	val copaymentSupplement: BigDecimalWithScaleIndependentEquality? = null,
 	val pricingUnit: Pricing? = null,
 	val pricingSlice: Pricing? = null,
 	val reimbursementCriterion: ReimbursementCriterion? = null,
@@ -52,9 +52,9 @@ data class Reimbursement(
 		if (legalReferencePath != other.legalReferencePath) return false
         if (chapterParagraph != other.chapterParagraph) return false
 		if (flatRateSystem != other.flatRateSystem) return false
-		if (reimbursementBasePrice != null && other.reimbursementBasePrice == null || reimbursementBasePrice == null && other.reimbursementBasePrice != null || (reimbursementBasePrice?.compareTo(other.reimbursementBasePrice) != 0 && reimbursementBasePrice != other.reimbursementBasePrice)) return false
-		if (referenceBasePrice != null && other.referenceBasePrice == null || referenceBasePrice == null && other.referenceBasePrice != null || (referenceBasePrice?.compareTo(other.referenceBasePrice) != 0 && referenceBasePrice != other.referenceBasePrice)) return false
-		if (copaymentSupplement != null && other.copaymentSupplement == null || copaymentSupplement == null && other.copaymentSupplement != null || (copaymentSupplement?.compareTo(other.copaymentSupplement) != 0 && copaymentSupplement != other.copaymentSupplement)) return false
+		if (reimbursementBasePrice != null && other.reimbursementBasePrice == null || reimbursementBasePrice == null && other.reimbursementBasePrice != null || (reimbursementBasePrice?.compareTo(other.reimbursementBasePrice!!) != 0 && reimbursementBasePrice != other.reimbursementBasePrice)) return false
+		if (referenceBasePrice != null && other.referenceBasePrice == null || referenceBasePrice == null && other.referenceBasePrice != null || (referenceBasePrice?.compareTo(other.referenceBasePrice!!) != 0 && referenceBasePrice != other.referenceBasePrice)) return false
+		if (copaymentSupplement != null && other.copaymentSupplement == null || copaymentSupplement == null && other.copaymentSupplement != null || (copaymentSupplement?.compareTo(other.copaymentSupplement!!) != 0 && copaymentSupplement != other.copaymentSupplement)) return false
 		if (pricingUnit != other.pricingUnit) return false
 		if (pricingSlice != other.pricingSlice) return false
 		if (reimbursementCriterion != other.reimbursementCriterion) return false

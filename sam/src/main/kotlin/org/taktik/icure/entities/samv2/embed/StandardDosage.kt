@@ -2,8 +2,8 @@ package org.taktik.icure.entities.samv2.embed
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonInclude
+import org.taktik.icure.decimal.BigDecimalWithScaleIndependentEquality
 import java.io.Serializable
-import java.math.BigDecimal
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -18,21 +18,21 @@ data class StandardDosage(
     val temporalityDuration: Quantity? = null,
     val temporalityUserProvided: Boolean? = null,
     val temporalityNote: SamText? = null,
-    val quantity: BigDecimal? = null,
-    val quantityDenominator: BigDecimal? = null,
+    val quantity: BigDecimalWithScaleIndependentEquality? = null,
+    val quantityDenominator: BigDecimalWithScaleIndependentEquality? = null,
     val quantityMultiplicator: String? = null,
-    val quantityRangeLower: BigDecimal? = null,
-    val quantityRangeLowerDenominator: BigDecimal? = null,
-    val quantityRangeUpper: BigDecimal? = null,
-    val quantityRangeUpperDenominator: BigDecimal? = null,
+    val quantityRangeLower: BigDecimalWithScaleIndependentEquality? = null,
+    val quantityRangeLowerDenominator: BigDecimalWithScaleIndependentEquality? = null,
+    val quantityRangeUpper: BigDecimalWithScaleIndependentEquality? = null,
+    val quantityRangeUpperDenominator: BigDecimalWithScaleIndependentEquality? = null,
     val administrationFrequencyQuantity: Int? = null,
     val administrationFrequencyIsMax: Boolean? = null,
     val administrationFrequencyTimeframe: Quantity? = null,
-    val maximumAdministrationQuantity: BigDecimal? = null,
-    val maximumAdministrationQuantityDenominator: BigDecimal? = null,
+    val maximumAdministrationQuantity: BigDecimalWithScaleIndependentEquality? = null,
+    val maximumAdministrationQuantityDenominator: BigDecimalWithScaleIndependentEquality? = null,
     val maximumAdministrationQuantityMultiplicator: String? = null,
-    val maximumDailyQuantity: BigDecimal? = null,
-    val maximumDailyQuantityDenominator: BigDecimal? = null,
+    val maximumDailyQuantity: BigDecimalWithScaleIndependentEquality? = null,
+    val maximumDailyQuantityDenominator: BigDecimalWithScaleIndependentEquality? = null,
     val maximumDailyQuantityMultiplicator: String? = null,
     val textualDosage: SamText? = null,
     val supplementaryInfo: SamText? = null,
