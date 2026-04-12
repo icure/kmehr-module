@@ -7,12 +7,11 @@
 
 package org.taktik.icure.be.samv2v6.entities;
 
-import org.taktik.icure.decimal.BigDecimalWithScaleIndependentEquality;
-
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
+import java.math.BigDecimal;
 
 
 /**
@@ -43,7 +42,7 @@ import javax.xml.bind.annotation.XmlType;
 public class PricingUnitType {
 
     @XmlElement(name = "Quantity", namespace = "urn:be:fgov:ehealth:samws:v2:reimbursement:submit", required = true)
-    protected BigDecimalWithScaleIndependentEquality quantity;
+    protected BigDecimal quantity;
     @XmlElement(name = "Label", namespace = "urn:be:fgov:ehealth:samws:v2:reimbursement:submit", required = true)
     protected Text255Type label;
 
@@ -52,10 +51,10 @@ public class PricingUnitType {
      *
      * @return
      *     possible object is
-     *     {@link BigDecimalWithScaleIndependentEquality }
+     *     {@link BigDecimal }
      *
      */
-    public BigDecimalWithScaleIndependentEquality getQuantity() {
+    public BigDecimal getQuantity() {
         return quantity;
     }
 
@@ -64,10 +63,10 @@ public class PricingUnitType {
      *
      * @param value
      *     allowed object is
-     *     {@link BigDecimalWithScaleIndependentEquality }
+     *     {@link BigDecimal }
      *
      */
-    public void setQuantity(BigDecimalWithScaleIndependentEquality value) {
+    public void setQuantity(BigDecimal value) {
         this.quantity = value;
     }
 
