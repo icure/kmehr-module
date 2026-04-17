@@ -2,7 +2,6 @@ package org.taktik.icure.asynclogic.bridge
 
 import com.icure.cardinal.sdk.CardinalBaseApis
 import com.icure.cardinal.sdk.api.raw.RawDocumentApi
-import com.icure.cardinal.sdk.utils.RequestStatusException
 import com.icure.utils.InternalIcureApi
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
@@ -125,10 +124,13 @@ private fun StringSpec.documentLogicBridgeTest(
 				documentId = document.id,
 				documentRev = document.rev,
 				mainAttachmentChange = DataAttachmentChange.CreateOrUpdate(
-					flowOf(ByteBuffer.wrap(fakeAttachment).toDataBuffer()),
-					fakeAttachment.size.toLong(),
-					listOf("public.plain-text"),
-					false
+					data = flowOf(ByteBuffer.wrap(fakeAttachment).toDataBuffer()),
+					size = fakeAttachment.size.toLong(),
+					utis = listOf("public.plain-text"),
+					dataIsEncrypted = false,
+					compressionAlgorithm = null,
+					triedCompressionAlgorithmsVersion = null,
+					realDataSize = null
 				)
 			).shouldNotBeNull()
 			documentBridge.getMainAttachment(documentWithAttachment.id).map {

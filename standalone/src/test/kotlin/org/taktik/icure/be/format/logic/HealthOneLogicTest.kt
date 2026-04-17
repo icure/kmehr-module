@@ -95,10 +95,13 @@ class HealthOneLogicTest(
 			documentId = document.id,
 			documentRev = document.rev,
 			mainAttachmentChange = DataAttachmentChange.CreateOrUpdate(
-				flowOf(ByteBuffer.wrap(fakeAttachment).toDataBuffer()),
-				fakeAttachment.size.toLong(),
-				listOf("public.plain-text"),
-				false
+				data = flowOf(ByteBuffer.wrap(fakeAttachment).toDataBuffer()),
+				size = fakeAttachment.size.toLong(),
+				utis = listOf("public.plain-text"),
+				dataIsEncrypted = false,
+				compressionAlgorithm = null,
+				triedCompressionAlgorithmsVersion = null,
+				realDataSize = null
 			)
 		).shouldNotBeNull()
 	}
