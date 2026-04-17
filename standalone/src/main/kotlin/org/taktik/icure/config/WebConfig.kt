@@ -27,9 +27,7 @@ import org.taktik.icure.spring.encoder.PaginatedCollectingJackson2JsonEncoder
 class WebConfig: WebFluxConfigurer {
 
 	private val legacyJacksonFilter: FilterProvider = SimpleFilterProvider()
-		.addFilter("healthElementFilter", SimpleBeanPropertyFilter.serializeAll())
-		.addFilter("userFilter", SimpleBeanPropertyFilter.serializeAll())
-		.addFilter("codeStubFilter", SimpleBeanPropertyFilter.serializeAll())
+		.setDefaultFilter(SimpleBeanPropertyFilter.serializeAll())
 
 	private val legacyObjectMapper: ObjectMapper =
 		ObjectMapper().registerModule(
@@ -37,7 +35,7 @@ class WebConfig: WebFluxConfigurer {
 				.configure(KotlinFeature.NullIsSameAsDefault, true)
 				.build()
 		).apply {
-			setSerializationInclusion(JsonInclude.Include.NON_NULL)
+			setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL)
 			setFilterProvider(legacyJacksonFilter)
 		}
 
