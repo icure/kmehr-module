@@ -41,6 +41,7 @@ class BridgeAsyncSessionLogic(
 	private val credentialsManager: BridgeCredentialsManager,
 	private val objectMapper: ObjectMapper,
 	private val httpClient: HttpClient,
+	private val jwtDecoder: JwtDecoder
 ) : AsyncSessionLogic, SessionInformationProvider {
 
 	private val log = LoggerFactory.getLogger(this.javaClass)
@@ -70,10 +71,10 @@ class BridgeAsyncSessionLogic(
 	}
 
 	private suspend fun generateNewUserToken(jwt: String): String {
-		val claims = JwtDecoder.decodeWithoutValidation(
+		val claims = jwtDecoder.decodeWithoutValidation(
 			jwt = jwt
 		).let { claims ->
-			JwtDecoder.jwtDetailsFromClaims(KmehrJWTDetails, claims)
+			jwtDecoder.jwtDetailsFromClaims(KmehrJWTDetails, claims)
 		}
 		val tmpToken = httpClient.post(
 			"${bridgeConfig.iCureUrl}/rest/v2/user/inGroup/${claims.groupId}/token/${claims.userId}/kmehr?tokenValidity=60"
@@ -90,7 +91,7 @@ class BridgeAsyncSessionLogic(
 	}
 
 	private fun isJwtExpired(jwt: String): Boolean {
-		val expirationSeconds = JwtDecoder.decodeExpirationSeconds(jwt)
+		val expirationSeconds = jwtDecoder.decodeExpirationSeconds(jwt)
 		return expirationSeconds < (System.currentTimeMillis() / 1000) - 30
 	}
 
@@ -102,10 +103,10 @@ class BridgeAsyncSessionLogic(
 				if(!isJwtExpired) log.debug("EXPIRED, refreshing")
 				jwt.takeIf { !isJwtExpired }
 					?: generateNewUserToken(jwt).also {
-						val details = JwtDecoder.decodeWithoutValidation(
+						val details = jwtDecoder.decodeWithoutValidation(
 							jwt = jwt
 						).let { claims ->
-							JwtDecoder.jwtDetailsFromClaims(KmehrJWTDetails, claims)
+							jwtDecoder.jwtDetailsFromClaims(KmehrJWTDetails, claims)
 						}
 						loadSecurityContext()?.map { ctx ->
 							ctx.authentication = EncodedJWTAuth(

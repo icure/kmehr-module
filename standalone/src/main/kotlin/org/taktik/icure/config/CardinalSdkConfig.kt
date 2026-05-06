@@ -20,6 +20,7 @@ import com.icure.cardinal.sdk.api.raw.impl.RawPatientApiImpl
 import com.icure.cardinal.sdk.api.raw.wrap
 import com.icure.cardinal.sdk.auth.JwtBearer
 import com.icure.cardinal.sdk.auth.JwtBearerAndRefresh
+import com.icure.cardinal.sdk.auth.services.AuthProvider
 import com.icure.cardinal.sdk.auth.services.JwtBasedAuthProvider
 import com.icure.cardinal.sdk.auth.services.TokenBasedAuthService
 import com.icure.cardinal.sdk.crypto.impl.NoAccessControlKeysHeadersProvider
@@ -37,6 +38,7 @@ import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
 import io.ktor.http.appendPathSegments
 import io.ktor.http.takeFrom
+import kotlinx.coroutines.runBlocking
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.taktik.icure.asynclogic.impl.BridgeAsyncSessionLogic
@@ -78,18 +80,24 @@ class CardinalSdkConfig(
 			throw UnsupportedOperationException("Cannot get bearer and refresh token from unbound api")
 		}
 
-		override suspend fun switchGroup(newGroupId: String): com.icure.cardinal.sdk.auth.services.AuthProvider {
+		override suspend fun switchGroup(newGroupId: String): AuthProvider {
 			throw UnsupportedOperationException("Cannot switch group on unbound api")
+		}
+
+		override suspend fun changeScope(dataOwnerId: String): AuthProvider {
+			throw UnsupportedOperationException("Cannot change scope from unbound api")
 		}
 	}
 
 	@OptIn(InternalIcureApi::class)
 	@Bean
-	fun cardinalUnboundSdk(): CardinalBaseApis = CardinalUnboundBaseSdk.initialize(
-		baseUrl = bridgeConfig.iCureUrl,
-		authenticationMethod = AuthenticationMethod.UsingAuthProvider(sessionAuthProvider),
-		options = UnboundBasicSdkOptions()
-	)
+	fun cardinalUnboundSdk(): CardinalBaseApis = runBlocking {
+		CardinalUnboundBaseSdk.initialize(
+			baseUrl = bridgeConfig.iCureUrl,
+			authenticationMethod = AuthenticationMethod.UsingAuthProvider(sessionAuthProvider),
+			options = UnboundBasicSdkOptions()
+		)
+	}
 
 	@OptIn(InternalIcureApi::class)
 	@Bean

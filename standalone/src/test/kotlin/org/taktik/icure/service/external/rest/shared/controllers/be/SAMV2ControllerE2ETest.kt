@@ -79,7 +79,7 @@ enum class CredentialsType { HCP, PATIENT }
 @ActiveProfiles(profiles = ["sam"])
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class SAMV2ControllerE2ETest(
-	@LocalServerPort val port: Int,
+	@param:LocalServerPort val port: Int,
 	val httpClient: TestHttpClient,
 	val bridgeConfig: BridgeConfig,
 	val ampDAO: AmpDAO,
@@ -87,8 +87,9 @@ class SAMV2ControllerE2ETest(
 	val nmpDAO: NmpDAO,
 	val vmpGroupDAO: VmpGroupDAO,
 	val objectMapper: ObjectMapper,
-	@Qualifier("drugCouchDbDispatcher") val couchDbDispatcher: CouchDbDispatcher,
+	@param:Qualifier("drugCouchDbDispatcher") val couchDbDispatcher: CouchDbDispatcher,
 	val couchDbProperties: CouchDbProperties,
+	val jwtDecoder: JwtDecoder
 ) : StringSpec() {
 
 	private fun InputStream.toFlow() = flow {
@@ -112,7 +113,7 @@ class SAMV2ControllerE2ETest(
 		private val credentials = mutableMapOf<CredentialsType, UserCredentials>()
 
 		private fun isJwtExpired(jwt: String): Boolean {
-			val expirationSeconds = JwtDecoder.decodeExpirationSeconds(jwt)
+			val expirationSeconds = jwtDecoder.decodeExpirationSeconds(jwt)
 			return expirationSeconds < (System.currentTimeMillis() / 1000) - 30
 		}
 
@@ -160,10 +161,10 @@ class SAMV2ControllerE2ETest(
 			createVersionAttachment("vmp")
 			createVersionAttachment("nmp")
 
-            listOf("v1", "v2").forEach {
-                findAmpsByLabelE2ETest(httpClient, credentialsProvider, objectMapper, ampDAO, it, "http://127.0.0.1:$port")
-                if (it == "v2") { findAmppsByLabelE2ETest(httpClient, credentialsProvider, objectMapper, ampDAO, it, "http://127.0.0.1:$port") }
-                findVmpsByLabelE2ETest(httpClient, credentialsProvider, objectMapper, vmpDAO, it, "http://127.0.0.1:$port")
+			listOf("v1", "v2").forEach {
+				findAmpsByLabelE2ETest(httpClient, credentialsProvider, objectMapper, ampDAO, it, "http://127.0.0.1:$port")
+				if (it == "v2") { findAmppsByLabelE2ETest(httpClient, credentialsProvider, objectMapper, ampDAO, it, "http://127.0.0.1:$port") }
+				findVmpsByLabelE2ETest(httpClient, credentialsProvider, objectMapper, vmpDAO, it, "http://127.0.0.1:$port")
 				findVmpsByGroupCodeE2ETest(httpClient, credentialsProvider, objectMapper, vmpDAO, it, "http://127.0.0.1:$port")
 				findVmpsByCodeE2ETest(httpClient, credentialsProvider, objectMapper, vmpDAO, it, "http://127.0.0.1:$port")
 				findNmpsByLabelE2ETest(httpClient, credentialsProvider, objectMapper, nmpDAO, it, "http://127.0.0.1:$port")

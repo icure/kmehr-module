@@ -34,6 +34,7 @@ import org.springframework.test.context.ContextConfiguration
 import org.taktik.icure.asyncdao.InternalDAO
 import org.taktik.icure.asynclogic.impl.BridgeAsyncSessionLogic
 import org.taktik.icure.config.BridgeConfig
+import org.taktik.icure.security.jwt.JwtDecoder
 import org.taktik.icure.security.jwt.JwtKeyUtils
 import org.taktik.icure.test.fake.components.FakeBridgeCredentialsManager
 import java.security.interfaces.RSAPublicKey
@@ -86,7 +87,8 @@ class KmehrTestApplication {
 	fun performStartupTasks(
 		bridgeConfig: BridgeConfig,
 		objectMapper: ObjectMapper,
-		internalDaos: List<InternalDAO<*>>
+		internalDaos: List<InternalDAO<*>>,
+		jwtDecoder: JwtDecoder,
 	) = ApplicationRunner {
 		runBlocking {
 			val authProvider = getAuthProvider(baseICurePath, "john", "LetMeIn")
@@ -180,6 +182,7 @@ class KmehrTestApplication {
 				credentialsManager = FakeBridgeCredentialsManager(bridgeConfig, masterHcp.login, masterHcp.password),
 				objectMapper = objectMapper,
 				httpClient = testHttpClient,
+				jwtDecoder = jwtDecoder,
 			)
 		}
 	}
