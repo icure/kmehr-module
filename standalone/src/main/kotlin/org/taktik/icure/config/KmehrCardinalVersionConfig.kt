@@ -6,7 +6,6 @@ import org.taktik.icure.entities.utils.SemanticVersion
 @Service
 class KmehrCardinalVersionConfig : CardinalVersionConfig {
 	override suspend fun getUserCardinalVersion(): SemanticVersion? = null
-
-	override suspend fun shouldUseCardinalModel(): Boolean = false
+	override suspend fun useLegacyDataModelCompatibility(): Boolean = true
 
 }
