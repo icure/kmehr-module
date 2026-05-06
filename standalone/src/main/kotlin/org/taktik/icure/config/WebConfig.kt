@@ -27,6 +27,8 @@ import org.taktik.icure.spring.encoder.PaginatedCollectingJackson2JsonEncoder
 class WebConfig: WebFluxConfigurer {
 
 	private val legacyJacksonFilter: FilterProvider = SimpleFilterProvider()
+		.addFilter("dataAttachmentFilter", SimpleBeanPropertyFilter.serializeAllExcept("storedDataSize"))
+		.addFilter("documentFilter", SimpleBeanPropertyFilter.serializeAllExcept("mainAttachmentStoredDataSize"))
 		.setDefaultFilter(SimpleBeanPropertyFilter.serializeAll())
 
 	private val legacyObjectMapper: ObjectMapper =

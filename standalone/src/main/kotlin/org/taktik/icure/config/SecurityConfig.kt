@@ -22,6 +22,7 @@ import org.taktik.icure.constants.Roles
 import org.taktik.icure.security.CustomAuthenticationManager
 import org.taktik.icure.security.UnauthorizedEntryPoint
 import org.taktik.icure.security.jwt.EncodedJWTAuth
+import org.taktik.icure.security.jwt.JwtDecoder
 import org.taktik.icure.security.jwt.JwtKeyUtils
 import reactor.core.publisher.Mono
 
@@ -31,7 +32,8 @@ class SecurityConfig {
 	@Bean
 	fun authenticationManager(
 		bridgeConfig: BridgeConfig,
-		httpClient: HttpClient
+		httpClient: HttpClient,
+		jwtDecoder: JwtDecoder,
 	): CustomAuthenticationManager {
 		val jwtAuthPublicKeyAsString = runBlocking {
 			httpClient.get("${bridgeConfig.iCureUrl}/rest/v2/auth/publicKey/authJwt") {
@@ -40,7 +42,7 @@ class SecurityConfig {
 			}.bodyAsText()
 		}
 		val jwtAuthPublicKey = JwtKeyUtils.decodePublicKeyFromString(jwtAuthPublicKeyAsString)
-		return CustomAuthenticationManager(jwtAuthPublicKey)
+		return CustomAuthenticationManager(jwtAuthPublicKey, jwtDecoder)
 	}
 }
 

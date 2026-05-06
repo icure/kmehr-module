@@ -62,6 +62,7 @@ configurations {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    maxHeapSize = "4096m"
     jvmArgs = (jvmArgs ?: emptyList()) + "-Dnet.bytebuddy.experimental=true"
 }
 

@@ -16,10 +16,11 @@ import org.taktik.icure.services.external.http.websocket.annotation.WSRequestMap
 class FakeWsController(
 	private val hcpBridge: HealthcarePartyLogicBridge,
 	private val sessionLogic: BridgeAsyncSessionLogic,
+	private val jwtDecoder: JwtDecoder,
 ) : WsController {
 
 	private fun isJwtExpired(jwt: String): Boolean {
-		val expirationSeconds = JwtDecoder.decodeExpirationSeconds(jwt)
+		val expirationSeconds = jwtDecoder.decodeExpirationSeconds(jwt)
 		return expirationSeconds < (System.currentTimeMillis() / 1000) - 30
 	}
 

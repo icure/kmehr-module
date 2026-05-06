@@ -15,6 +15,7 @@ import java.security.interfaces.RSAPublicKey
 
 class CustomAuthenticationManager(
 	private val jwtAuthPublicKey: RSAPublicKey,
+	private val jwtDecoder: JwtDecoder,
 ): ReactiveAuthenticationManager {
 
 	override fun authenticate(authentication: Authentication?): Mono<Authentication> = mono {
@@ -22,12 +23,12 @@ class CustomAuthenticationManager(
 			.takeIf { it is EncodedJWTAuth }
 			?.let {
 				try {
-					JwtDecoder.validateAndGetClaims(
+					jwtDecoder.validateAndGetClaims(
 						jwt = (it as EncodedJWTAuth).token,
 						publicKey = jwtAuthPublicKey,
 						validationSkewSeconds = 0
 					).let { claims ->
-						JwtDecoder.jwtDetailsFromClaims(KmehrJWTDetails, claims)
+						jwtDecoder.jwtDetailsFromClaims(KmehrJWTDetails, claims)
 					}
 				} catch (_: Exception) { null }
 			}?.let { jwt ->

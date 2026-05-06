@@ -29,7 +29,9 @@ import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.reactor.asCoroutineContext
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.springframework.core.io.buffer.DataBuffer
 import org.springframework.core.io.buffer.DefaultDataBufferFactory
@@ -46,7 +48,6 @@ import org.taktik.icure.test.KmehrTestApplication.Companion.jwtAuthPublicKey
 import reactor.core.publisher.Mono
 import java.util.*
 import kotlin.coroutines.CoroutineContext
-import kotlin.coroutines.coroutineContext
 import kotlin.random.Random
 import kotlin.time.ExperimentalTime
 
@@ -65,25 +66,27 @@ val authProviders = mutableMapOf<Pair<String, String>, JwtBasedAuthProvider>()
 
 @OptIn(InternalIcureApi::class)
 fun getAuthProvider(iCureUrl: String, username: String, password: String) =
-	authProviders[Pair(username, password)] ?: AuthenticationMethod.UsingCredentials(
-		UsernamePassword(username, password)
-	).getAuthProvider(
-		authApi = RawAnonymousAuthApiImpl(
-			apiUrl = iCureUrl,
-			rawApiConfig = RawApiConfig(
-				httpClient = testHttpClient,
-				json = Serialization.json,
-				additionalHeaders = emptyMap(),
-				requestTimeout = null,
-				retryConfiguration = RequestRetryConfiguration(),
-			)
-		),
-		cryptoService = defaultCryptoService,
-		applicationId = null,
-		options = BasicSdkOptions(),
-		messageGatewayApi = RawMessageGatewayApi(testHttpClient, defaultCryptoService),
-		krakenUrl = iCureUrl
-	) as JwtBasedAuthProvider
+	authProviders[Pair(username, password)] ?: runBlocking {
+		AuthenticationMethod.UsingCredentials(
+			UsernamePassword(username, password)
+		).getAuthProvider(
+			authApi = RawAnonymousAuthApiImpl(
+				apiUrl = iCureUrl,
+				rawApiConfig = RawApiConfig(
+					httpClient = testHttpClient,
+					json = Serialization.json,
+					additionalHeaders = emptyMap(),
+					requestTimeout = null,
+					retryConfiguration = RequestRetryConfiguration(),
+				)
+			),
+			cryptoService = defaultCryptoService,
+			projectId = null,
+			options = BasicSdkOptions(),
+			messageGatewayApi = RawMessageGatewayApi(testHttpClient, defaultCryptoService),
+			krakenUrl = iCureUrl
+		) as JwtBasedAuthProvider
+	}
 
 @OptIn(InternalIcureApi::class)
 suspend fun getAuthJWT(iCureUrl: String, username: String, password: String) =
@@ -148,12 +151,12 @@ suspend fun createHealthcarePartyUser(
 
 	val authJwt = getAuthJWT(iCureUrl, login, userPassword)
 
-	val claims = JwtDecoder.validateAndGetClaims(
+	val claims = JwtDecoder().validateAndGetClaims(
 		jwt = authJwt,
 		publicKey = jwtAuthPublicKey,
 		validationSkewSeconds = 0
 	).let { claims ->
-		JwtDecoder.jwtDetailsFromClaims(KmehrJWTDetails, claims)
+		JwtDecoder().jwtDetailsFromClaims(KmehrJWTDetails, claims)
 	}
 
 	return UserCredentials(
@@ -301,7 +304,7 @@ suspend fun <T> withAuthenticatedReactorContext(credentials: UserCredentials, bl
 	}
 
 	val ctx = ReactiveSecurityContextHolder.withSecurityContext(Mono.just(fakeSecurityContext))
-	return withContext(coroutineContext.plus(ctx?.asCoroutineContext() as CoroutineContext), block)
+	return withContext(currentCoroutineContext().plus(ctx?.asCoroutineContext() as CoroutineContext), block)
 }
 
 fun List<DataBuffer>.combineToString(): String {

@@ -4,7 +4,6 @@ import com.icure.cardinal.sdk.CardinalBaseApis
 import com.icure.cardinal.sdk.api.HealthcarePartyApi
 import com.icure.cardinal.sdk.filters.HealthcarePartyFilters
 import com.icure.cardinal.sdk.utils.RequestStatusException
-import com.icure.cardinal.sdk.utils.Serialization
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.emitAll
@@ -12,7 +11,6 @@ import kotlinx.coroutines.flow.emptyFlow
 import com.icure.cardinal.sdk.model.HealthcareParty as SdkHealthcareParty
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
-import kotlinx.serialization.json.JsonElement
 import org.springframework.stereotype.Service
 import org.taktik.couchdb.ViewQueryResultEvent
 import org.taktik.couchdb.entity.ComplexKey
@@ -136,25 +134,19 @@ class HealthcarePartyLogicBridge(
 	private fun findHealthcarePartiesByNameRecursive(
 		name: String,
 		desc: Boolean? = null,
-		startKey: JsonElement? = null,
-		startDocumentId: String? = null
 	) : Flow<HealthcareParty> = flow {
-		val result = sdk.healthcareParty.findHealthcarePartiesByName(
-			name = name,
-			startKey = startKey?.let { Serialization.json.encodeToString(it) },
-			startDocumentId = startDocumentId,
-			limit = 1000,
-			desc = desc
+		val healthcarePartyIds = sdk.healthcareParty.matchHealthcarePartiesBy(
+			HealthcarePartyFilters.byName(
+				searchString = name,
+				descending = desc ?: false
+			)
 		)
-		emitAll(result.rows.asFlow().map(healthcarePartyMapper::map))
-		if(result.nextKeyPair?.startKeyDocId != null) {
+		healthcarePartyIds.chunked(1000).forEach {
 			emitAll(
-				findHealthcarePartiesByNameRecursive(
-					name,
-					desc,
-					result.nextKeyPair?.startKey,
-					result.nextKeyPair?.startKeyDocId
-				)
+				sdk.healthcareParty
+					.getHealthcareParties(it)
+					.asFlow()
+					.map(healthcarePartyMapper::map)
 			)
 		}
 	}
