@@ -28,7 +28,7 @@ spec:
             labels:
                 app: {{ template "name" . }}
                 release: {{ .Release.Name }}
-                component: "kraken"
+                component: "kmehr-module"
             {{- if or .Values.images.module.podAnnotations .Values.images.module.metrics.enabled }}
             annotations:
               {{- if .Values.images.module.metrics.enabled }}
@@ -42,7 +42,7 @@ spec:
             {{- end }}
         spec:
             {{- if .Values.images.module.serviceAccount.create }}
-            serviceAccountName: {{ .Values.images.module.serviceAccount.name | default (printf "%s-kraken" (include "fullname" .)) }}
+            serviceAccountName: {{ .Values.images.module.serviceAccount.name | default (printf "%s-kmehr-module" (include "fullname" .)) }}
             {{- end }}
             {{- with .Values.images.module.podSecurityContext }}
             securityContext:

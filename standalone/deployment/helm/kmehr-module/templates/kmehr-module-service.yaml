@@ -8,7 +8,7 @@ metadata:
         chart: {{ template "chart" . }}
         release: {{ .Release.Name }}
         heritage: {{ .Release.Service }}
-        component: "kraken"
+        component: "kmehr-module"
     {{- if or .Values.images.module.service.annotations .Values.images.module.metrics.enabled }}
     annotations:
       {{- if .Values.images.module.metrics.enabled }}
