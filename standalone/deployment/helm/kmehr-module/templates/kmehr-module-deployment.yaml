@@ -1,0 +1,174 @@
+{{- if .Values.images.module.replicaCount }}
+{{- $fullTemplate := include "fullname" . -}}
+{{- $servicePort := .Values.images.module.servicePort | default 8080 -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: "{{ template "fullname" . }}-kmehr-module"
+    labels:
+        app: {{ template "name" . }}
+        chart: {{ template "chart" . }}
+        release: {{ .Release.Name }}
+        heritage: {{ .Release.Service }}
+        component: "kmehr-module"
+spec:
+    replicas: {{ .Values.images.module.replicaCount }}
+    strategy:
+        type: RollingUpdate
+        rollingUpdate:
+            maxUnavailable: {{ .Values.images.module.rollingUpdate.maxUnavailable }}
+            maxSurge: {{ .Values.images.module.rollingUpdate.maxSurge }}
+    selector:
+        matchLabels:
+            app: {{ template "name" . }}
+            release: {{ .Release.Name }}
+            component: "kmehr-module"
+    template:
+        metadata:
+            labels:
+                app: {{ template "name" . }}
+                release: {{ .Release.Name }}
+                component: "kraken"
+            {{- if or .Values.images.module.podAnnotations .Values.images.module.metrics.enabled }}
+            annotations:
+              {{- if .Values.images.module.metrics.enabled }}
+                prometheus.io/scrape: "true"
+                prometheus.io/port: {{ .Values.images.module.metrics.port | default (.Values.images.module.servicePort | default 8080) | quote }}
+                prometheus.io/path: {{ .Values.images.module.metrics.path | default "/actuator/prometheus" | quote }}
+              {{- end }}
+              {{- with .Values.images.module.podAnnotations }}
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
+            {{- end }}
+        spec:
+            {{- if .Values.images.module.serviceAccount.create }}
+            serviceAccountName: {{ .Values.images.module.serviceAccount.name | default (printf "%s-kraken" (include "fullname" .)) }}
+            {{- end }}
+            {{- with .Values.images.module.podSecurityContext }}
+            securityContext:
+              {{- toYaml . | nindent 16 }}
+            {{- end }}
+            {{- with .Values.images.module.nodeSelector }}
+            nodeSelector:
+              {{- toYaml . | nindent 16 }}
+            {{- end }}
+            {{- with .Values.images.module.tolerations }}
+            tolerations:
+              {{- toYaml . | nindent 16 }}
+            {{- end }}
+            {{- with .Values.images.module.topologySpreadConstraints }}
+            topologySpreadConstraints:
+              {{- toYaml . | nindent 16 }}
+            {{- end }}
+            {{- with .Values.images.module.priorityClassName }}
+            priorityClassName: {{ . }}
+            {{- end }}
+            containers:
+                -   name: "{{ .Chart.Name }}-kmehr-module"
+                    image: {{ required "images.module.repository is required" .Values.images.module.repository }}:{{ .Values.images.module.tag | default .Chart.Version }}
+                    imagePullPolicy: "{{ .Values.pullPolicy }}"
+                    {{- with .Values.images.module.containerSecurityContext }}
+                    securityContext:
+                      {{- toYaml . | nindent 22 }}
+                    {{- end }}
+                    ports:
+                        -   containerPort: {{ .Values.images.module.servicePort | default 8080 }}
+                            name: http
+                        -   containerPort: 5701
+                            name: hz1
+                      {{- if or .Values.images.module.debug .Values.images.module.debugsuspend }}
+                        -   containerPort: 5005
+                            name: "jvm-debug"
+                      {{- end }}
+                    {{- if .Values.images.module.configMap.enabled }}
+                    envFrom:
+                        -   configMapRef:
+                                name: "{{ template "fullname" . }}-kmehr-module"
+                    {{- end }}
+                    env:
+                        -   name: JAVA_OPTS
+                            value: "{{ .Values.images.module.javaOpts | default .Values.defaultJavaOpts }} -XX:HeapDumpPath=/dumps{{ if .Values.images.module.debug }} -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005{{ end }}{{ if .Values.images.module.debugsuspend }} -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005{{ end }}"
+                      {{- range $key, $value := .Values.images.module.env }}
+                        -   name: {{ $key }}
+                            value: {{ $value | quote }}
+                      {{- end }}
+                    resources:
+                        requests:
+                            memory: {{ .Values.images.module.memoryRequest | default .Values.defaultMemoryRequest | quote }}
+                          {{- if .Values.images.module.cpuRequest }}
+                            cpu: {{ .Values.images.module.cpuRequest | quote }}
+                          {{- end }}
+                        limits:
+                            memory: {{ .Values.images.module.memoryLimit | default .Values.images.module.memoryRequest | default .Values.defaultMemoryLimit | default .Values.defaultMemoryRequest | quote }}
+                          {{- if .Values.images.module.cpuLimit }}
+                            cpu: {{ .Values.images.module.cpuLimit | quote }}
+                          {{- end }}
+                    {{- with .Values.images.module.volumeMounts }}
+                    volumeMounts:
+                      {{- toYaml . | nindent 22 }}
+                    {{- end }}
+                    {{- if .Values.images.module.readinessProbe.enabled }}
+                    readinessProbe:
+                        httpGet:
+                            path: {{ .Values.images.module.readinessProbe.httpGet.path }}
+                            port: {{ .Values.images.module.readinessProbe.httpGet.port | default $servicePort }}
+                        initialDelaySeconds: {{ .Values.images.module.readinessProbe.initialDelaySeconds }}
+                        periodSeconds: {{ .Values.images.module.readinessProbe.periodSeconds }}
+                        timeoutSeconds: {{ .Values.images.module.readinessProbe.timeoutSeconds }}
+                        successThreshold: {{ .Values.images.module.readinessProbe.successThreshold }}
+                        failureThreshold: {{ .Values.images.module.readinessProbe.failureThreshold }}
+                    {{- end }}
+                    {{- if .Values.images.module.livenessProbe.enabled }}
+                    livenessProbe:
+                        httpGet:
+                            path: {{ .Values.images.module.livenessProbe.httpGet.path }}
+                            port: {{ .Values.images.module.livenessProbe.httpGet.port | default $servicePort }}
+                        initialDelaySeconds: {{ .Values.images.module.livenessProbe.initialDelaySeconds }}
+                        periodSeconds: {{ .Values.images.module.livenessProbe.periodSeconds }}
+                        timeoutSeconds: {{ .Values.images.module.livenessProbe.timeoutSeconds }}
+                        successThreshold: {{ .Values.images.module.livenessProbe.successThreshold }}
+                        failureThreshold: {{ .Values.images.module.livenessProbe.failureThreshold }}
+                    {{- end }}
+            {{- if or (eq .Values.images.module.antiAffinity "hard") (eq .Values.images.module.antiAffinity "soft") }}
+            affinity:
+            {{- end }}
+            {{- if eq .Values.images.module.antiAffinity "hard" }}
+                podAntiAffinity:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                        -   labelSelector:
+                                matchExpressions:
+                                    -   key: app
+                                        operator: In
+                                        values:
+                                            -   "{{ template "name" . }}"
+                                    -   key: component
+                                        operator: In
+                                        values:
+                                            -   "kmehr-module"
+                            topologyKey: {{ .Values.images.module.antiAffinityTopologyKey }}
+            {{- else if eq .Values.images.module.antiAffinity "soft" }}
+                podAntiAffinity:
+                    preferredDuringSchedulingIgnoredDuringExecution:
+                        -   weight: 1
+                            podAffinityTerm:
+                                topologyKey: {{ .Values.images.module.antiAffinityTopologyKey }}
+                                labelSelector:
+                                    matchExpressions:
+                                        -   key: app
+                                            operator: In
+                                            values:
+                                                -   "{{ template "name" . }}"
+                                        -   key: component
+                                            operator: In
+                                            values:
+                                                -   "kmehr-module"
+            {{- end }}
+            {{- with .Values.images.module.volumes }}
+            volumes:
+              {{- toYaml . | nindent 16 }}
+            {{- end }}
+            {{- with .Values.images.module.imagePullSecrets | default .Values.imagePullSecrets }}
+            imagePullSecrets:
+              {{- toYaml . | nindent 16 }}
+            {{- end }}
+{{- end }}

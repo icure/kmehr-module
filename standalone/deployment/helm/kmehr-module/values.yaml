@@ -1,50 +1,174 @@
 pullPolicy: "IfNotPresent"
+ingressClassName: "haproxy-icure"
+defaultMemoryRequest: 6Gi
+defaultMemoryLimit: ""
 
-couchdbUrl: "http://couchdb-svc-couchdb.couch"
-couchdbPortNumber: 5984
-
-ingressClassName: "haproxy"
-#tls:
-#    -   secretName: tls-example-com
-#        hosts:
-#            - one.example.com
-#            - two.example.com
+# Default image pull secrets (can be overridden per image)
+imagePullSecrets:
+    - name: regsecret
 
 images:
-    kmehr:
-        repository: "docker.taktik.be/icure/icure-kmehr-module"
-        tag: "" # helm install
+    module:
+        # Image configuration
+        repository: "docker.taktik.be/icure/icure-kmehr-module"  # Required: container image repository
+        tag: ""  # Defaults to Chart.Version if not set
         replicaCount: 1
-        javaOpts: "" # config
-        memoryRequest: "4096M"
-        memoryLimit: "4096M"
-        cpuRequest: 100m
-        cpuLimit: 2
-        servicePort: 8080
-        debug: true
-        virtualHosts: []
-        readiness: true
-        liveness: true
-        env:
-            ICURE_COUCHDB_PREFIX: "icure-__"
-            ICURE_COUCHDB_ENFORCE: "TRUE"
-            ICURE_SYNC_GLOBAL_DATABASES: "TRUE"
+        # imagePullSecrets: []  # Optional: override global imagePullSecrets for this deployment
 
-    sam:
-        repository: "docker.taktik.be/icure/icure-kmehr-module"
-        tag: "" # helm install
-        replicaCount: 1
-        javaOpts: "" # config
-        memoryRequest: "4096M"
-        memoryLimit: "4096M"
-        cpuRequest: 100m
-        cpuLimit: 2
-        servicePort: 8080
-        debug: true
-        virtualHosts: [ ]
-        readiness: true
-        liveness: true
+        # ServiceAccount configuration
+        serviceAccount:
+            create: false  # Whether to create a service account
+            name: ""  # Optional: override the generated name
+            annotations: {}  # Optional annotations for the service account
+
+        # RBAC configuration
+        rbac:
+            create: false  # Whether to create RBAC resources (Role & RoleBinding)
+
+        # Pod Disruption Budget
+        podDisruptionBudget:
+            enabled: true  # Enable PDB for high availability
+            minAvailable: 1  # Minimum pods that must be available during disruptions
+            # maxUnavailable: 1  # Alternative: maximum pods that can be unavailable (don't set both)
+
+        # Security contexts
+        podSecurityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            fsGroup: 1000
+            seccompProfile:
+                type: RuntimeDefault
+
+        containerSecurityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+                drop:
+                    - ALL
+            readOnlyRootFilesystem: false  # Set to true if application doesn't need write access. You will need a mounted volume for /tmp and /dumps.
+            runAsNonRoot: true
+            runAsUser: 1000
+
+        # CouchDB configuration
+        javaOpts: "-Xmx9762m -Dorg.ektorp.support.AutoUpdateViewOnChange=false -Djava.security.egd=file:/dev/./urandom"
+        debug: false
+        cpuRequest: 2
+        cpuLimit: 4
+        servicePort: ""
+
+        # Health probes configuration
+        readinessProbe:
+            enabled: true
+            httpGet:
+                path: /actuator/health/readiness
+                port: ""  # Defaults to servicePort
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 2
+            failureThreshold: 3
+
+        livenessProbe:
+            enabled: true
+            httpGet:
+                path: /actuator/health/liveness
+                port: ""  # Defaults to servicePort
+            initialDelaySeconds: 300
+            periodSeconds: 30
+            timeoutSeconds: 8
+            successThreshold: 1
+            failureThreshold: 3
+
+        # Rolling update strategy
+        rollingUpdate:
+            maxUnavailable: 0
+            maxSurge: 1
+
+        # Horizontal Pod Autoscaler
+        autoscaling:
+            enabled: false  # Enable HPA for automatic scaling
+            minReplicas: 1
+            maxReplicas: 10
+            targetCPUUtilizationPercentage: 80
+            targetMemoryUtilizationPercentage: 80
+            # behavior:  # Optional: custom scaling behavior
+            #   scaleDown:
+            #     stabilizationWindowSeconds: 300
+            #     policies:
+            #     - type: Percent
+            #       value: 50
+            #       periodSeconds: 60
+            # customMetrics: []  # Optional: custom metrics for scaling
+
+        # Service configuration
+        service:
+            type: ClusterIP
+            annotations: {}
+
+        # Observability / Metrics
+        metrics:
+            enabled: false  # Enable Prometheus scraping annotations
+            port: ""  # Defaults to servicePort
+            path: "/actuator/prometheus"
+
+        # Pod annotations (in addition to metrics annotations)
+        podAnnotations: {}
+
+        # ConfigMap for non-sensitive configuration
+        configMap:
+            enabled: false
+            data: {}
+              # Example:
+              # SPRING_PROFILES_ACTIVE: "production"
+            # LOG_LEVEL: "INFO"
+
+        # Additional volumes and volume mounts
+        volumes: []
+          # Example for writable temp directory:
+          # - name: tmp
+          #   emptyDir: {}
+          # - name: dumps
+        #   emptyDir: {}
+
+        volumeMounts: []
+          # Example:
+          # - name: tmp
+          #   mountPath: /tmp
+          # - name: dumps
+        #   mountPath: /dumps
+
+        # Node selection
+        nodeSelector: {}
+          # Example:
+          # kubernetes.io/arch: amd64
+        # node-role: application
+
+        # Tolerations for node taints
+        tolerations: []
+          # Example:
+          # - key: "dedicated"
+          #   operator: "Equal"
+          #   value: "kraken"
+        #   effect: "NoSchedule"
+
+        # Topology spread constraints for zone distribution
+        topologySpreadConstraints: []
+          # Example:
+          # - maxSkew: 1
+          #   topologyKey: topology.kubernetes.io/zone
+          #   whenUnsatisfiable: DoNotSchedule
+          #   labelSelector:
+          #     matchLabels:
+          #       app: kraken-cloud
+        #       component: kraken
+
+        # Priority class for pod scheduling
+        priorityClassName: ""
+
+        # Environment variables
         env:
-            ICURE_COUCHDB_PREFIX: "icure-__"
-            ICURE_COUCHDB_ENFORCE: "TRUE"
-            ICURE_SYNC_GLOBAL_DATABASES: "TRUE"
+            SPRING_SESSION_ENABLED: "false"
+        ingresses:
+            -   virtualHosts:
+                    -   kmehr.icure.cloud
+                servicePort: 8080
+                path: /
