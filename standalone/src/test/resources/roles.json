@@ -1,6 +1,15 @@
 {
   "docs": [
     {
+      "_id": "xx:KMEHR_ROLE",
+      "name": "KMEHR_ROLE",
+      "permissions": [
+        "UserManagement.Update.HealthcareParty.Secrets"
+      ],
+      "rev_history": {},
+      "java_type": "org.taktik.icure.entities.Role"
+    },
+    {
       "_id": "BASIC_DATA_OWNER",
       "name": "BASIC_DATA_OWNER",
       "permissions": [

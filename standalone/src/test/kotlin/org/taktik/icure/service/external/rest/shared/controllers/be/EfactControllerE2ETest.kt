@@ -55,7 +55,7 @@ import kotlin.random.Random
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class EfactControllerE2ETest(
-	@LocalServerPort val port: Int,
+	@param:LocalServerPort val port: Int,
 	val httpClient: TestHttpClient,
 	val bridgeConfig: BridgeConfig,
 ) : BaseKmehrTest() {
