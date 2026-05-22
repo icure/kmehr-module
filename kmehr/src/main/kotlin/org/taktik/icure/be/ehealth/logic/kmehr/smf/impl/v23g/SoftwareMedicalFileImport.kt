@@ -1954,7 +1954,9 @@ class SoftwareMedicalFileImport(
 				p.familyname?.trim()?.let { it == "" } != false
 			) {
 				p.name
-					?.let { healthcarePartyLogic.listHealthcarePartiesByName(p.name).firstOrNull() }
+                    ?.trim()
+                    ?.takeIf { it.isNotEmpty() }
+                    ?.let { healthcarePartyLogic.listHealthcarePartiesByName(it).firstOrNull() }
 					?.also {
 						v.hcps.add(it) // do not create it, but should appear in patient external hcparties
 					}
@@ -1989,7 +1991,7 @@ class SoftwareMedicalFileImport(
 		hcp.copy(
 			firstName = hcp.firstName ?: p.firstname,
 			lastName = hcp.lastName ?: p.familyname,
-			name = hcp.name ?: p.name,
+            name = hcp.name ?: p.name?.trim()?.takeIf { it.isNotEmpty() },
 			ssin = hcp.ssin ?: p.ids.find { it.s == IDHCPARTYschemes.INSS }?.value,
 			nihii = hcp.nihii ?: p.ids.find { it.s == IDHCPARTYschemes.ID_HCPARTY }?.value,
 			speciality = hcp.speciality ?: p.cds.find { it.s == CDHCPARTYschemes.CD_HCPARTY }?.value,
