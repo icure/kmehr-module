@@ -124,6 +124,7 @@ subprojects {
 				force("co.touchlab:kermit:2.0.8")
 				force("com.nimbusds:nimbus-jose-jwt:9.37.4")
 				force("com.google.devtools.ksp:symbol-processing-api:2.2.0-2.0.2")
+				force("org.bouncycastle:bcprov-jdk18on:1.81")
 			}
 		}
 	}
