@@ -43,7 +43,7 @@ class UserLogicBridge(
 
 	override suspend fun changeUserMobilePhone(
 		userId: String,
-		newMobilePhone: String,
+		newMobilePhone: String?,
 		previousMobilePhone: String?
 	): User {
 		throw BridgeException()
