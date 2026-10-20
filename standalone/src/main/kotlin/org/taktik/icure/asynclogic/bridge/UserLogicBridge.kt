@@ -134,4 +134,9 @@ class UserLogicBridge(
 	override suspend fun setProperties(userId: String, properties: List<PropertyStub>): User? {
 		throw UnsupportedOperationException("The Kmehr module cannot modify users")
 	}
+
+	override suspend fun removeProperties(
+		userId: String,
+		propertyTypeIdentifiers: Set<String>
+	): User? { throw BridgeException() }
 }
