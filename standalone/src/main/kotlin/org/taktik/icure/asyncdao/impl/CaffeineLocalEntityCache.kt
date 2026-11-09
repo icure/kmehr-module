@@ -4,7 +4,6 @@
 
 package org.taktik.icure.asyncdao.impl
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
 import org.taktik.icure.asyncdao.samv2.LocalEntityCache
@@ -13,30 +12,19 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.toJavaDuration
 
-/**
- * [LocalEntityCache] backed by a Caffeine cache.
- *
- * The cache is bounded by weight: each entity weighs the size in bytes of its JSON serialization, so the
- * [maximumSizeBytes] is an estimate of the data held by the cache, not of its exact heap footprint.
- */
 class CaffeineLocalEntityCache<T : StoredDocument>(
-	private val objectMapper: ObjectMapper,
-	maximumSizeBytes: Long = DEFAULT_MAXIMUM_SIZE_BYTES,
+	maximumSize: Long = DEFAULT_MAXIMUM_SIZE,
 	expireAfterWrite: Duration = 10.minutes,
 ) : LocalEntityCache<T> {
 
 	companion object {
-		const val DEFAULT_MAXIMUM_SIZE_BYTES = 500L * 1024 * 1024
+		const val DEFAULT_MAXIMUM_SIZE = 10_000L
 	}
 
 	private val cache: Cache<String, T> = Caffeine.newBuilder()
-		.maximumWeight(maximumSizeBytes)
-		.weigher { _: String, entity: T -> weightOf(entity) }
+		.maximumSize(maximumSize)
 		.expireAfterWrite(expireAfterWrite.toJavaDuration())
 		.build()
-
-	private fun weightOf(entity: T): Int =
-		runCatching { objectMapper.writeValueAsBytes(entity).size }.getOrDefault(1)
 
 	override fun getIfPresent(id: String): T? = cache.getIfPresent(id)
 

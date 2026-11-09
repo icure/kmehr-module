@@ -16,6 +16,6 @@ import org.taktik.icure.entities.samv2.Amp
 @Configuration
 class LocalEntityCacheConfig {
 	@Bean
-	fun ampLocalEntityCache(objectMapper: ObjectMapper): LocalEntityCache<Amp> =
-		CaffeineLocalEntityCache(objectMapper)
+	fun ampLocalEntityCache(): LocalEntityCache<Amp> =
+		CaffeineLocalEntityCache()
 }
