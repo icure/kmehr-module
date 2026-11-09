@@ -13,6 +13,7 @@ import org.taktik.couchdb.dao.DesignDocumentProvider
 import org.taktik.couchdb.id.IDGenerator
 import org.taktik.icure.asyncdao.CouchDbDispatcher
 import org.taktik.icure.asyncdao.samv2.AmpDAO
+import org.taktik.icure.asyncdao.samv2.LocalEntityCache
 import org.taktik.icure.asyncdao.samv2.NmpDAO
 import org.taktik.icure.asyncdao.samv2.ParagraphDAO
 import org.taktik.icure.asyncdao.samv2.PharmaceuticalFormDAO
@@ -35,6 +36,7 @@ import org.taktik.icure.asynclogic.samv2.UpdatesBridge
 import org.taktik.icure.asynclogic.samv2.impl.SamV2Updater
 import org.taktik.icure.dao.CouchDbDispatcherProvider
 import org.taktik.icure.datastore.DatastoreInstanceProvider
+import org.taktik.icure.entities.samv2.Amp
 import org.taktik.icure.properties.SAMCouchDbProperties
 import org.taktik.icure.security.CouchDbCredentialsProvider
 
@@ -115,11 +117,13 @@ open class SamDaoConfig {
 		@Qualifier("drugCouchDbDispatcher") couchDbDispatcher: CouchDbDispatcher,
 		datastoreInstanceProvider: DatastoreInstanceProvider,
 		designDocumentProvider: DesignDocumentProvider,
+		ampLocalEntityCache: LocalEntityCache<Amp>?,
 	): AmpDAO =
 		AmpDAOImpl(
 			couchDbDispatcher = couchDbDispatcher,
 			datastoreInstanceProvider = datastoreInstanceProvider,
 			designDocumentProvider = designDocumentProvider,
+			localEntityCache = ampLocalEntityCache,
 		)
 
 	@Bean
