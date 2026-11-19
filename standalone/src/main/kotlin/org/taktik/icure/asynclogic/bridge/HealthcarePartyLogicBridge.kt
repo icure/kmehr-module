@@ -12,12 +12,10 @@ import com.icure.cardinal.sdk.model.HealthcareParty as SdkHealthcareParty
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import org.springframework.stereotype.Service
-import org.taktik.couchdb.ViewQueryResultEvent
 import org.taktik.couchdb.entity.ComplexKey
 import org.taktik.icure.asynclogic.HealthcarePartyLogic
 import org.taktik.icure.asynclogic.bridge.mappers.HealthcarePartyMapper
 import org.taktik.icure.db.PaginationOffset
-import org.taktik.icure.domain.filter.chain.FilterChain
 import org.taktik.icure.entities.HealthcareParty
 import org.taktik.icure.exceptions.BridgeException
 import org.taktik.icure.pagination.PaginationElement
@@ -33,13 +31,6 @@ class HealthcarePartyLogicBridge(
 			.let { healthcarePartyMapper.map(it) }
 
 	override fun createHealthcareParties(healthcareParties: List<HealthcareParty>): Flow<HealthcareParty> {
-		throw BridgeException()
-	}
-
-	override fun filterHealthcareParties(
-		paginationOffset: PaginationOffset<Nothing>,
-		filter: FilterChain<HealthcareParty>,
-	): Flow<ViewQueryResultEvent> {
 		throw BridgeException()
 	}
 
@@ -72,6 +63,7 @@ class HealthcarePartyLogicBridge(
 		throw BridgeException()
 	}
 
+	@Suppress("DEPRECATION")
 	private suspend fun getHcpHierarchyIdsRecursive(
 		api: HealthcarePartyApi,
 		healthcarePartyId: String?,
@@ -177,6 +169,7 @@ class HealthcarePartyLogicBridge(
 
 	// Note: the batch size is intentionally small because in all the usages of this function only the first
 	// result is taken, so there is no need to have a bigger batch size.
+	@Suppress("DEPRECATION")
 	override fun listHealthcarePartiesByNihii(nihii: String): Flow<HealthcareParty> =
 		listHealthcarePartiesBySsinOrNihii(nihii) { it.nihii == nihii }
 

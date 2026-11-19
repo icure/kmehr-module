@@ -70,13 +70,6 @@ class ContactLogicBridge(
 		throw BridgeException()
 	}
 
-	override fun filterContacts(
-		paginationOffset: PaginationOffset<Nothing>,
-		filter: FilterChain<Contact>
-	): Flow<ViewQueryResultEvent> {
-		throw BridgeException()
-	}
-
 	override fun filterServices(
 		paginationOffset: PaginationOffset<Nothing>,
 		filter: FilterChain<Service>
@@ -195,6 +188,8 @@ class ContactLogicBridge(
 			emitAll(rawContactApi.matchServicesBy(it).successBody().asFlow())
 		} ?: throw IllegalArgumentException("Unsupported filter ${filter::class.simpleName}")
 	}
+
+
 
 	override fun modifyEntities(entities: Collection<Contact>): Flow<Contact> = modifyEntities(entities.asFlow())
 }

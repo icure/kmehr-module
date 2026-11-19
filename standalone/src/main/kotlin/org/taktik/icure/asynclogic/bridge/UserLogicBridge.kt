@@ -10,7 +10,6 @@ import org.taktik.couchdb.ViewQueryResultEvent
 import org.taktik.icure.asynclogic.UserLogic
 import org.taktik.icure.asynclogic.bridge.mappers.UserMapper
 import org.taktik.icure.db.PaginationOffset
-import org.taktik.icure.domain.filter.chain.FilterChain
 import org.taktik.icure.entities.EnhancedUser
 import org.taktik.icure.entities.User
 import org.taktik.icure.entities.base.PropertyStub
@@ -74,13 +73,6 @@ class UserLogicBridge(
 		throw UnsupportedOperationException("The Kmehr module cannot enable users")
 	}
 
-	override fun filterUsers(
-		paginationOffset: PaginationOffset<Nothing>,
-		filter: FilterChain<User>
-	): Flow<ViewQueryResultEvent> {
-		throw BridgeException()
-	}
-
 	override fun findByNameEmailPhone(
 		searchString: String,
 		pagination: PaginationOffset<String>
@@ -139,4 +131,18 @@ class UserLogicBridge(
 		userId: String,
 		propertyTypeIdentifiers: Set<String>
 	): User? { throw BridgeException() }
+
+	override suspend fun deleteAuthenticationToken(
+		userId: String,
+		key: String
+	): User {
+		throw BridgeException()
+	}
+
+	override suspend fun deleteAllAuthenticationTokens(
+		userId: String,
+		keysToSkip: Set<String>
+	): User {
+		throw BridgeException()
+	}
 }
