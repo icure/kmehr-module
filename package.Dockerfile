@@ -1,7 +1,7 @@
 ARG version
 FROM --platform=$BUILDPLATFORM docker.taktik.be/icure/icure-kmehr-module:$version as builder
 
-FROM docker.taktik.be/ubuntu-graalvm:21.0.1
+FROM docker.taktik.be/ubuntu-jdk:21.0.13.1
 ARG version
 COPY --from=builder /build/standalone-$version.jar ./icure-kmehr-module-$version.jar
 VOLUME /tmp
