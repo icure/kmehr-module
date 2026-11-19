@@ -2,8 +2,10 @@ package org.taktik.icure.asynclogic.bridge
 
 import kotlinx.coroutines.flow.Flow
 import org.taktik.couchdb.DocIdentifier
+import org.taktik.couchdb.ViewQueryResultEvent
 import org.taktik.couchdb.entity.IdAndRev
 import org.taktik.couchdb.id.Identifiable
+import org.taktik.icure.db.PaginationOffset
 import org.taktik.icure.domain.filter.AbstractFilter
 import org.taktik.icure.domain.filter.chain.FilterChain
 import org.taktik.icure.entities.base.Code
@@ -16,6 +18,13 @@ import org.taktik.icure.exceptions.BridgeException
 
 @Suppress("UNUSED_PARAMETER", "RedundantSuspendModifier", "unused")
 open class GenericLogicBridge<E : StoredDocument> {
+
+	fun filterEntitiesBy(
+		paginationOffset: PaginationOffset<Nothing>,
+		filter: FilterChain<E>
+	): Flow<ViewQueryResultEvent> {
+		throw BridgeException()
+	}
 
 	open fun matchEntitiesBy(filter: AbstractFilter<*>): Flow<String> {
 		throw BridgeException()

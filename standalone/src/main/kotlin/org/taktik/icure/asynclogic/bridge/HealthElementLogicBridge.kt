@@ -10,11 +10,8 @@ import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import org.springframework.stereotype.Service
-import org.taktik.couchdb.ViewQueryResultEvent
 import org.taktik.icure.asynclogic.HealthElementLogic
 import org.taktik.icure.asynclogic.bridge.mappers.HealthElementMapper
-import org.taktik.icure.db.PaginationOffset
-import org.taktik.icure.domain.filter.chain.FilterChain
 import org.taktik.icure.entities.HealthElement
 import org.taktik.icure.entities.embed.Delegation
 import org.taktik.icure.entities.requests.BulkShareOrUpdateMetadataParams
@@ -36,13 +33,6 @@ class HealthElementLogicBridge(
 			.asFlow()
 			.map(healthElementMapper::map)
 		)
-	}
-
-	override fun filter(
-		paginationOffset: PaginationOffset<Nothing>,
-		filter: FilterChain<HealthElement>
-	): Flow<ViewQueryResultEvent> {
-		throw BridgeException()
 	}
 
 	override suspend fun getHealthElement(healthElementId: String): HealthElement? {
